@@ -137,6 +137,11 @@ def selftest() -> int:
 
 
 def main() -> int:
+    for _s in (sys.stdout, sys.stderr):   # checkmarks / non-ASCII in CLI output on Windows
+        try:
+            _s.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     args = sys.argv[1:]
     if args and args[0] == "--selftest":
         return selftest()
