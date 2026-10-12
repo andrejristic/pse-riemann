@@ -35,7 +35,8 @@ jobs:
       - name: Selftest
         shell: pwsh
         run: |
-          $p = Start-Process "$env:RUNNER_TEMP\rie\pse-riemann.exe" -ArgumentList '--selftest' -PassThru -Wait -RedirectStandardOutput "$env:RUNNER_TEMP\st.log" -RedirectStandardError "$env:RUNNER_TEMP\ste.log"
+          $p = Start-Process "$env:RUNNER_TEMP\rie\pse-riemann.exe" -ArgumentList '--selftest' -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\st.log" -RedirectStandardError "$env:RUNNER_TEMP\ste.log"
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); Write-Host "--- TIMEOUT; stdout so far:"; Get-Content "$env:RUNNER_TEMP\st.log" -ErrorAction SilentlyContinue; Write-Host "--- stderr:"; Get-Content "$env:RUNNER_TEMP\ste.log" -ErrorAction SilentlyContinue; throw "selftest timed out" }
           Write-Host "--- stdout:"; Get-Content "$env:RUNNER_TEMP\st.log" -ErrorAction SilentlyContinue
           Write-Host "--- stderr:"; Get-Content "$env:RUNNER_TEMP\ste.log" -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "selftest failed ($($p.ExitCode))" }
