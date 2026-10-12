@@ -1,0 +1,19 @@
+[project]
+name = "pse-riemann"
+version = "0.1.0"
+description = "PSE Riemann: a PSE-governed workbench around the Riemann zeta function."
+license = "GPL-3.0-or-later"
+authors = [{ name = "Andrej Ristic" }]
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.5", "mpmath>=1.3", "numpy>=1.24", "matplotlib>=3.7"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pse_r*"]
+
+[tool.setuptools.package-data]
+pse_r = ["**/*.json", "**/*.txt", "**/*.csv"]
