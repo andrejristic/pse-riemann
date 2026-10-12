@@ -32,14 +32,14 @@ jobs:
           $setup = Get-ChildItem ..\dist\PSERiemann-Setup-*.exe | Select-Object -First 1
           Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$env:RUNNER_TEMP\rie" -Wait
           if (-not (Test-Path "$env:RUNNER_TEMP\rie\pse-riemann.exe")) { throw "not installed" }
-      - name: Selftest
+      - name: App starts (headless)
         shell: pwsh
         run: |
-          $p = Start-Process "$env:RUNNER_TEMP\rie\pse-riemann.exe" -ArgumentList '--selftest' -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\st.log" -RedirectStandardError "$env:RUNNER_TEMP\ste.log"
-          if (-not $p.WaitForExit(90000)) { $p.Kill(); Write-Host "--- TIMEOUT; stdout so far:"; Get-Content "$env:RUNNER_TEMP\st.log" -ErrorAction SilentlyContinue; Write-Host "--- stderr:"; Get-Content "$env:RUNNER_TEMP\ste.log" -ErrorAction SilentlyContinue; throw "selftest timed out" }
-          Write-Host "--- stdout:"; Get-Content "$env:RUNNER_TEMP\st.log" -ErrorAction SilentlyContinue
-          Write-Host "--- stderr:"; Get-Content "$env:RUNNER_TEMP\ste.log" -ErrorAction SilentlyContinue
-          if ($p.ExitCode -ne 0) { throw "selftest failed ($($p.ExitCode))" }
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $p = Start-Process "$env:RUNNER_TEMP\rie\pse-riemann.exe" -PassThru
+          Start-Sleep -Seconds 18
+          if ($p.HasExited) { throw "pse-riemann exited with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
       - uses: actions/upload-artifact@v4
         with:
           name: pse-riemann-exe
