@@ -1,0 +1,26 @@
+{
+ "source_ref": "doi:10.1007/s00605-008-0022-x",
+ "title": "The Nicolas and Robin inequalities with sums of two squares",
+ "abstract": "In 1984, G. Robin proved that the Riemann hypothesis is true if and only if the Robin inequality σ(n) < e γ n log log n holds for every integer n > 5040, where σ(n) is the sum of divisors function, and γ is the Euler–Mascheroni constant. We exhibit a broad class of subsets $${\\mathcal {S}}$$ of the natural numbers such that the Robin inequality holds for all but finitely many $${n \\in \\mathcal {S}}$$ . As a special case, we determine the finitely many numbers of the form n = a 2 + b 2 that do not satisfy the Robin inequality. In fact, we prove our assertions with the Nicolas inequality n/φ(n) < e γ log log n; since σ(n)/n < n/φ(n) for n > 1 our results for the Robin inequality follow at once.",
+ "authors": [
+  "William D. Banks",
+  "Derrick Hart",
+  "Pieter Moree",
+  "C. Wesley Nevans"
+ ],
+ "year": "2008",
+ "url": "https://doi.org/10.1007/s00605-008-0022-x",
+ "venue": "Monatshefte für Mathematik",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 10,
+  "openalex": "W2097455563"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198951.654997,
+ "_branch": "equivalences",
+ "_branch_score": 2.6,
+ "_coarse": true,
+ "_state": "coarse_ok",
+ "_triage_error": "nijedan provajder nije podešen — otvori čarobnjaka (Ctrl+K → 'provajderi') i unesi bar jedan ključ. Groq, Gemini i Mistral imaju besplatan tier."
+}

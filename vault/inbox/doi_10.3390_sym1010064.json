@@ -1,0 +1,23 @@
+{
+ "source_ref": "doi:10.3390/sym1010064",
+ "title": "Nuclei, Primes and the Random Matrix Connection",
+ "abstract": "In this article, we discuss the remarkable connection between two very different fields, number theory and nuclear physics. We describe the essential aspects of these fields, the quantities studied, and how insights in one have been fruitfully applied in the other. The exciting branch of modern mathematics – random matrix theory – provides the connection between the two fields. We assume no detailed knowledge of number theory, nuclear physics, or random matrix theory; all that is required is some familiarity with linear algebra and probability theory, as well as some results from complex analysis. Our goal is to provide the inquisitive reader with a sound overview of the subjects, placing them in their historical context in a way that is not traditionally given in the popular and technical surveys.",
+ "authors": [
+  "F.W.K. Firk",
+  "Steven J. Miller"
+ ],
+ "year": "2009",
+ "url": "https://doi.org/10.3390/sym1010064",
+ "venue": "Symmetry",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 47,
+  "openalex": "W2048166320"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2791529,
+ "_branch": "rmt",
+ "_branch_score": 1.3,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

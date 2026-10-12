@@ -1,0 +1,24 @@
+{
+ "source_ref": "doi:10.1103/revmodphys.71.313",
+ "title": "Multiple scattering of classical waves: microscopy, mesoscopy, and diffusion",
+ "abstract": "A tutorial discussion of the propagation of waves in random media is presented. To a first approximation the transport of the multiple scattered waves is given by diffusion theory, but important corrections are presented. These corrections are calculated with the radiative transfer or Schwarzschild-Milne equation, which describes intensity transport at the ``mesoscopic'' level and is derived from the ``microscopic'' wave equation. A precise treatment of the diffuse intensity is derived which automatically includes the effects of boundary layers. Effects such as the enhanced backscatter cone and imaging of objects in opaque media are also discussed within this framework. This approach is extended to mesoscopic correlations between multiple scattered intensities that arise when scattering is strong. These correlations arise from the underlying wave character. The derivation of correlation functions and intensity distribution functions is given and experimental data are discussed. Although the focus is on light scattering, the theory is also applicable to microwaves, sound waves, and noninteracting electrons.",
+ "authors": [
+  "Mark C. W. van Rossum",
+  "Theo M. Nieuwenhuizen"
+ ],
+ "year": "1999",
+ "url": "https://doi.org/10.1103/revmodphys.71.313",
+ "venue": "Reviews of Modern Physics",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 780,
+  "openalex": "W2120611228"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.281157,
+ "_branch": "",
+ "_branch_score": 0.0,
+ "_coarse": false,
+ "_state": "dropped",
+ "_drop_reason": "gruba: ne pominje ζ / L-funkcije / primove"
+}

@@ -1,0 +1,23 @@
+{
+ "source_ref": "doi:10.1007/s11139-022-00574-4",
+ "title": "Robin’s criterion on divisibility",
+ "abstract": "",
+ "authors": [
+  "Frank Vega"
+ ],
+ "year": "2022",
+ "url": "https://doi.org/10.1007/s11139-022-00574-4",
+ "venue": "The Ramanujan Journal",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 18,
+  "openalex": "W4225304578"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198951.6489573,
+ "_branch": "equivalences",
+ "_branch_score": 1.3,
+ "_coarse": false,
+ "_state": "dropped",
+ "_drop_reason": "gruba: ne pominje ζ / L-funkcije / primove"
+}

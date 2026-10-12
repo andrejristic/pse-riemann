@@ -1,0 +1,22 @@
+{
+ "source_ref": "doi:10.1090/s0025-5718-1987-0866115-0",
+ "title": "On the distribution of spacings between zeros of the zeta function",
+ "abstract": "A numerical study of the distribution of spacings between zeros of the Riemann zeta function is presented. It is based on values for the first<inline-formula content-type=\"math/mathml\"><mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" alttext=\"10 Superscript 5\"><mml:semantics><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:msup><mml:mn>10</mml:mn><mml:mn>5</mml:mn></mml:msup></mml:mrow><mml:annotation encoding=\"application/x-tex\">{10^5}</mml:annotation></mml:semantics></mml:math></inline-formula>zeros and for zeros number<inline-formula content-type=\"math/mathml\"><mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" alttext=\"10 Superscript 12 Baseline plus 1\"><mml:semantics><mml:mrow><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:msup><mml:mn>10</mml:mn><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:mn>12</mml:mn></mml:mrow></mml:msup></mml:mrow><mml:mo>+</mml:mo><mml:mn>1</mml:mn></mml:mrow><mml:annotation encoding=\"application/x-tex\">{10^{12}} + 1</mml:annotation></mml:semantics></mml:math></inline-formula>to<inline-formula content-type=\"math/mathml\"><mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" alttext=\"10 Superscript 12 Baseline plus 10 Superscript 5\"><mml:semantics><mml:mrow><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:msup><mml:mn>10</mml:mn><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:mn>12</mml:mn></mml:mrow></mml:msup></mml:mrow><mml:mo>+</mml:mo><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:msup><mml:mn>10</mml:mn><mml:mn>5</mml:mn></mml:msup></mml:mrow></mml:mrow><mml:annotation encoding=\"application/x-tex\">{10^{12}} + {10^5}</mml:annotation></mml:semantics></mml:math></inline-formula>that are accurate to within<inline-formula content-type=\"math/mathml\"><mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" alttext=\"plus-or-minus 10 Superscript negative 8\"><mml:semantics><mml:mrow><mml:mo>±</mml:mo><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:msup><mml:mn>10</mml:mn><mml:mrow class=\"MJX-TeXAtom-ORD\"><mml:mo>−</mml:mo><mml:mn>8</mml:mn></mml:mrow></mml:msup></mml:mrow></mml:mrow><mml:annotation encoding=\"application/x-tex\">\\pm {10^{ - 8}}</mml:annotation></mml:semantics></mml:math></inline-formula>, and which were calculated on the Cray-1 and Cray X-MP computers. This study tests the Montgomery pair correlation conjecture as well as some further conjectures that predict that the zeros of the zeta function behave like eigenvalues of random Hermitian matrices. Matrices of this type are used in modeling energy levels in physics, and many statistical properties of their eigenvalues are known. The agreement between actual statistics for zeros of the zeta function and conjectured results is generally good, and improves at larger heights. Several initially unexpected phenomena were found in the data and some were explained by relating them to the primes.",
+ "authors": [
+  "Andrew Odlyzko"
+ ],
+ "year": "1987",
+ "url": "https://doi.org/10.1090/s0025-5718-1987-0866115-0",
+ "venue": "Mathematics of Computation",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 402,
+  "openalex": "W2040790258"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2744913,
+ "_branch": "rmt",
+ "_branch_score": 2.6,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

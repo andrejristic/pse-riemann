@@ -1,0 +1,19 @@
+{
+ "source_ref": "doi:10.33774/coe-2023-hfgk7-v2",
+ "title": "Criterion for the Riemann Hypothesis",
+ "abstract": "Let $\\Psi(n) = n \\cdot \\prod_{q \\mid n} \\left(1 + \\frac{1}{q} \\right)$ denote the Dedekind $\\Psi$ function where $q \\mid n$ means the prime $q$ divides $n$. Define, for $n \\geq 3$; the ratio $R(n) = \\frac{\\Psi(n)}{n \\cdot \\log \\log n}$ where $\\log$ is the natural logarithm. Let $M_{x} = \\prod_{q \\leq x} q$ be the product extending over all prime numbers $q$ that are less than or equal to $x$. The Riemann hypothesis is the assertion that all non-trivial zeros are complex numbers with real part $\\frac{1}{2}$. It is considered by many to be the most important unsolved problem in pure mathematics. We state that if the Riemann hypothesis is false, then there exist infinitely natural numbers $x$ such that the inequality $R(M_{x}) &lt; \\frac{e^{\\gamma}}{\\zeta(2)}$ holds, where $\\gamma \\approx 0.57721$ is the Euler-Mascheroni constant and $\\zeta(x)$ is the Riemann zeta function. In this note, using our criterion, we prove that the Riemann hypothesis is true.",
+ "authors": [
+  "Frank Vega"
+ ],
+ "year": "2023",
+ "url": "https://doi.org/10.33774/coe-2023-hfgk7-v2",
+ "venue": "",
+ "origin": "crossref",
+ "extra": {},
+ "injection_hits": [],
+ "_stashed": 1785198951.6607833,
+ "_branch": "",
+ "_branch_score": 0.0,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

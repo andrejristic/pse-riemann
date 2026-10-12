@@ -1,0 +1,24 @@
+{
+ "source_ref": "doi:10.1007/jhep04(2021)033",
+ "title": "AdS3 gravity and random CFT",
+ "abstract": "A bstract We compute the path integral of three-dimensional gravity with negative cosmological constant on spaces which are topologically a torus times an interval. These are Euclidean wormholes, which smoothly interpolate between two asymptotically Euclidean AdS 3 regions with torus boundary. From our results we obtain the spectral correlations between BTZ black hole microstates near threshold, as well as extract the spectral form factor at fixed momentum, which has linear growth in time with small fluctuations around it. The low-energy limit of these correlations is precisely that of a double-scaled random matrix ensemble with Virasoro symmetry. Our findings suggest that if pure three-dimensional gravity has a holographic dual, then the dual is an ensemble which generalizes random matrix theory.",
+ "authors": [
+  "Jordan Cotler",
+  "Kristan Jensen"
+ ],
+ "year": "2021",
+ "url": "https://doi.org/10.1007/jhep04(2021)033",
+ "venue": "Journal of High Energy Physics",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 170,
+  "openalex": "W3034470899"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2781522,
+ "_branch": "rmt",
+ "_branch_score": 1.3,
+ "_coarse": false,
+ "_state": "dropped",
+ "_drop_reason": "gruba: ne pominje ζ / L-funkcije / primove"
+}

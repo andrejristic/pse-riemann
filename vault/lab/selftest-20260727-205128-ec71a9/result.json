@@ -1,0 +1,57 @@
+{
+ "run_id": "selftest-20260727-205128-ec71a9",
+ "experiment": "selftest",
+ "title": "Self-test numerike",
+ "params": {
+  "n_points": 8
+ },
+ "numbers": {
+  "points": 8,
+  "max_functional_eq_residual": 2.1526349109709204e-30,
+  "max_zero_error_vs_known": 3.552713678800501e-15
+ },
+ "reading": "Funkcionalna jedna\u010dina \u03b6(s) = \u03c7(s)\u03b6(1\u2212s) provjerena u 8 ta\u010daka; najve\u0107i ostatak 2.153e-30.\nPrvih 5 nula upore\u0111eno sa objavljenim vrijednostima; najve\u0107a razlika 3.553e-15.\n\n\u2705 Numerika je zdrava \u2014 ostalim eksperimentima se mo\u017ee vjerovati.",
+ "warnings": [],
+ "plots": [],
+ "elapsed_s": 0.341,
+ "script_sha256": "0a4664fbda1d3c9bb5441e5af89597ca99b799dc0c79775259ab22d60978be4b",
+ "mpmath": "1.3.0",
+ "python": "3.13.14",
+ "when": "2026-07-27T20:51:29-04:00",
+ "series": {
+  "residual": [
+   [
+    0,
+    6.972611193684198e-32
+   ],
+   [
+    1,
+    3.3073998916241273e-31
+   ],
+   [
+    2,
+    6.972611193684198e-31
+   ],
+   [
+    3,
+    5.423418723394456e-31
+   ],
+   [
+    4,
+    2.1526349109709204e-30
+   ],
+   [
+    5,
+    1.5019464165624099e-30
+   ],
+   [
+    6,
+    8.131392090366485e-31
+   ],
+   [
+    7,
+    2.7561665763534394e-31
+   ]
+  ]
+ }
+}
