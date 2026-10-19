@@ -1,0 +1,82 @@
+{
+ "run_id": "counting-20260727-205135-b1486b",
+ "experiment": "counting",
+ "title": "N(T) i provjera RH na intervalu",
+ "params": {
+  "T": 60.0,
+  "samples_per_unit": 8.0
+ },
+ "numbers": {
+  "T": 60.0,
+  "step": 0.05,
+  "zeros_on_line": 13,
+  "N_smooth": 12.873491,
+  "S_of_T": 0.126509
+ },
+ "reading": "Do visine T = 60 prona\u0111eno je **13 nula na kriti\u010dnoj pravoj**. Glatka formula \u03b8(T)/\u03c0 + 1 daje 12.8735, pa je S(T) = +0.1265.\n\nOvo je numeri\u010dka provjera RH na intervalu (0, 60]: broj nula NA pravoj poklapa se sa ukupnim brojem nula u traci koji predvi\u0111a teorija. Da postoji nula van prave ispod ove visine, brojevi se ne bi slagali.\n\nS(T) je mali i mijenja se sporo. Poznato je da S(T) = O(log T) i da ide u \u00b1\u221e, ali izuzetno sporo \u2014 prvi put pre\u0111e 3 tek astronomski visoko. To je razlog za\u0161to numerika izgleda tako uvjerljivo, i razlog za\u0161to ne dokazuje ni\u0161ta.",
+ "warnings": [],
+ "plots": [
+  "plot1.png"
+ ],
+ "elapsed_s": 2.96,
+ "script_sha256": "53f49bbf03b4ad67bf8b9ac7678d96bfdcf1b21985ec813b25a3cb761bfdeab1",
+ "mpmath": "1.3.0",
+ "python": "3.13.14",
+ "when": "2026-07-27T20:51:38-04:00",
+ "series": {
+  "S": [
+   [
+    14.134725141731902,
+    0.5502528294690514
+   ],
+   [
+    21.0220396387711,
+    0.4297888161648127
+   ],
+   [
+    25.01085758014525,
+    0.6064021462581177
+   ],
+   [
+    30.424876125858287,
+    0.32893554928435353
+   ],
+   [
+    32.935061587739625,
+    0.6827289912174983
+   ],
+   [
+    37.58617815882609,
+    0.4064447975763965
+   ],
+   [
+    40.91871901214763,
+    0.43487089229608955
+   ],
+   [
+    43.32707328091783,
+    0.7056188723650143
+   ],
+   [
+    48.00515088116809,
+    0.22918146509149828
+   ],
+   [
+    49.77383247767284,
+    0.6516637334006798
+   ],
+   [
+    52.97032147771387,
+    0.5827866197943692
+   ],
+   [
+    56.4462476970657,
+    0.38566275930872784
+   ],
+   [
+    59.347044002605244,
+    0.36043471414383177
+   ]
+  ]
+ }
+}

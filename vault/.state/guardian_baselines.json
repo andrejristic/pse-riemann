@@ -1,0 +1,200 @@
+{
+ "export.arxiv.org": {
+  "cadence": {
+   "n": 12,
+   "mean": 1.1864708256095955,
+   "M2": 21.662927059957674
+  },
+  "egress": {
+   "n": 12,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 11,
+   "mean": 120.3823697350242,
+   "M2": 1545277.934030464
+  },
+  "endpoints": [
+   "/api/query"
+  ],
+  "last_ts": 1785200145.3643053,
+  "n": 12
+ },
+ "api.openalex.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/works"
+  ],
+  "last_ts": 1785198821.7577462,
+  "n": 1
+ },
+ "api.crossref.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/works"
+  ],
+  "last_ts": 1785198821.9553723,
+  "n": 1
+ },
+ "api.zbmath.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/v1/document/_search"
+  ],
+  "last_ts": 1785198822.6598284,
+  "n": 1
+ },
+ "api.stackexchange.com": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/2.3/search/advanced"
+  ],
+  "last_ts": 1785198822.8603606,
+  "n": 1
+ },
+ "oeis.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/search"
+  ],
+  "last_ts": 1785198823.1870096,
+  "n": 1
+ },
+ "terrytao.wordpress.com": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/feed/"
+  ],
+  "last_ts": 1785198823.2997763,
+  "n": 1
+ },
+ "en.wikipedia.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/w/api.php"
+  ],
+  "last_ts": 1785198823.4868464,
+  "n": 1
+ },
+ "www.lmfdb.org": {
+  "cadence": {
+   "n": 1,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "egress": {
+   "n": 1,
+   "mean": 121.0,
+   "M2": 0.0
+  },
+  "iat": {
+   "n": 0,
+   "mean": 0.0,
+   "M2": 0.0
+  },
+  "endpoints": [
+   "/api/lfunc_zeros/"
+  ],
+  "last_ts": 1785198823.7549894,
+  "n": 1
+ }
+}

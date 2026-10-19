@@ -1,0 +1,23 @@
+{
+ "source_ref": "doi:10.1103/physrevx.5.011033",
+ "title": "Model Selection and Hypothesis Testing for Large-Scale Network Models with Overlapping Groups",
+ "abstract": "Modeling a network with too many parameters is likely to lead to overfitting. The minimum description length principle is used to reliably model networks and robustly differentiate models on the basis of confidence levels.",
+ "authors": [
+  "Tiago P. Peixoto"
+ ],
+ "year": "2015",
+ "url": "https://doi.org/10.1103/physrevx.5.011033",
+ "venue": "Physical Review X",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 106,
+  "openalex": "W2039000865"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198951.6529746,
+ "_branch": "",
+ "_branch_score": 0.0,
+ "_coarse": false,
+ "_state": "dropped",
+ "_drop_reason": "gruba: ne pominje ζ / L-funkcije / primove"
+}

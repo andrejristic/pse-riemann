@@ -1,0 +1,25 @@
+{
+ "source_ref": "doi:10.1073/pnas.1902572116",
+ "title": "Jensen polynomials for the Riemann zeta function and other sequences",
+ "abstract": "In 1927, Pólya proved that the Riemann hypothesis is equivalent to the hyperbolicity of Jensen polynomials for the Riemann zeta function [Formula: see text] at its point of symmetry. This hyperbolicity has been proved for degrees [Formula: see text] We obtain an asymptotic formula for the central derivatives [Formula: see text] that is accurate to all orders, which allows us to prove the hyperbolicity of all but finitely many of the Jensen polynomials of each degree. Moreover, we establish hyperbolicity for all [Formula: see text] These results follow from a general theorem which models such polynomials by Hermite polynomials. In the case of the Riemann zeta function, this proves the Gaussian unitary ensemble random matrix model prediction in derivative aspect. The general theorem also allows us to prove a conjecture of Chen, Jia, and Wang on the partition function.",
+ "authors": [
+  "Michael Griffin",
+  "Ken Ono",
+  "Larry Rolen",
+  "Don Zagier"
+ ],
+ "year": "2019",
+ "url": "https://doi.org/10.1073/pnas.1902572116",
+ "venue": "Proceedings of the National Academy of Sciences",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 115,
+  "openalex": "W2917089270"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.277035,
+ "_branch": "rmt",
+ "_branch_score": 1.3,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

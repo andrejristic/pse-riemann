@@ -1,0 +1,26 @@
+{
+ "source_ref": "arxiv:2411.01385",
+ "title": "Optimal Cosine Polynomials for Riemann Zeta Zero-Free Region",
+ "abstract": "The zero-free region of the Riemann zeta function plays a pivotal role in understanding the distribution of prime numbers. Historically, E. Landau used a particular type of non-negative cosine polynomial to construct this region. Subsequent research by various mathematicians sought the optimal cosine polynomial that provides the largest zero-free region under this construction. In 1992, V. V. Arestov identified the optimal polynomial for all degrees up to 6. This article employs numerical methods to determine the optimal polynomials of degrees 7 and 8, as well as the corresponding zero-free region of the Riemann zeta function.",
+ "authors": [
+  "Hong Sheng Tan"
+ ],
+ "year": "2024",
+ "url": "http://arxiv.org/abs/2411.01385v2",
+ "venue": "",
+ "origin": "arxiv",
+ "extra": {
+  "doi": "",
+  "ar5iv": "https://ar5iv.org/abs/2411.01385",
+  "categories": [
+   "math.NT"
+  ],
+  "branch_hint": "zero_free"
+ },
+ "injection_hits": [],
+ "_stashed": 1785200139.2094002,
+ "_branch": "zero_free",
+ "_branch_score": 1.0,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

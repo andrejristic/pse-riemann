@@ -1,0 +1,22 @@
+{
+ "source_ref": "doi:10.3792/pjaa.83.47",
+ "title": "Robin's inequality and the Riemann hypothesis",
+ "abstract": "Let $f(n)=\\sigma(n)/e^\\gamma n\\log\\log n$, $n=3,4,\\ldots$ , where $\\sigma$ denotes the sum of divisors function. In 1984 Robin proved that the inequality $f(n)>1$, for all $n\\ge 5041$, is equivalent to the Riemann hypothesis. Here we show that the values of $f$ are close to $0$ on a set of asymptotic density $1$. Similarly, an inequality by Rosser and Schoenfeld of 1962, dealing with the Euler totient function $\\varphi$, is essential only on \"thin\" subsets of $\\mathbf{N}$.",
+ "authors": [
+  "Marek Wójtowicz"
+ ],
+ "year": "2007",
+ "url": "https://doi.org/10.3792/pjaa.83.47",
+ "venue": "Proceedings of the Japan Academy Series A Mathematical Sciences",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 10,
+  "openalex": "W2114088771"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198951.650906,
+ "_branch": "equivalences",
+ "_branch_score": 2.6,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

@@ -1,0 +1,30 @@
+{
+ "source_ref": "doi:10.1007/s000290050042",
+ "title": "Trace formula in noncommutative geometry and the zeros of the Riemann zeta function",
+ "abstract": "",
+ "authors": [
+  "Alain Connes"
+ ],
+ "year": "1999",
+ "url": "https://doi.org/10.1007/s000290050042",
+ "venue": "Selecta Mathematica",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 346,
+  "openalex": "W2147436369"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2761488,
+ "_branch": "selberg",
+ "_branch_score": 0.9,
+ "_coarse": true,
+ "_state": "promoted",
+ "_triage": {
+  "score": 80,
+  "why": "test",
+  "branch": "selberg",
+  "by": "manual",
+  "keep": true
+ },
+ "_card": "trace-formula-in-noncommutative-geometry-and-the-zeros-of-th-2bdfaf"
+}

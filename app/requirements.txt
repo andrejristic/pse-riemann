@@ -1,0 +1,9 @@
+# Everything below is ALREADY installed on this machine — this file documents
+# what the app needs, it is not meant to be pip-installed before the trip.
+# The app deliberately uses NO HTTP library: all networking is stdlib urllib /
+# http.client through guardian/egress.py, so that TLS pinning and the allowlist
+# cannot be bypassed.
+PySide6>=6.5
+mpmath>=1.3
+numpy>=1.24
+matplotlib>=3.7

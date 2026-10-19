@@ -1,0 +1,763 @@
+"""
+The workspace tabs — the left 70%.
+
+Lab · Corpus · Editor · Graph · Guardian · Plan. Every long-running action
+(experiment, harvest, triage) runs on a worker thread; the GUI thread never
+blocks, because on this machine a blocked GUI looks identical to a crash.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFileDialog,
+                               QFormLayout, QGroupBox, QHBoxLayout, QLabel,
+                               QLineEdit, QListWidget, QListWidgetItem,
+                               QMessageBox, QPlainTextEdit, QProgressBar,
+                               QScrollArea, QSpinBox, QSplitter, QTextEdit,
+                               QTreeWidget, QTreeWidgetItem, QVBoxLayout,
+                               QWidget)
+
+from .. import config
+from ..core import briefing as BR
+from ..core import journal as J
+from ..guardian import host as HOST
+from ..guardian.unit import guardian
+from ..ingest import curator as CU
+from ..ingest import reading as RD
+from ..lab import runner as LR
+from ..vault import index as IX
+from ..vault import store as VS
+from ..vault.card import Card, SUSPECT, VERIFIED_STATUSES
+from ..vault.gate import gate
+from .widgets import MarkdownView, button, hline, small, status_chip
+
+
+class Job(QObject):
+    """Run any callable off the GUI thread and hand the result back."""
+    done = Signal(object, str)
+
+    def __init__(self, fn, *a, **kw):
+        super().__init__()
+        self.fn, self.a, self.kw = fn, a, kw
+
+    def run(self):
+        try:
+            self.done.emit(self.fn(*self.a, **self.kw), "")
+        except Exception as e:                          # noqa: BLE001
+            self.done.emit(None, f"{type(e).__name__}: {e}")
+
+
+class JobMixin:
+    """
+    Run work off the GUI thread and come back ON it.
+
+    The callback must be delivered as a QUEUED connection, which Qt only does
+    when the receiver is a QObject with GUI-thread affinity. Connecting a plain
+    closure here would give a direct connection: the callback would execute in
+    the worker thread, touch widgets from the wrong thread, and make the worker
+    wait on itself. That is a crash waiting for a slow network — so the
+    receiver is a bound method of the widget, deliberately.
+    """
+
+    def start_job(self, fn, cb, *a, **kw):
+        self._cb = cb
+        self._thr = QThread()
+        self._job = Job(fn, *a, **kw)
+        self._job.moveToThread(self._thr)
+        self._thr.started.connect(self._job.run)
+        self._job.done.connect(self._job_finished)      # queued: widget lives in GUI thread
+        self._thr.start()
+
+    def _job_finished(self, res, err):
+        thr = getattr(self, "_thr", None)
+        if thr is not None:
+            thr.quit()
+            thr.wait(5000)
+            self._thr = None
+        cb, self._cb = getattr(self, "_cb", None), None
+        if cb:
+            cb(res, err)
+
+
+# --------------------------------------------------------------------------- #
+class LabTab(QWidget, JobMixin):
+    card_written = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.catalog = LR.catalog()
+        self.inputs: dict = {}
+
+        split = QSplitter(Qt.Horizontal)
+        split.setObjectName("lab")
+        split.setChildrenCollapsible(False)
+        left = QSplitter(Qt.Vertical)          # list / history draggable too
+        left.setObjectName("lab_left")
+        lv_host = QWidget()
+        lv = QVBoxLayout(lv_host)
+        lv.setContentsMargins(0, 0, 0, 0)
+        lv.addWidget(QLabel("<b>Eksperimenti</b>"))
+        self.list = QListWidget()
+        for e in self.catalog:
+            it = QListWidgetItem(f"{e['title']}   ({e['cost']})")
+            it.setData(Qt.UserRole, e["key"])
+            self.list.addItem(it)
+        self.list.currentRowChanged.connect(self._select)
+        lv.addWidget(self.list, 1)
+        left.addWidget(lv_host)
+        runs_host = QWidget()
+        rl = QVBoxLayout(runs_host)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.addWidget(QLabel("<b>Prethodna pokretanja</b>"))
+        self.runs = QListWidget()
+        self.runs.itemClicked.connect(self._open_run)
+        rl.addWidget(self.runs, 1)
+        left.addWidget(runs_host)
+        split.addWidget(left)
+
+        right = QWidget()
+        rv = QVBoxLayout(right)
+        self.title = QLabel("")
+        from .widgets import _BASE_PT
+        self.title.setStyleSheet(
+            f"font-size:{_BASE_PT[0]*1.25:.1f}pt;font-weight:600;")
+        rv.addWidget(self.title)
+        self.question = small("", "#8ab")
+        self.why = small("")
+        rv.addWidget(self.question)
+        rv.addWidget(self.why)
+        self.form_box = QGroupBox("Parametri")
+        self.form = QFormLayout(self.form_box)
+        rv.addWidget(self.form_box)
+        row = QHBoxLayout()
+        self.b_run = button("▶ Pokreni", self._run, primary=True)
+        row.addWidget(self.b_run)
+        self.prog = QProgressBar()
+        self.prog.setRange(0, 0)
+        self.prog.hide()
+        row.addWidget(self.prog, 1)
+        rv.addLayout(row)
+        rv.addWidget(hline())
+        outsplit = QSplitter(Qt.Vertical)      # text vs plot, draggable
+        outsplit.setObjectName("lab_out")
+        outsplit.setChildrenCollapsible(False)
+        self.out = MarkdownView()
+        outsplit.addWidget(self.out)
+        self.image = QLabel()
+        self.image.setAlignment(Qt.AlignCenter)
+        sc = QScrollArea()
+        sc.setWidgetResizable(True)
+        sc.setWidget(self.image)
+        outsplit.addWidget(sc)
+        outsplit.setSizes([300, 300])
+        rv.addWidget(outsplit, 1)
+        split.addWidget(right)
+        split.setSizes([260, 700])
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+        root.addWidget(split)
+        self.refresh_runs()
+        if self.catalog:
+            self.list.setCurrentRow(0)
+
+    def _select(self, row: int):
+        if row < 0:
+            return
+        e = self.catalog[row]
+        self.title.setText(e["title"])
+        self.question.setText("❓ " + e["question"])
+        self.why.setText(e["why"])
+        while self.form.rowCount():
+            self.form.removeRow(0)
+        self.inputs = {}
+        for p in e["params"]:
+            if p["kind"] == "int":
+                w = QSpinBox()
+                w.setRange(int(p["lo"]), int(p["hi"]))
+                w.setValue(int(p["default"]))
+            else:
+                w = QDoubleSpinBox()
+                w.setRange(float(p["lo"]), float(p["hi"]))
+                w.setDecimals(3)
+                w.setValue(float(p["default"]))
+            w.setToolTip(p["help"])
+            self.inputs[p["name"]] = w
+            self.form.addRow(f"{p['name']} — {p['help']}", w)
+
+    def _run(self):
+        row = self.list.currentRow()
+        if row < 0:
+            return
+        key = self.catalog[row]["key"]
+        params = {k: w.value() for k, w in self.inputs.items()}
+        self.b_run.setEnabled(False)
+        self.prog.show()
+        self.out.set_markdown("_računa…_")
+        self.start_job(LR.run, self._done, key, params)
+
+    def _done(self, res, err):
+        self.b_run.setEnabled(True)
+        self.prog.hide()
+        if err:
+            self.out.set_markdown(f"### ⛔ Greška\n\n```\n{err}\n```")
+            return
+        rec = res["record"]
+        v = res["verdict"]
+        md = [f"## {rec['title']}", "", rec["reading"], "",
+              "| veličina | vrijednost |", "|---|---|"]
+        md += [f"| `{k}` | {v2} |" for k, v2 in rec["numbers"].items()]
+        if rec["warnings"]:
+            md += [""] + [f"> ⚠ {w}" for w in rec["warnings"]]
+        md += ["", f"_{rec['elapsed_s']} s · sha256 "
+                   f"`{rec['script_sha256'][:12]}…`_"]
+        if v is not None:
+            md += ["", ("✅ kartica upisana: `%s`" % res["card_id"]) if v.ok
+                   else ("⛔ kapija odbila karticu: " + v.reason)]
+        self.out.set_markdown("\n".join(md))
+        self._show_png(Path(res["dir"]), rec.get("plots") or [])
+        self.refresh_runs()
+        self.card_written.emit()
+
+    def _show_png(self, d: Path, plots: list):
+        if not plots:
+            self.image.clear()
+            return
+        pm = QPixmap(str(d / plots[0]))
+        if not pm.isNull():
+            self.image.setPixmap(pm.scaledToWidth(
+                min(760, pm.width()), Qt.SmoothTransformation))
+
+    def refresh_runs(self):
+        self.runs.clear()
+        for r in LR.list_runs(40):
+            it = QListWidgetItem(f"{r['when'][5:16]}  {r['experiment']}")
+            it.setData(Qt.UserRole, r["run_id"])
+            self.runs.addItem(it)
+
+    def _open_run(self, item):
+        rec = LR.load_run(item.data(Qt.UserRole))
+        if not rec:
+            return
+        md = [f"## {rec['title']}", "", f"_{rec['when']}_", "", rec["reading"],
+              "", "| veličina | vrijednost |", "|---|---|"]
+        md += [f"| `{k}` | {v} |" for k, v in rec["numbers"].items()]
+        self.out.set_markdown("\n".join(md))
+        self._show_png(config.DIR_LAB / rec["run_id"], rec.get("plots") or [])
+
+
+# --------------------------------------------------------------------------- #
+class CorpusTab(QWidget, JobMixin):
+    open_card = Signal(str)
+    to_context = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+
+        bar = QHBoxLayout()
+        self.q = QLineEdit()
+        self.q.setPlaceholderText("pretraga vaulta i inboxa…")
+        self.q.returnPressed.connect(self.search)
+        bar.addWidget(self.q, 1)
+        bar.addWidget(button("Traži", self.search))
+        bar.addWidget(button("↻ index", self.reindex))
+        bar.addWidget(button("⬇ Skupi", self.harvest))
+        bar.addWidget(button("Trijaža", self.triage))
+        root.addLayout(bar)
+        self.status = small("")
+        root.addWidget(self.status)
+
+        split = QSplitter(Qt.Horizontal)
+        split.setObjectName("corpus")
+        split.setChildrenCollapsible(False)
+        self.results = QListWidget()
+        self.results.itemClicked.connect(self._show)
+        split.addWidget(self.results)
+        rp = QWidget()
+        rv = QVBoxLayout(rp)
+        self.view = MarkdownView(on_card=self.open_card.emit)
+        rv.addWidget(self.view, 1)
+        row = QHBoxLayout()
+        self.b_ctx = button("→ u kontekst chata", self._to_ctx)
+        self.b_promote = button("Promoviši u karticu", self._promote)
+        self.b_drop = button("Odbaci", self._drop)
+        self.b_read = button("📖 Pročitaj rad", self._read)
+        self.b_skeptic = button("⚔ Skeptik", self._skeptic)
+        row.addWidget(self.b_ctx)
+        row.addWidget(self.b_promote)
+        row.addWidget(self.b_read)
+        row.addWidget(self.b_skeptic)
+        row.addWidget(self.b_drop)
+        row.addStretch(1)
+        rv.addLayout(row)
+        self.b_writeprops = button("Upiši prijedloge", self._write_props,
+                                   primary=True)
+        self.b_writeprops.setEnabled(False)
+        row.addWidget(self.b_writeprops)
+        split.addWidget(rp)
+        split.setSizes([340, 620])
+        root.addWidget(split, 1)
+        self._current = None
+        self._current_rec = {}
+        self._proposals = []
+        self.refresh()
+
+    def refresh(self):
+        c = CU.counts()
+        st = VS.stats()
+        self.status.setText(
+            f"vault: {st.total} kartica ({st.verified} provjerenih) · "
+            f"inbox: {c.get('total',0)} "
+            f"(novo {c.get('new',0)}, prošlo grubu {c.get('coarse_ok',0)}, "
+            f"trijažirano {c.get('triaged',0)}, promovisano {c.get('promoted',0)}, "
+            f"odbačeno {c.get('dropped',0)})")
+
+    def reindex(self):
+        self.status.setText("indeksiram…")
+        self.start_job(IX.index().reindex,
+                       lambda r, e: (self.status.setText(
+                           f"index: {r}" if not e else e), self.refresh()))
+
+    def search(self):
+        rows = IX.search(self.q.text(), 60)
+        self.results.clear()
+        for r in rows:
+            it = QListWidgetItem(f"[{r['kind'][:8]:8s}] {r['title'][:70]}")
+            it.setData(Qt.UserRole, r)
+            self.results.addItem(it)
+        self.status.setText(f"{len(rows)} rezultata")
+
+    def _show(self, item):
+        r = item.data(Qt.UserRole)
+        self._current = r
+        if r["kind"] == "inbox":
+            try:
+                d = json.loads(Path(r["path"]).read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return
+            d["_path"] = r["path"]
+            self._current_rec = d
+            md = [f"# {d.get('title','')}", "",
+                  f"`{d.get('source_ref','')}` · {d.get('origin','')} · "
+                  f"{d.get('year','')}", ""]
+            if d.get("authors"):
+                md += ["*" + ", ".join(d["authors"][:8]) + "*", ""]
+            if d.get("_triage"):
+                t = d["_triage"]
+                md += [f"**Trijaža** ({t.get('by','')}): {t.get('score')}/100 · "
+                       f"{t.get('branch','')} — {t.get('why','')}", ""]
+            if d.get("injection_hits"):
+                md += ["> ⚠ Guardian: tekst sadrži obrasce koji liče na pokušaj "
+                       "ubacivanja instrukcija modelu. Tretiraj kao podatak.", ""]
+            md += [d.get("abstract", "")]
+            self.view.set_markdown("\n".join(md))
+        else:
+            c = VS.get(r["id"])
+            if c:
+                self.view.set_markdown(
+                    f"# {c.title}\n\n`{c.status}` · `{c.type}` · "
+                    f"izvori: {', '.join(c.sources) or '—'}\n\n{c.body}")
+
+    def _to_ctx(self):
+        if self._current and self._current["kind"] != "inbox":
+            self.to_context.emit(self._current["id"])
+
+    def _promote(self):
+        if not self._current or self._current["kind"] != "inbox":
+            return
+        ok, msg = CU.promote(self._current_rec, actor="user")
+        self.status.setText(("✅ " if ok else "⛔ ") + str(msg))
+        self.refresh()
+
+    def _drop(self):
+        if self._current and self._current["kind"] == "inbox":
+            CU.drop(self._current_rec, "ručno odbačeno")
+            self.status.setText("odbačeno")
+            self.refresh()
+
+    def _read(self):
+        """Fetch an arXiv paper's full text and let the strong model extract cards."""
+        ref = ""
+        if self._current and self._current["kind"] == "inbox":
+            ref = self._current_rec.get("source_ref", "")
+        elif self._current:
+            c = VS.get(self._current["id"])
+            ref = (c.sources[0] if c and c.sources else "")
+        if not ref.startswith("arxiv:"):
+            self.status.setText("puni tekst je dostupan samo za arXiv radove")
+            return
+        self.status.setText(f"čitam {ref} preko ar5iv… (ne blokira)")
+        self.b_read.setEnabled(False)
+        self.start_job(RD.read_paper, self._read_done, ref)
+
+    def _read_done(self, res, err):
+        self.b_read.setEnabled(True)
+        if err:
+            self.status.setText("⛔ " + err[:200])
+            return
+        self._proposals = res["cards"]
+        md = [f"# Pročitano ({res['provider']})", ""]
+        if res["hits"]:
+            md += ["> ⚠ Guardian: u tekstu rada nađeni obrasci koji liče na "
+                   "pokušaj ubacivanja instrukcija modelu. Instrukcije iz "
+                   "teksta su ignorisane.", ""]
+        md += [res["reply"] or "", "",
+               f"## Prijedlozi kartica ({len(res['cards'])})", ""]
+        for i, c in enumerate(res["cards"], 1):
+            md += [f"**{i}. [{c.get('status','?')}] {c.get('title','')}**",
+                   f"izvori: {', '.join(c.get('sources') or [])}", "",
+                   (c.get("body") or "")[:700], "", "---", ""]
+        md += ["_Klikni 'Upiši prijedloge' da prođu kroz kapiju._"]
+        self.view.set_markdown("\n".join(md))
+        self.b_writeprops.setEnabled(bool(res["cards"]))
+        self.status.setText(f"{len(res['cards'])} prijedloga — pregledaj pa upiši")
+
+    def _write_props(self):
+        ok = bad = 0
+        msgs = []
+        for meta in getattr(self, "_proposals", []):
+            good, msg = RD.write_proposal(meta, actor="model:reading")
+            if good:
+                ok += 1
+            else:
+                bad += 1
+                msgs.append(msg[:90])
+        self.status.setText(f"upisano {ok}, odbijeno {bad}"
+                            + ("  · " + "; ".join(msgs[:2]) if msgs else ""))
+        self._proposals = []
+        self.b_writeprops.setEnabled(False)
+        self.refresh()
+
+    def _skeptic(self):
+        if not self._current or self._current["kind"] == "inbox":
+            self.status.setText("skeptik napada karticu iz vaulta, ne inbox stavku")
+            return
+        cid = self._current["id"]
+        self.status.setText(f"skeptik napada {cid}…")
+        self.b_skeptic.setEnabled(False)
+        self.start_job(RD.attack_card, self._skeptic_done, cid)
+
+    def _skeptic_done(self, res, err):
+        self.b_skeptic.setEnabled(True)
+        if err:
+            self.status.setText("⛔ " + err[:200])
+            return
+        if not res.get("ran"):
+            self.status.setText("skeptik nije mogao da radi: " +
+                                str(res.get("attack", ""))[:150])
+            return
+        if res.get("survives"):
+            self.status.setText(f"✅ kartica je izdržala napad ({res.get('by','')})")
+        else:
+            self.status.setText(
+                f"⚔ POGODAK ({res.get('severity')}): {res.get('attack','')[:160]} "
+                f"— kartica je sada SUSPECT")
+            self._show(self.results.currentItem())
+        self.refresh()
+
+    def harvest(self):
+        self.status.setText("skupljam sa interneta… (ne blokira)")
+        self.start_job(CU.harvest, self._after_job, 1, 8)
+
+    def triage(self):
+        self.status.setText("gruba + trijaža modelom…")
+
+        def _both():
+            a = CU.coarse_pass()
+            b = CU.triage_pass(20)
+            return {"coarse": a, "triage": b}
+        self.start_job(_both, self._after_job)
+
+    def _after_job(self, res, err):
+        self.status.setText(f"⛔ {err}" if err else f"gotovo: {res}")
+        self.refresh()
+
+
+# --------------------------------------------------------------------------- #
+class EditorTab(QWidget):
+    card_written = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+        bar = QHBoxLayout()
+        self.picker = QComboBox()
+        self.picker.setMinimumWidth(320)
+        self.picker.currentIndexChanged.connect(self._load)
+        bar.addWidget(self.picker, 1)
+        bar.addWidget(button("Dnevnik danas", self._daily))
+        bar.addWidget(button("Nova bilješka", self._new))
+        bar.addWidget(button("💾 Sačuvaj", self._save, primary=True))
+        bar.addWidget(button("↻", self.refresh))
+        root.addLayout(bar)
+        self.info = small("")
+        root.addWidget(self.info)
+        split = QSplitter(Qt.Horizontal)
+        split.setObjectName("editor")
+        split.setChildrenCollapsible(False)
+        self.edit = QPlainTextEdit()
+        from .widgets import _BASE_PT
+        self.edit.setStyleSheet(
+            f"font-family:monospace;font-size:{_BASE_PT[0]*0.95:.1f}pt;")
+        self.edit.textChanged.connect(self._preview)
+        split.addWidget(self.edit)
+        self.view = MarkdownView()
+        split.addWidget(self.view)
+        split.setSizes([500, 500])
+        root.addWidget(split, 1)
+        self.path: Path | None = None
+        self.refresh()
+
+    def refresh(self):
+        self.picker.blockSignals(True)
+        self.picker.clear()
+        files = []
+        for sub in ("notes", "daily", "knowledge", "speculation", "sources"):
+            d = config.VAULT / sub
+            if d.exists():
+                files += sorted(d.glob("*.md"))
+        for f in (config.VAULT / "PLAN.md", config.VAULT / "OPEN_QUESTIONS.md"):
+            if f.exists():
+                files.insert(0, f)
+        for f in files:
+            self.picker.addItem(f"{f.parent.name}/{f.name}", str(f))
+        self.picker.blockSignals(False)
+        if files:
+            self._load(0)
+
+    def _load(self, idx: int):
+        p = self.picker.currentData()
+        if not p:
+            return
+        self.path = Path(p)
+        try:
+            self.edit.setPlainText(self.path.read_text(encoding="utf-8"))
+        except OSError as e:
+            self.edit.setPlainText(f"(ne mogu da otvorim: {e})")
+        self.info.setText(str(self.path))
+
+    def _preview(self):
+        self.view.set_markdown(self.edit.toPlainText())
+
+    def open_path(self, p: Path):
+        for i in range(self.picker.count()):
+            if self.picker.itemData(i) == str(p):
+                self.picker.setCurrentIndex(i)
+                return
+        self.refresh()
+        for i in range(self.picker.count()):
+            if self.picker.itemData(i) == str(p):
+                self.picker.setCurrentIndex(i)
+                return
+
+    def _save(self):
+        if not self.path:
+            return
+        if not config.inside_vault(self.path):
+            QMessageBox.warning(self, "Odbijeno",
+                                "Upis van vaulta nije dozvoljen.")
+            return
+        try:
+            self.path.write_text(self.edit.toPlainText(), encoding="utf-8")
+            from ..core import theta as TH
+            TH.record("user_write", 1.0, source="editor")
+            J.log(J.GATE, "user", {"path": str(self.path), "direct_edit": True},
+                  subject=self.path.stem, verdict="edit")
+            self.info.setText(f"✅ sačuvano {self.path}")
+            self.card_written.emit()
+        except OSError as e:
+            self.info.setText(f"⛔ {e}")
+
+    def _daily(self):
+        p = BR.daily_note()
+        self.refresh()
+        self.open_path(p)
+
+    def _new(self):
+        name, _ = QFileDialog.getSaveFileName(
+            self, "Nova bilješka", str(config.DIR_NOTES / "biljeska.md"),
+            "Markdown (*.md)")
+        if not name:
+            return
+        p = Path(name)
+        if not config.inside_vault(p):
+            QMessageBox.warning(self, "Odbijeno", "Samo unutar vaulta.")
+            return
+        p.write_text("# \n\n", encoding="utf-8")
+        self.refresh()
+        self.open_path(p)
+
+
+# --------------------------------------------------------------------------- #
+class GraphTab(QWidget):
+    open_card = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+        bar = QHBoxLayout()
+        bar.addWidget(button("↻ Osvježi", self.refresh))
+        self.info = small("")
+        bar.addWidget(self.info, 1)
+        root.addLayout(bar)
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["čvor", "status", "tip", "veze"])
+        self.tree.itemDoubleClicked.connect(
+            lambda it, _: self.open_card.emit(it.data(0, Qt.UserRole) or ""))
+        root.addWidget(self.tree, 1)
+        self.refresh()
+
+    def refresh(self):
+        nodes, edges = VS.graph()
+        out: dict = {}
+        for a, b, kind in edges:
+            out.setdefault(a, []).append((b, kind))
+        self.tree.clear()
+        by_id = {n["id"]: n for n in nodes}
+        topics = [n for n in nodes if n["id"].startswith("tema-")]
+        others = [n for n in nodes if not n["id"].startswith("tema-")]
+        incoming: dict = {}
+        for a, b, _k in edges:
+            incoming.setdefault(b, []).append(a)
+
+        for t in sorted(topics, key=lambda x: x["title"]):
+            root_item = QTreeWidgetItem(
+                [t["title"], t["status"], t["type"],
+                 str(len(incoming.get(t["id"], [])))])
+            root_item.setData(0, Qt.UserRole, t["id"])
+            for child in incoming.get(t["id"], []):
+                c = by_id.get(child)
+                if not c:
+                    continue
+                ci = QTreeWidgetItem([c["title"][:70], c["status"], c["type"], ""])
+                ci.setData(0, Qt.UserRole, c["id"])
+                root_item.addChild(ci)
+            self.tree.addTopLevelItem(root_item)
+
+        linked = {b for _a, b, _k in edges} | {a for a, _b, _k in edges}
+        orphan = [n for n in others if n["id"] not in linked]
+        if orphan:
+            oi = QTreeWidgetItem([f"⚠ bez veza ({len(orphan)})", "", "", ""])
+            for n in orphan:
+                ci = QTreeWidgetItem([n["title"][:70], n["status"], n["type"], ""])
+                ci.setData(0, Qt.UserRole, n["id"])
+                oi.addChild(ci)
+            self.tree.addTopLevelItem(oi)
+        self.tree.expandToDepth(0)
+        self.info.setText(f"{len(nodes)} čvorova · {len(edges)} veza · "
+                          f"{len(orphan)} bez veza")
+
+
+# --------------------------------------------------------------------------- #
+class GuardianTab(QWidget, JobMixin):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+        bar = QHBoxLayout()
+        bar.addWidget(button("↻ Provjeri host", self.refresh_host))
+        bar.addWidget(button("Test mreže", self.preflight))
+        bar.addWidget(button("Oslobodi host iz karantina", self.release))
+        bar.addStretch(1)
+        root.addLayout(bar)
+        self.view = MarkdownView()
+        root.addWidget(self.view, 1)
+        self.refresh_host()
+
+    def _md(self, extra: str = "") -> str:
+        g = guardian()
+        sc = g.self_check()
+        from ..guardian.tls import pins
+        from ..guardian.egress import egress
+        L = ["# Guardian", ""]
+        if extra:
+            L += [extra, ""]
+        L += ["## Stanje",
+              f"- mreža: `{egress().network}`",
+              f"- posmatrano: {sc['observations']} zahtjeva prema "
+              f"{sc['hosts']} hostova",
+              f"- intervencije: {sc['tier1']} tier-1, {sc['tier2']} tier-2",
+              f"- karantin: {', '.join(sc['quarantined']) or '—'}", ""]
+        if sc["problems"]:
+            L += ["## ⚠ Guardian sam nije zdrav"] + \
+                 [f"- {p}" for p in sc["problems"]] + [""]
+        L += ["## TLS pinovi",
+              "| host | pinova | naučeno na mreži |", "|---|---|---|"]
+        ps = pins()
+        for h in ps.hosts():
+            L.append(f"| `{h}` | {len(ps.pins(h))} | "
+                     f"`{ps.trusted_network(h) or '?'}` |")
+        if not ps.hosts():
+            L.append("| _(nijedan još)_ | | |")
+        L += ["", "## Host", ""]
+        p = HOST.check()
+        for f in p.findings:
+            icon = {"high": "⛔", "warn": "⚠", "info": "•"}[f.level]
+            L.append(f"**{icon} {f.title}**")
+            L.append(f"{f.detail}")
+            if f.fix:
+                L.append(f"```\n{f.fix}\n```")
+            L.append("")
+        recent = J.journal().tail(15, J.THREAT)
+        if recent:
+            L += ["## Posljednji događaji", ""]
+            for e in recent[::-1]:
+                pl = e.get("payload") or {}
+                L.append(f"- `{e['verdict']}` **{e['subject']}** — "
+                         f"{pl.get('reason', '')[:120]}")
+        return "\n".join(L)
+
+    def refresh_host(self):
+        self.view.set_markdown(self._md())
+
+    def preflight(self):
+        from ..guardian.egress import egress
+        self.view.set_markdown("_provjeravam mrežu…_")
+        self.start_job(egress().preflight, lambda r, e: self.view.set_markdown(
+            self._md(f"**Test mreže:** `{r or e}`")))
+
+    def release(self):
+        g = guardian()
+        if not g.quarantined:
+            self.view.set_markdown(self._md("_nema hostova u karantinu_"))
+            return
+        host = sorted(g.quarantined)[0]
+        ans = QMessageBox.question(
+            self, "Oslobodi host",
+            f"Osloboditi `{host}` iz karantina?\n\n"
+            f"Uradi ovo samo ako si siguran da je bila lažna uzbuna. "
+            f"Na tuđoj mreži pretpostavka treba da bude presretanje.")
+        if ans == QMessageBox.Yes:
+            g.release(host, "ručno oslobođeno iz GUI-ja")
+            self.view.set_markdown(self._md(f"_oslobođen `{host}`_"))
+
+
+# --------------------------------------------------------------------------- #
+class PlanTab(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 4)
+        bar = QHBoxLayout()
+        bar.addWidget(button("↻ Briefing", self.refresh))
+        bar.addWidget(button("Sedmični izvještaj", self.report))
+        bar.addStretch(1)
+        root.addLayout(bar)
+        self.view = MarkdownView()
+        root.addWidget(self.view, 1)
+        self.refresh()
+
+    def refresh(self):
+        self.view.set_markdown(BR.briefing())
+
+    def report(self):
+        p = BR.write_weekly_report(7)
+        self.view.set_markdown(BR.weekly_report(7) +
+                               f"\n\n---\n_snimljeno u `{p}`_")

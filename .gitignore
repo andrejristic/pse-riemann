@@ -1,0 +1,43 @@
+# --- Python ---
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+# --- Node / Electron / Expo ---
+node_modules/
+dist/
+dist-electron/
+build/
+out/
+.expo/
+*-unpacked/
+linux-unpacked/
+AppImage/
+# --- Build artifacts & big binaries (NEVER on git) ---
+*.gguf
+*.deb
+*.AppImage
+*.whl
+wheels/
+*.so
+*.o
+*.a
+*.dylib
+# --- Secrets & local data ---
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.jsonl
+.pse/
+# --- OS / misc ---
+.DS_Store
+*.log
+*~
+.~lock.*

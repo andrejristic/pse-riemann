@@ -1,0 +1,22 @@
+{
+ "source_ref": "doi:10.21099/tkbjm/1496165115",
+ "title": "Upper bound for sum of divisors function and the Riemann hypothesis",
+ "abstract": "Let $\\sigma(n)$ denote the sum of divisors function. We prove that if $(2, m) = 1$ and $2m \\gt 3^{9}$ then $1^{0} \\sigma(2m) \\lt \\frac{39}{40}e^{\\gamma}2m \\log \\log 2m$, and for all odd integers $m \\gt \\frac{3^{9}}{2}$, we have $2^{0} \\sigma(m) \\lt e^{\\gamma}m \\log \\log m$. Moreover, we show that if $\\sigma(2m) \\lt \\frac{3}{4}e^{\\gamma}2m \\log \\log 2m$, for $m \\gt m_{0}$ and $(2, m) = 1$, then the inequality $\\sigma(2^{\\alpha}m) \\lt e^{\\gamma}2^{\\alpha}m \\log \\log 2^{\\alpha}m$ is true for all integers $\\alpha \\geq 2$ and $m \\gt m_{0}$. Robin criterion implies that the Riemann hypothesis is true for these cases.",
+ "authors": [
+  "Aleksander Grytczuk"
+ ],
+ "year": "2007",
+ "url": "https://doi.org/10.21099/tkbjm/1496165115",
+ "venue": "Tsukuba Journal of Mathematics",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 7,
+  "openalex": "W1541901346"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198951.6499047,
+ "_branch": "equivalences",
+ "_branch_score": 1.3,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

@@ -1,0 +1,22 @@
+{
+ "source_ref": "doi:10.1307/mmj/20216139",
+ "title": "Arithmetic Consequences of the GUE Conjecture for Zeta Zeros",
+ "abstract": "Conditioned on the Riemann hypothesis, we show that the conjecture that the zeros of the Riemann zeta function resemble the eigenvalues of a random matrix is logically equivalent to a statement about the distribution of primes. This generalizes well-known work that the pair correlation conjecture is equivalent to a statement about the variance of prime counts in short intervals and complements the work of Farmer, Gonek, Lee, and Lester, who have considered similar questions conditioned on additional hypotheses, which are not required here. As a byproduct of this argument, conditioned on the Riemann hypothesis, we derive upper bounds for all moments of the logarithmic derivative of the Riemann zeta function. We also discuss a conjecture for the covariance in short intervals of counts of almost-primes, weighted by the higher-order von Mangoldt function, and show the GUE Conjecture implies a weighted version of this conjecture. The covariance is surprisingly simple to write down.",
+ "authors": [
+  "Brad Rodgers"
+ ],
+ "year": "2024",
+ "url": "https://doi.org/10.1307/mmj/20216139",
+ "venue": "The Michigan Mathematical Journal",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 3,
+  "openalex": "W4400134713"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2801757,
+ "_branch": "rmt",
+ "_branch_score": 3.9000000000000004,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

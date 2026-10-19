@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=PSE Riemann
+Comment=Asistent za izucavanje Rimanove zeta funkcije
+Exec=bash -c "cd '%k/../..' 2>/dev/null; exec $HOME/Desktop/PSE/PSE\ Riemann/app/run.sh"
+Path=/home/a/Desktop/PSE/PSE Riemann/app
+Terminal=false
+Categories=Education;Science;Math;

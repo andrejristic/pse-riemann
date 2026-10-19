@@ -1,0 +1,23 @@
+{
+ "source_ref": "doi:10.1090/s0273-0979-99-00766-1",
+ "title": "Zeroes of zeta functions and symmetry",
+ "abstract": "Hilbert and Polya suggested that there might be a natural spectral interpretation of the zeroes of the Riemann Zeta function. While at the time there was little evidence for this, today the evidence is quite convincing. Firstly, there are the “function field” analogues, that is zeta functions of curves over finite fields and their generalizations. For these a spectral interpretation for their zeroes exists in terms of eigenvalues of Frobenius on cohomology. Secondly, the developments, both theoretical and numerical, on the local spacing distributions between the high zeroes of the zeta function and its generalizations give striking evidence for such a spectral connection. Moreover, the low-lying zeroes of various families of zeta functions follow laws for the eigenvalue distributions of members of the classical groups. In this paper we review these developments. In order to present the material fluently, we do not proceed in chronological order of discovery. Also, in concentrating entirely on the subject matter of the title, we are ignoring the standard body of important work that has been done on the zeta function and <inline-formula content-type=\"math/mathml\"> <mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" alttext=\"upper L\"> <mml:semantics> <mml:mi>L</mml:mi> <mml:annotation encoding=\"application/x-tex\">L</mml:annotation> </mml:semantics> </mml:math> </inline-formula> -functions.",
+ "authors": [
+  "Nicholas Katz",
+  "Peter Sarnak"
+ ],
+ "year": "1999",
+ "url": "https://doi.org/10.1090/s0273-0979-99-00766-1",
+ "venue": "Bulletin of the American Mathematical Society",
+ "origin": "openalex",
+ "extra": {
+  "cited_by": 443,
+  "openalex": "W2072534883"
+ },
+ "injection_hits": [],
+ "_stashed": 1785198954.2730157,
+ "_branch": "function_fields",
+ "_branch_score": 3.5999999999999996,
+ "_coarse": true,
+ "_state": "coarse_ok"
+}

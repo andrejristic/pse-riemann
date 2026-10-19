@@ -1,0 +1,23 @@
+{
+ "days": {
+  "2026-07-27": {
+   "usd": 0.0,
+   "calls": 2,
+   "by_provider": {
+    "gemini": {
+     "usd": 0.0,
+     "in": 30,
+     "out": 2,
+     "calls": 2
+    }
+   },
+   "by_role": {
+    "ping": {
+     "calls": 2,
+     "usd": 0.0
+    }
+   }
+  }
+ },
+ "daily_cap": 5.0
+}
