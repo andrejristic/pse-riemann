@@ -52,3 +52,4 @@ audit/
 keys.json
 secrets.json
 *.sqlite*
+.worklock
