@@ -43,5 +43,5 @@ Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Cl
 ## Autonomni rad
 - Brava: `tools/worklock.sh beat|check|release`. Alarm: `tools/alert.py`.
 - Pravilo alarma: kvar koji ne blokira ostalo → upiši pod „Otvoreni problemi“ u WORKLOG i nastavi, bez alarma. Alarm + „**STATUS: ČEKA ANDREJA**“ + stop **samo** kad ništa ne može dalje bez korisnika.
-- Zakazani zadatak `pse-riemann-autobuild` (svaka 2 h) ostaje dok traje runda 3, na kraju se briše. Kontroliše se samo iz Claude aplikacije.
+- Zakazani zadatak `pse-riemann-autobuild`: **auto-nastavak je UGAŠEN** (Andrej, 2026-10-25). Zadatak je sada samo **sedmični podsjetnik** (ponedjeljak 10:00) koji pita da li Andrej želi ponovo aktivirati auto-nastavak; ne radi nikakav posao. Aktivira se samo na Andrejevu riječ u chatu. Kontroliše se samo iz Claude aplikacije.
 - `app/.venv` je ranije bio pokvaren — ako ne radi, `app/setup.sh`.

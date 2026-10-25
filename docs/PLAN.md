@@ -142,7 +142,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 
 ### Faza 0 · Početak
 1. Spajanje trenutnog stanja u `main` (lokalno i GitHub); novi rad na novoj grani, spajanje na kraju uz odobrenje.
-2. Zakazani zadatak ostaje dok traje posao, na kraju se briše; kontroliše se samo iz Claude aplikacije.
+2. Zakazani zadatak: auto-nastavak je **ugašen** (2026-10-25); zadatak je sada sedmični podsjetnik koji pita da li ga ponovo aktivirati. Kontroliše se samo iz Claude aplikacije.
 
 ### Faza 1 · Temelj: popravke i integritet odluka
 3. Popravke A1–A4: „→ ∞“ čuvar se zaista pokreće; detekcija vrtnje prekida generisanje u toku; timeout pokriva i generisanje; nema trke u redu odluka.
@@ -190,8 +190,8 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 26. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
 27. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
 28. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
-29. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, brisanje zakazanog zadatka.
+29. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4), kalendarski 5–8 dana uz auto-nastavak. Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4), kalendarski 5–8 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
