@@ -1,0 +1,180 @@
+"""
+The voice of SHARED_LIB (plan F4, master §5, §2.5).
+
+SHARED_LIB sees every process and remembers everything; this is the one place it
+speaks to a human in natural language. The rules are strict because the subject
+(the Riemann zeta function) is the largest magnet for confident nonsense in
+mathematics:
+
+  * it speaks ONLY to a registered operator;
+  * every answer is produced from a SINGLE read-only SQL query over the fact
+    views (views.py), and the operator ALWAYS sees that query;
+  * every sentence about the library carries a citation — [card:<id>] or
+    [run:<id>] — back to the row it came from;
+  * every number in the answer must appear in the returned rows; a number that
+    does not is removed and the claim marked UNKNOWN;
+  * when there is no row, the answer is "nema u biblioteci" (UNKNOWN), never a
+    guess;
+  * forbidden internal vocabulary (psel) and proof claims are scrubbed out.
+
+Without a model the voice still works: a small set of canned questions map to
+SQL, and the answer is rendered deterministically from the rows. A model, when
+present, may draft nicer prose, but it is held to the SAME guarantees — its
+numbers are verified against the rows and its proof claims are refused.
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Callable, Optional
+
+from ..llm import psel
+from ..vault import gate as GATE
+from . import operator as OP
+from . import views as V
+
+# question (lowercased substring) -> (SQL, citation column)
+_CANNED: list[tuple[str, str, str]] = [
+    ("metod", "SELECT title, tier, status FROM cards WHERE dir='methods' "
+              "ORDER BY title", "title"),
+    ("misij", "SELECT id, state, best_B FROM missions ORDER BY created", "id"),
+    ("kartic", "SELECT id, title, status, tier FROM cards ORDER BY updated DESC "
+               "LIMIT 50", "id"),
+    ("lab", "SELECT run_id, experiment, reading FROM lab_runs ORDER BY created "
+            "DESC LIMIT 50", "run_id"),
+    ("skeptik", "SELECT id, title FROM pending WHERE kind='skeptic' AND "
+                "status='open'", "id"),
+    ("čeka", "SELECT id, kind, title FROM pending WHERE status='open' "
+             "ORDER BY created", "id"),
+]
+
+_NUM_RE = re.compile(r"-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+
+class VoiceRefused(Exception):
+    pass
+
+
+@dataclass
+class VoiceAnswer:
+    question: str
+    sql: str
+    columns: list = field(default_factory=list)
+    rows: list = field(default_factory=list)
+    answer: str = ""
+    citations: list = field(default_factory=list)
+    unknown: bool = False
+    warnings: list = field(default_factory=list)
+
+
+def _numbers(text: str) -> set:
+    return {m.group(0) for m in _NUM_RE.finditer(text or "")}
+
+
+def verify_numbers(prose: str, allowed: set) -> tuple[str, list]:
+    """
+    Every number in `prose` must be one of `allowed` (the numbers in the rows).
+    Any other is replaced by [UNKNOWN] and reported. This is what stops a drafted
+    answer from inventing a value that looks as solid as a real one.
+    """
+    warns = []
+    allowed_norm = {_norm_num(a) for a in allowed}
+
+    def repl(m):
+        tok = m.group(0)
+        if _norm_num(tok) in allowed_norm:
+            return tok
+        warns.append(f"broj '{tok}' nije u redovima — zamijenjen [UNKNOWN]")
+        return "[UNKNOWN]"
+
+    return _NUM_RE.sub(repl, prose or ""), warns
+
+
+def _norm_num(s: str) -> str:
+    try:
+        return repr(round(float(s), 9))
+    except (TypeError, ValueError):
+        return str(s)
+
+
+def _canned_sql(question: str) -> Optional[tuple[str, str]]:
+    q = (question or "").lower()
+    for key, sql, cite in _CANNED:
+        if key in q:
+            return sql, cite
+    return None
+
+
+def _cite_token(row: dict) -> str:
+    if "run_id" in row:
+        return f"[run:{row['run_id']}]"
+    for k in ("id", "card", "subject"):
+        if k in row and row[k]:
+            return f"[card:{row[k]}]"
+    return "[card:?]"
+
+
+def _ground(res: dict, question: str) -> tuple[str, list, bool, list]:
+    cols, rows = res["columns"], res["rows"]
+    if not rows:
+        return ("Nema u biblioteci za to pitanje (UNKNOWN).", [], True, [])
+    lines, cites = [], []
+    for r in rows:
+        d = dict(zip(cols, r))
+        cite = _cite_token(d)
+        cites.append(cite)
+        shown = ", ".join(f"{k}={d[k]}" for k in cols
+                          if k not in ("id", "run_id") and d[k] not in (None, ""))
+        lines.append(f"- {shown or d.get('id') or d.get('run_id')} {cite}")
+    note = "" if not res.get("truncated") else "\n(više redova — prikazano prvih)"
+    return ("\n".join(lines) + note, cites, False, [])
+
+
+def ask(question: str, translate: Optional[Callable[[str, dict], str]] = None,
+        compose: Optional[Callable[[str, dict], str]] = None,
+        conn=None) -> VoiceAnswer:
+    """
+    Answer a question over the fact layer, grounded and cited.
+
+    `translate(question, schema) -> sql`  : optional model NL→SQL. If absent, a
+        canned question is matched; if neither, the voice refuses and shows the
+        schema so the operator can type SQL (via views.query) directly.
+    `compose(question, context) -> prose` : optional model prose draft, held to
+        the same guarantees (numbers verified, proof claims and jargon scrubbed).
+    """
+    OP.require_operator()                       # the voice speaks only to the operator
+
+    cite_col = None
+    if translate is not None:
+        sql = translate(question, V.schema())
+    else:
+        hit = _canned_sql(question)
+        if hit is None:
+            raise VoiceRefused(
+                "glas zahtijeva model za slobodno pitanje ili poznato pitanje "
+                "(metode / misije / kartice / lab / čeka). Shema je dostupna "
+                "(views.schema); operater može upisati SQL direktno.")
+        sql, cite_col = hit
+
+    res = V.query(sql, conn=conn)               # read-only enforced by the engine
+    prose, cites, unknown, warns = _ground(res, question)
+
+    if compose is not None and not unknown:
+        allowed = set()
+        for r in res["rows"]:
+            for v in r:
+                allowed |= _numbers(str(v))
+        draft = compose(question, {"columns": res["columns"], "rows": res["rows"],
+                                   "citations": cites})
+        draft, nwarn = verify_numbers(draft, allowed)
+        warns += nwarn
+        # a drafted sentence may not claim a proof of an open problem
+        claims, sentence = GATE._claims_proof(draft)
+        if claims:
+            warns.append(f"nacrt je tvrdio dokaz — odbijeno: „{sentence[:80]}“")
+        else:
+            prose = draft
+
+    prose = psel.scrub(prose)
+    return VoiceAnswer(question, sql, res["columns"], res["rows"], prose, cites,
+                       unknown, warns)

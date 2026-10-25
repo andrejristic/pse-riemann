@@ -100,6 +100,19 @@ def selftest() -> int:
          "dlo": 1e-6}))["ok"]
     check("vrata: tačan paket se reprodukuje, lažni se odbija", _ok and not _bad)
 
+    print("\nGlas SHARED_LIB-a:")
+    from pse_r.shared_lib import voice as VOICE
+    from pse_r.shared_lib import operator as _OP
+    _had = _OP.current()
+    if not _had:
+        _OP.set_operator("selftest")
+    _va = VOICE.ask("šta čeka tvoju odluku?")
+    check("glas: upit je vidljiv i read-only nad pogledima",
+          bool(_va.sql) and "pending" in _va.sql.lower())
+    _out, _w = VOICE.verify_numbers("tvrdnja 0.5 i 123", {"0.874"})
+    check("glas: izmišljeni brojevi se čiste u [UNKNOWN]",
+          "[UNKNOWN]" in _out and len(_w) == 2)
+
     print("\nAI (glavni + skeptik + limiteri):")
     from pse_r.llm import limits as LIM, selection as SEL
     check("limiteri: detekcija ponavljanja i → ∞",

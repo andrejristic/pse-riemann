@@ -112,6 +112,15 @@ def _load_lab_runs(conn: sqlite3.Connection) -> None:
 def connect() -> sqlite3.Connection:
     """A fresh read-only fact connection with every view in place."""
     config.ensure_vault()
+    # Make sure the SHARED_LIB store and its standard tables exist, so the fact
+    # layer always exposes pending / declarations / missions (even when empty).
+    from .store import store
+    store()
+    try:
+        from . import missions as _M
+        _M._ensure()
+    except Exception:                                   # noqa: BLE001
+        pass
     conn = sqlite3.connect(":memory:", uri=True, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     _load_cards(conn)
