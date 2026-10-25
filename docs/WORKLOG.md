@@ -2,6 +2,21 @@
 
 **STATUS: ČEKA ANDREJA** — sve faze plana i svih 9 popravki iz nadzirane provjere su **urađeni i provjereni**. Ostaje samo tvoja odluka: **spajanje grane `feature/qrh-shared-lib` u `main`** (oba repoa). Reci „spoji u main“.
 
+**Sve što čeka Andreja (2026-10-25):**
+1. **Spoji u main** — grana `feature/qrh-shared-lib` → `main` (lokalno i GitHub).
+2. **Ključ za glavni AI** — trenutno NEMA nijednog ključa (Claude/Gemini/Mistral/Groq). Bez njega glavni je lokalni DeepSeek, a skeptik je nedostupan. Ključ unosiš ti u čarobnjaku (Claude ne smije unositi ključeve).
+3. **Prvo pokretanje nove verzije** — upiši ime operatera; u „Čeka tvoju odluku“ potvrdi predloženu deklaraciju DeepSeek modela (hash = objavljeni).
+4. **Drugi GGUF za offline skeptika** — Qwen2.5-7B-Q6 postoji u `~/Downloads` (van foldera); kopirati u `models/` ili preuzeti drugi model?
+5. **Instalacija .deb** traži sudo → ti: preporuka B `pse-riemann` (`app/build/`).
+6. **Windows .exe** — preuzeti iz GitHub Actions (run 40215170407) i probati na pravom Windowsu (CI je provjerio samo tihu instalaciju i pokretanje bez prozora).
+7. **Verzija** — i dalje 0.1.0; prijedlog 0.2.0 + tag `v0.2.0` (tag pokreće CI .deb + .exe).
+8. **Zakazani zadatak** „PSE Riemann — auto-nastavak“ — sada miruje; isključiti/obrisati ili ostaviti?
+9. **Sigurnost ovog računara** (selftest/host): SSH sluša na 0.0.0.0:22, NetBIOS 139 otvoren, prosljeđivanje paketa uključeno — opasno na tuđim mrežama; sistemska podešavanja mijenjaš ti.
+10. **Živi test sa pravim AI** (kad ključ postoji, košta): izvlačenje Liu rada sa ar5iv preko Claude-a kroz vrata; DeepSeek kao skeptik uživo.
+11. **ChatGPT/OpenAI kao glavni AI** — nema backenda (postoje Claude, Gemini, Mistral, Groq, GGUF). Dodati?
+12. **SR/EN prekidač** (Svarog ga ima) — nije urađen. Treba li?
+13. **GUI na tvom ekranu** — provjeren samo snimcima bez ekrana; pogledaj na Surfaceu (skaliranje).
+
 **Provjereno 2026-10-25 ~13:20:**
 - pytest **102/102**, selftest ✅ (nalaz „2 ozbiljna“ je stanje ovog računara, ne aplikacije)
 - test prihvatanja (7/8 → Liu → Xu–Sang kroz vrata) ✅; nov sistem (w=0.2) ulazi kao podatak bez koda ✅
