@@ -22,7 +22,11 @@ Vodi se posle svake faze: šta je urađeno, stanje testova, šta je sljedeće, p
 | 2026-10-25 | **Izvlačenje + TEST PRIHVATANJA (poenta)** | ✅ **PROLAZI** | 74/74 pytest + selftest prolaze | commit `2609bf1`; 4 paketa metoda, replay istorije kroz vrata: Liu→XS, front 0.874957→0.874886 „bliže", lažni rad odbijen |
 | 2026-10-25 | F6 · GUI (tab Misije + red) | ✅ gotovo (funkcija) | 75/75 pytest (exit 0) + selftest | commit `b1cbce9`; `gui/qrh_tabs.py`, tab Misije + „Čeka tvoju odluku" (Odobri/Ne), izbor modela, Uvezi metodu, pilule glavni/skeptik; vizuelni QSS nije auto-verifikovan |
 
-**Sljedeće:** F10 završnica — .deb full (B) prvi, pa A lean + C dodatak + .exe (CI), vodiči SR/EN; GGUF smoke-test (download pri kraju). Spajanje u `main` TEK uz izričito odobrenje Andreja (ne radim ga sam).
+| 2026-10-25 | GGUF smoke-test (DeepSeek) | ✅ **radi** | load 17.6 s, generiše, limiteri drže cap | DeepSeek-R1-0528-Qwen3-8B Q5_K_M (5.45 GiB) u `models/`; sha256 `044519a2…1140e`; llama-cpp 0.3.36 |
+
+**Sljedeće:** F10 završnica — .deb full (B) prvi (build skripta sad ima varijante full/lean/research + sympy/scipy), pa A lean + C dodatak + .exe (CI), vodiči SR/EN. Spajanje u `main` TEK uz izričito odobrenje Andreja (ne radim ga sam).
+
+GGUF: model radi lokalno (DeepSeek, Q5_K_M). sha256 za deklaraciju (operater potvrdi u „Čeka tvoju odluku" ili čarobnjaku): `044519a2d9821f9a91fbc8bda4eb2333180842bf56845d130e71144c11a1140e`. Hash još nije deklarisan → backend dozvoljava učitavanje uz upozorenje; deklaracija ga čini determinističkim.
 
 GGUF smoke: model se preuzima (~70%); kad završi → verify (sha256) + jedan mali chat poziv kroz limitere, upis rezultata ovdje.
 

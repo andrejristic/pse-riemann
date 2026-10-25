@@ -26,6 +26,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."          # -> app/
 
+# Variant (plan F10): full = B (sympy+scipy, PRVI), lean = A (sympy, bez scipy;
+# metode koriste vlastite numeričke rutine), research = C dodatak (scipy +
+# llama-cpp za lokalni GGUF skeptik, offline). Prvi argument bira varijantu;
+# ostaje kompatibilno sa starim pozivom (bez argumenta = full).
+VARIANT="full"
+case "${1:-}" in
+    full|lean|research) VARIANT="$1"; shift ;;
+esac
+
 APP="pse-riemann"
 VERSION="$(python3 - <<'PY'
 import re, pathlib
@@ -35,8 +44,12 @@ PY
 )"
 ARCH="$(dpkg --print-architecture)"
 BUILD="$(pwd)/build"
-STAGE="$BUILD/${APP}_${VERSION}_${ARCH}"
-OUT="$BUILD/${APP}_${VERSION}_${ARCH}.deb"
+# full keeps the plain name (it is THE package); lean/research get a suffix so
+# builds sit side by side without overwriting.
+SUFFIX=""
+[ "$VARIANT" != "full" ] && SUFFIX="-$VARIANT"
+STAGE="$BUILD/${APP}${SUFFIX}_${VERSION}_${ARCH}"
+OUT="$BUILD/${APP}${SUFFIX}_${VERSION}_${ARCH}.deb"
 
 # The interpreter used to fetch wheels. Prefer the venv (it already has pip and
 # matches the host's Python), fall back to system python3.
@@ -74,11 +87,26 @@ for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md; do
 done
 
 # ------------------------------------------------------------- deps ----
-echo "→ pakujem PySide6, mpmath, numpy, matplotlib (nista ne trazimo od apt-a)…"
+# Base (sve varijante): GUI + numerika + sympy (metode: egzaktni polinomi).
+# full/research dodaju scipy; research dodaje i llama-cpp (lokalni GGUF skeptik).
+BASE_DEPS="mpmath numpy matplotlib sympy"
+case "$VARIANT" in
+    full)     EXTRA="scipy" ;;
+    lean)     EXTRA="" ;;
+    research) EXTRA="scipy" ;;     # llama-cpp se dodaje posebno (drugi index)
+esac
+echo "→ varijanta: $VARIANT · pakujem PySide6 $BASE_DEPS $EXTRA (nista od apt-a)…"
 "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" \
-    --no-compile PySide6-Essentials mpmath numpy matplotlib \
+    --no-compile PySide6-Essentials $BASE_DEPS $EXTRA \
     || "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" \
-       --no-compile PySide6 mpmath numpy matplotlib
+       --no-compile PySide6 $BASE_DEPS $EXTRA
+if [ "$VARIANT" = "research" ]; then
+    echo "→ (research) dodajem llama-cpp-python (CPU wheel)…"
+    "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" --no-compile \
+        --only-binary :all: \
+        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
+        llama-cpp-python || echo "   llama-cpp nije dodan (preskačem)"
+fi
 # trim what a desktop app on 4 GB will never use
 rm -rf "$STAGE/opt/$APP/lib"/PySide6/Qt/qml \
        "$STAGE/opt/$APP/lib"/PySide6/Qt/translations \
@@ -144,6 +172,7 @@ Description: Asistent za izucavanje Rimanove zeta funkcije
     TLS SPKI pinning, kljucevi samo model API-jima
   * Chat (Claude/Gemini/Mistral/Groq), tabla sa transkripcijom, graf znanja
  .
+ Varijanta: $VARIANT (full=sympy+scipy, lean=sympy bez scipy, research=+llama-cpp).
  Vault se cuva u ~/.local/share/pse-riemann/vault.
 CTRL
 
