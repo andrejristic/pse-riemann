@@ -204,4 +204,4 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4) + oko 26–40 sati za Fazu 6b = **oko 88–132 sata**, kalendarski 5–8 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4) + oko 26–40 sati za Fazu 6b = **oko 88–132 sata**, kalendarski oko 7–11 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
