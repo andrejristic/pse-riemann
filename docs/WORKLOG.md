@@ -17,8 +17,9 @@ Vodi se posle svake faze: šta je urađeno, stanje testova, šta je sljedeće, p
 | 2026-10-25 | F9 · misije i arXiv | ✅ gotovo | 39/39 pytest + selftest prolaze | commit `e11ade6`; `shared_lib/missions.py` (L3), `methods/arxiv.py`, prva misija seedovana, ulaz kroz vrata vezan za misiju |
 | 2026-10-25 | F3 · glavni AI + skeptik + limiteri | ✅ gotovo (logika) | 49/49 pytest + selftest prolaze | commit `0414b44`; `llm/limits.py`,`gguf.py`,`selection.py`,`skeptic.py`; llama-cpp 0.3.36 instaliran (CPU wheel); GGUF download u toku |
 | 2026-10-25 | F4 · glas SHARED_LIB-a | ✅ gotovo | 56/56 pytest + selftest prolaze | commit `4795b0a`; `shared_lib/voice.py`, citati+verify_numbers+UNKNOWN+scrub, samo operateru, radi i bez modela |
+| 2026-10-25 | F5 · čuvari + liječenje | ✅ gotovo | 67/67 pytest + selftest prolaze | commit `3c8441c`; `guardian/harms.py`,`healing.py`,`shared_lib/reports.py`; seal/patrol/restore, tri zla, ljestvica liječenja, tier2→red |
 
-**Sljedeće:** F5 · čuvari finalnih izvještaja + liječenje od tri zla (čuvar po izvještaju, zapečaćena kopija+sha256+inotify; detekcija tri zla; zadržavanje→dijagnoza→liječenje→dekontaminacija→oporavak→imunitet→smrt; čovjek odlučuje stepen 2). Zatim F6 (GUI), F7 (QRH sadržaj), F10 (završnica).
+**Sljedeće:** F7 · QRH sadržaj — kartice izvora (OpenAI 7/8, 11/12, Siegel; Liu; Xu–Sang; Quanta), `tema-quasi-rh`, naši rezultati (polinom 4. stepena, litica w≈0.26, zid 5/6) kao NAŠE-NERECENZIRANO, barijere. (F6 GUI nosim poslije — glavni dio je PySide6/QSS i vizuelno; sadržaj i determinističko jezgro su prioritet za autonomni rad.) Zatim F6, F10 + izvlačenje + test prihvatanja.
 
 Napomene uz F3: skeptik u automatskom pokretanju je „nedostupan" (nema oblak-ključa, jedan model) → samo determinističke provjere (validna grana po planu). GGUF download pao na HTTP/2 (err 92) na ~1.3/5.6 GB; resume pokrenut (HTTP/1.1). Živi smoke-test GGUF-a tek kad download završi.
 
