@@ -39,8 +39,8 @@ _MATH_CACHE: dict[str, QImage] = {}
 _FAILED: set[str] = set()
 
 STATUS_COLOR = {
-    "COMPUTED": "#2e7d32", "CITED": "#1565c0", "FOLKLORE": "#ef6c00",
-    "SPECULATION": "#6a1b9a", "SUSPECT": "#c62828", "REFUTED": "#455a64",
+    "COMPUTED": "#2f7a4a", "CITED": "#2f5ea8", "FOLKLORE": "#a8701a",
+    "SPECULATION": "#6a4fb0", "SUSPECT": "#b03a3a", "REFUTED": "#4a5568",
 }
 
 
@@ -108,7 +108,7 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
     def _fence(m):
         lang, body = m.group(1), _html.escape(m.group(2))
         key = f"\x00F{len(placeholders)}\x00"
-        return _stash(key, f'<pre style="background:#1b1b1b;padding:8px;'
+        return _stash(key, f'<pre style="background:#12151b;padding:8px;'
                            f'border-radius:5px;font-size:{_BASE_PT[0]*0.9:.1f}pt;'
                            f'"><code>{body}</code></pre>')
     text = _CODE_FENCE.sub(_fence, text)
@@ -119,7 +119,7 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
         img = _render_math(expr, display, fg)
         key = f"\x00M{len(placeholders)}\x00"
         if img is None or doc is None:
-            return _stash(key, f'<code style="color:#ffab40">'
+            return _stash(key, f'<code style="color:#ffcf7a">'
                                f'{_html.escape(expr)}</code>')
         name = f"math{abs(hash(expr)) % 10**9}{int(display)}"
         doc.addResource(QTextDocument.ImageResource, QUrl(name), img)
@@ -143,10 +143,10 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
     text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", _img, text)
 
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
-                  r'<a href="\2" style="color:#4fc3f7">\1</a>', text)
+                  r'<a href="\2" style="color:#86b3ff">\1</a>', text)
     text = _WIKILINK.sub(
         lambda m: f'<a href="card:{m.group(1).strip()}" '
-                  f'style="color:#81c784">{m.group(3) or m.group(1)}</a>', text)
+                  f'style="color:#74d79a">{m.group(3) or m.group(1)}</a>', text)
 
     out_lines, in_table, in_list = [], False, False
     for raw in text.split("\n"):
@@ -188,7 +188,7 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
             in_list = False
         if line.startswith("&gt;"):
             out_lines.append(f'<div style="border-left:3px solid #666;'
-                             f'padding-left:8px;color:#bbb">{line[4:]}</div>')
+                             f'padding-left:8px;color:#9aa4b5">{line[4:]}</div>')
             continue
         if re.match(r"^\s*---+\s*$", line):
             out_lines.append("<hr style='border:0;border-top:1px solid #444'>")
@@ -259,11 +259,11 @@ def status_chip(status: str) -> QLabel:
 def hline() -> QFrame:
     f = QFrame()
     f.setFrameShape(QFrame.HLine)
-    f.setStyleSheet("color:#333;")
+    f.setStyleSheet("color:#262d3a;")
     return f
 
 
-def small(text: str, color: str = "#999") -> QLabel:
+def small(text: str, color: str = "#9aa4b5") -> QLabel:
     """Secondary text. Still scales with the base size — "small" is relative,
     and a fixed 11px is unreadable on a 207-DPI panel."""
     lb = QLabel(text)
@@ -272,18 +272,12 @@ def small(text: str, color: str = "#999") -> QLabel:
     return lb
 
 
-def button(text: str, slot=None, primary: bool = False) -> QPushButton:
+def button(text: str, slot=None, primary: bool = False, kind: str = "") -> QPushButton:
+    """Styled by the theme: kind = primary | go | no | '' (Svarog button classes)."""
     b = QPushButton(text)
-    if primary:
-        b.setStyleSheet("QPushButton{background:#1565c0;color:white;border:none;"
-                        "padding:6px 12px;border-radius:4px;font-weight:600;}"
-                        "QPushButton:hover{background:#1976d2;}"
-                        "QPushButton:disabled{background:#37474f;color:#889;}")
-    else:
-        b.setStyleSheet("QPushButton{background:#2a2a2a;color:#ddd;border:1px "
-                        "solid #3a3a3a;padding:5px 10px;border-radius:4px;}"
-                        "QPushButton:hover{background:#333;}"
-                        "QPushButton:disabled{color:#666;}")
+    k = kind or ("primary" if primary else "")
+    if k:
+        b.setProperty("kind", k)
     if slot:
         b.clicked.connect(slot)
     return b
@@ -315,7 +309,9 @@ QGroupBox::title { subcontrol-origin:margin; left:8px; color:#8ab; }
 
 
 def dark_qss(font_pt: float = 19.0) -> str:
-    return DARK_QSS_TMPL % {"fs": font_pt}
+    """The app theme (Svarog look, gui/theme.py). Name kept for old callers."""
+    from .theme import qss
+    return qss(font_pt)
 
 
 # kept for callers that don't care about size

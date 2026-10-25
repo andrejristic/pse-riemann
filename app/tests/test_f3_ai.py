@@ -147,3 +147,22 @@ def test_gguf_unknown_undeclared_is_refused_and_published_hash_is_admitted(tmp_p
     assert len([i for i in store().open_items(DECL.PROPOSAL_KIND)
                 if str(g) in i["payload"]["changes"].get("models", {})]) == 1
     assert DECL.model_hash(str(g)) is None
+
+
+def test_offline_asks_and_respects_one_or_two_ggufs(monkeypatch, operator):
+    from pse_r import settings as S
+    monkeypatch.setattr(SEL, "cloud_available", lambda: ["claude"])
+    monkeypatch.setattr(SEL, "gguf_available", lambda: ["gguf:deepseek.gguf", "gguf:qwen.gguf"])
+    S.set_(SEL.MAIN_KEY, "claude"); S.set_(SEL.SKEPTIC_KEY, "gguf:deepseek.gguf")
+    o = SEL.offline_options()
+    assert o["suggest_main"] == "gguf:deepseek.gguf" and o["skeptic_possible"]
+    SEL.go_offline("gguf:deepseek.gguf", "gguf:qwen.gguf")   # main was today's skeptic
+    assert SEL.get_main() == "gguf:deepseek.gguf" and SEL.get_skeptic() == "gguf:qwen.gguf"
+    assert SEL.offer_restore() == "claude"
+    SEL.restore_online()
+    assert SEL.get_main() == "claude"
+    # only one GGUF: skeptic explicitly unavailable (never a cloud model that is unreachable)
+    monkeypatch.setattr(SEL, "gguf_available", lambda: ["gguf:deepseek.gguf"])
+    SEL.go_offline("gguf:deepseek.gguf", None)
+    assert SEL.get_skeptic() is None and not SEL.skeptic_available()
+    SEL.restore_online()

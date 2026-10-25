@@ -26,10 +26,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."          # -> app/
 
-# Variant (plan F10): full = B (sympy+scipy, PRVI), lean = A (sympy, bez scipy;
-# metode koriste vlastite numeričke rutine), research = C dodatak (scipy +
-# llama-cpp za lokalni GGUF skeptik, offline). Prvi argument bira varijantu;
-# ostaje kompatibilno sa starim pozivom (bez argumenta = full).
+# Variant (plan F10):
+#   full     = B  package "pse-riemann"          sympy + scipy + llama-cpp (SVE)
+#   lean     = A  package "pse-riemann-lean"     sympy + llama-cpp, BEZ scipy
+#                 (Provides/Conflicts/Replaces pse-riemann: never both at once)
+#   research = C  package "pse-riemann-research" ADD-ON: only scipy, into
+#                 /opt/pse-riemann/lib-research; Depends: pse-riemann (A or B).
+#                 Installed on top of A it gives what B has.
+# First argument picks the variant; no argument = full.
 VARIANT="full"
 case "${1:-}" in
     full|lean|research) VARIANT="$1"; shift ;;
@@ -56,6 +60,44 @@ OUT="$BUILD/${APP}${SUFFIX}_${VERSION}_${ARCH}.deb"
 PIP_PY="./.venv/bin/python"
 [ -x "$PIP_PY" ] || PIP_PY="python3"
 PYVER="$($PIP_PY -c 'import sys;print("%d.%d"%sys.version_info[:2])')"
+
+PKG="$APP"
+[ "$VARIANT" = "lean" ] && PKG="$APP-lean"
+
+# ------------------------------------------------ C: research add-on ----
+if [ "$VARIANT" = "research" ]; then
+    PKG="$APP-research"
+    rm -rf "$STAGE"
+    mkdir -p "$STAGE/DEBIAN" "$STAGE/opt/$APP/lib-research" "$STAGE/usr/share/doc/$PKG"
+    echo "→ (research dodatak) samo scipy u /opt/$APP/lib-research…"
+    NUMPY_V="$("$PIP_PY" -c 'import numpy;print(numpy.__version__)')"
+    "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib-research" \
+        --no-compile --no-deps scipy
+    find "$STAGE/opt/$APP/lib-research" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+    rm -rf "$STAGE/opt/$APP/lib-research"/*.dist-info/RECORD 2>/dev/null || true
+    INSTALLED_KB="$(du -sk "$STAGE" | cut -f1)"
+    cat > "$STAGE/DEBIAN/control" <<CTRL
+Package: $PKG
+Version: $VERSION
+Section: science
+Priority: optional
+Architecture: $ARCH
+Depends: pse-riemann (= $VERSION)
+Installed-Size: $INSTALLED_KB
+Maintainer: Andrej Ristic <andrej.s.ristic@gmail.com>
+Description: PSE Riemann - dodatak za istrazivaca metoda (scipy)
+ Dodatak za pse-riemann-lean: donosi scipy u /opt/pse-riemann/lib-research,
+ koji launcher automatski dodaje na putanju. Lean + ovaj dodatak = puna
+ verzija. Pravljen uz numpy $NUMPY_V iz osnovnog paketa.
+CTRL
+    echo "Dodatak za istrazivaca metoda (scipy). Zavisi od pse-riemann (lean ili full)." \
+        > "$STAGE/usr/share/doc/$PKG/README"
+    find "$STAGE" -type d -exec chmod 755 {} +
+    OUT="$BUILD/${PKG}_${VERSION}_${ARCH}.deb"
+    fakeroot dpkg-deb --build -Zxz "$STAGE" "$OUT" >/dev/null
+    echo "✅ $OUT"; ls -lh "$OUT" | awk '{print "   velicina: " $5}'
+    exit 0
+fi
 
 echo "PSE Riemann .deb"
 echo "  verzija   : $VERSION"
@@ -92,26 +134,27 @@ for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md; do
 done
 
 # ------------------------------------------------------------- deps ----
-# Base (sve varijante): GUI + numerika + sympy (metode: egzaktni polinomi).
-# full/research dodaju scipy; research dodaje i llama-cpp (lokalni GGUF skeptik).
+# Base (A i B): GUI + numerika + sympy (metode: egzaktni polinomi) + llama-cpp
+# (lokalni GGUF: offline glavni/skeptik je dio dogovora). B dodaje scipy.
 BASE_DEPS="mpmath numpy matplotlib sympy"
 case "$VARIANT" in
     full)     EXTRA="scipy" ;;
     lean)     EXTRA="" ;;
-    research) EXTRA="scipy" ;;     # llama-cpp se dodaje posebno (drugi index)
 esac
 echo "→ varijanta: $VARIANT · pakujem PySide6 $BASE_DEPS $EXTRA (nista od apt-a)…"
 "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" \
     --no-compile PySide6-Essentials $BASE_DEPS $EXTRA \
     || "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" \
        --no-compile PySide6 $BASE_DEPS $EXTRA
-if [ "$VARIANT" = "research" ]; then
-    echo "→ (research) dodajem llama-cpp-python (CPU wheel)…"
-    "$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" --no-compile \
-        --only-binary :all: \
-        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
-        llama-cpp-python || echo "   llama-cpp nije dodan (preskačem)"
-fi
+echo "→ dodajem llama-cpp-python (CPU wheel; lokalni GGUF)…"
+"$PIP_PY" -m pip install --quiet --target "$STAGE/opt/$APP/lib" --no-compile \
+    --only-binary :all: --no-deps \
+    --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
+    llama-cpp-python diskcache jinja2 MarkupSafe typing_extensions
+"$PIP_PY" - "$STAGE/opt/$APP/lib" <<'PYCHK'
+import sys; sys.path.insert(0, sys.argv[1]); import llama_cpp
+print("   llama-cpp", llama_cpp.__version__, "OK")
+PYCHK
 # trim what a desktop app on 4 GB will never use
 rm -rf "$STAGE/opt/$APP/lib"/PySide6/Qt/qml \
        "$STAGE/opt/$APP/lib"/PySide6/Qt/translations \
@@ -132,7 +175,10 @@ set -euo pipefail
 ROOT="/opt/pse-riemann"
 # Bundled deps first. PYTHONPATH is prepended, never replaced, so a user who
 # has their own PYTHONPATH keeps it.
-export PYTHONPATH="$ROOT/lib${PYTHONPATH:+:$PYTHONPATH}"
+LIBS="$ROOT/lib"
+# research add-on (C), if installed, brings scipy here
+[ -d "$ROOT/lib-research" ] && LIBS="$LIBS:$ROOT/lib-research"
+export PYTHONPATH="$LIBS${PYTHONPATH:+:$PYTHONPATH}"
 exec python3 "$ROOT/app/main.py" "$@"
 LAUNCH
 chmod 755 "$STAGE/usr/bin/$APP"
@@ -156,12 +202,13 @@ DESK
 # -------------------------------------------------------------- meta ----
 INSTALLED_KB="$(du -sk "$STAGE" | cut -f1)"
 cat > "$STAGE/DEBIAN/control" <<CTRL
-Package: $APP
+Package: $PKG
 Version: $VERSION
 Section: science
 Priority: optional
 Architecture: $ARCH
 Depends: python3 (>= 3.10), libgl1, libegl1, libxkbcommon0, libdbus-1-3, libfontconfig1, libxcb-cursor0
+$( [ "$VARIANT" = "lean" ] && printf 'Provides: pse-riemann (= %s)\nConflicts: pse-riemann\nReplaces: pse-riemann' "$VERSION" || printf 'Conflicts: pse-riemann-lean\nReplaces: pse-riemann-lean' )
 Recommends: ufw
 Installed-Size: $INSTALLED_KB
 Maintainer: Andrej Ristic <andrej.s.ristic@gmail.com>
@@ -175,9 +222,11 @@ Description: Asistent za izucavanje Rimanove zeta funkcije
     trazi razrjesiv izvor, tvrdnja o dokazu RH se odbija
   * Guardian: sav saobracaj kroz jednu funkciju, default-deny allowlist,
     TLS SPKI pinning, kljucevi samo model API-jima
-  * Chat (Claude/Gemini/Mistral/Groq), tabla sa transkripcijom, graf znanja
+  * SHARED_LIB: glas samo operateru, misije, vrata za metode (sistem
+    eksponenata kao podatak + test reprodukcije), cuvari izvjestaja
+  * Glavni AI + nezavisni skeptik (cloud ili lokalni GGUF, sa limiterima)
  .
- Varijanta: $VARIANT (full=sympy+scipy, lean=sympy bez scipy, research=+llama-cpp).
+ Varijanta: $VARIANT (full=sympy+scipy+llama-cpp, lean=bez scipy).
  Vault se cuva u ~/.local/share/pse-riemann/vault.
 CTRL
 
@@ -233,7 +282,7 @@ echo
 echo "Instalacija:"
 echo "   sudo apt install $OUT"
 echo "Uklanjanje:"
-echo "   sudo apt remove $APP"
+echo "   sudo apt remove $PKG"
 
 if [ "${1:-}" = "--install" ]; then
     echo

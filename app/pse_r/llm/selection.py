@@ -98,8 +98,13 @@ def get_main() -> Optional[str]:
     return S.get(MAIN_KEY) or default_main()
 
 
+NO_SKEPTIC = "none"           # operator chose "no skeptic" (e.g. offline with one GGUF)
+
+
 def get_skeptic() -> Optional[str]:
     chosen = S.get(SKEPTIC_KEY)
+    if chosen == NO_SKEPTIC:
+        return None
     main = get_main()
     if chosen and chosen != main:
         return chosen
@@ -146,3 +151,65 @@ def role_backend(role: str) -> B.Backend:
 
 class B_NoModel(Exception):
     pass
+
+
+# --------------------------------------------------------------------------- #
+# No internet (plan §1): the app ASKS which local GGUF to use — it never decides.
+# --------------------------------------------------------------------------- #
+_HOSTS = {"claude": "api.anthropic.com", "gemini": "generativelanguage.googleapis.com",
+          "mistral": "api.mistral.ai", "groq": "api.groq.com"}
+PREV_MAIN_KEY = "ai_main_before_offline"
+
+
+def main_reachable(timeout: float = 5.0) -> bool:
+    """Can the selected main model be reached? A GGUF always can. The probe goes
+    through the guardian egress (the only network path), never a raw socket."""
+    m = get_main()
+    if not m or m.startswith("gguf:"):
+        return True
+    host = _HOSTS.get(m)
+    if not host:
+        return True
+    from ..guardian.egress import EgressBlocked, egress
+    try:
+        egress().request("GET", f"https://{host}/", timeout=timeout)
+        return True
+    except EgressBlocked:
+        return False
+    except Exception:                                   # noqa: BLE001
+        return False
+
+
+def offline_options() -> dict:
+    """What to offer the operator when the main model is unreachable."""
+    ggufs = gguf_available()
+    return {"main_was": get_main(), "ggufs": ggufs,
+            "suggest_main": ggufs[0] if ggufs else None,
+            "suggest_skeptic": ggufs[1] if len(ggufs) > 1 else None,
+            "skeptic_possible": len(ggufs) > 1}
+
+
+def go_offline(main: str, skeptic: Optional[str]) -> None:
+    """Apply the operator's offline choice, remembering the previous main."""
+    prev = get_main()
+    if prev and not prev.startswith("gguf:"):
+        S.set_(PREV_MAIN_KEY, prev)
+    S.set_(SKEPTIC_KEY, "")             # free the slot: main may be today's skeptic
+    set_main(main)
+    if skeptic and skeptic != main:
+        set_skeptic(skeptic)
+    else:
+        S.set_(SKEPTIC_KEY, NO_SKEPTIC)  # skeptic "nedostupan": deterministic checks only
+
+
+def offer_restore() -> Optional[str]:
+    """The cloud main that was active before going offline, if any."""
+    return S.get(PREV_MAIN_KEY) or None
+
+
+def restore_online() -> None:
+    prev = offer_restore()
+    if prev:
+        S.set_(SKEPTIC_KEY, "")
+        S.set_(MAIN_KEY, prev)
+        S.set_(PREV_MAIN_KEY, "")

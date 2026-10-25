@@ -1,6 +1,6 @@
 # WORKLOG — PSE Riemann v2
 
-**STATUS: RADI** (popravke 1–3 i 6 gotove; sljedeće 4, 5) — nadzirana provjera (2026-10-25 ~11:50) potvrdila 75/75 testova, selftest i test prihvatanja; push je SADA URAĐEN (problem 1 riješen). Pronađena odstupanja od plana se popravljaju (vidi „Nadzirana provjera“ ispod). Merge u `main` i dalje čeka Andrejevo odobrenje.
+**STATUS: RADI** (popravke 1–3 i 6 gotove; u toku 4, 5, 7, 8, 9 — procjena preostalog ~9–12 h) — nadzirana provjera (2026-10-25 ~11:50) potvrdila 75/75 testova, selftest i test prihvatanja; push je SADA URAĐEN (problem 1 riješen). Pronađena odstupanja od plana se popravljaju (vidi „Nadzirana provjera“ ispod). Merge u `main` i dalje čeka Andrejevo odobrenje.
 
 ### Nadzirana provjera — nalazi (popravlja se redom)
 1. ✅ **POPRAVLJENO** (92/92). **Vrata za metode nisu otvorena za stvarno nove radove:** paket bira jednu od 3 ugrađene familije (`liu`/`xs`/`line`) umjesto da nosi E kao podatak. → paket mora nositi sistem eksponenata (E, R, zidovi, prava, licenca) kao siguran izraz; ugrađene familije ostaju samo kao kontrola.
@@ -8,6 +8,9 @@
 3. ✅ **POPRAVLJENO.** `exact_poly` se ne provjerava. → kapija provjerava da je computed_B korijen polinoma.
 4. Paket C nije dodatak nego treća puna verzija; sva tri se zovu `pse-riemann`. → C = `pse-riemann-research`, zavisi od `pse-riemann`, nosi samo dodatke.
 5. Svarog izgled GUI-ja nije verifikovan. → provjeriti/uraditi QSS temu, gornju traku, Pregled.
+7. **Rad bez interneta nije bio napravljen** (aplikacija je trebala pitati koji GGUF). → logika urađena i testirana (`selection.offline_options/go_offline/restore_online`); GUI dijalog u toku.
+8. **Funkcije postoje kao biblioteka + testovi, ali NISU povezane u aplikaciji koja radi:** glas SHARED_LIB-a (chat ga ne koristi), čuvari (niko ne poziva seal/patrol), liječenje i tri zla (samo selftest), arXiv praćenje (nikad se ne pokreće; izvlačenje glavnim AI-jem ne postoji). → povezivanje u toku.
+9. Paket B (full) nije imao llama-cpp (lokalni DeepSeek ne bi radio iz paketa); u instaliranoj verziji modeli su traženi u `/opt/.../models` (nepisivo). → popravljeno u skripti/konfiguraciji, build u toku.
 6. ✅ **POPRAVLJENO.** Lokalni sha256 = objavljeni (huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF, `044519a2…1140e`, 5 851 113 984 B). Prijem po §8: deklaracija → inače objavljeni hash → inače odbijeno. (Bilo: sha256 DeepSeek-a nije upoređen sa objavljenim (master §8). → uporediti sa HuggingFace.) Za druge GGUF-ove (npr. Qwen2.5-7B kao offline skeptik) treba dugme „Deklariši“ u GUI-ju → ide uz popravku 5.
 
 **Usput nađeno i popravljeno:** (a) `install_hooks()` je registrovao istu funkciju više puta → jedna odluka operatera se izvršavala više puta (dupli koraci misije/kartice). Sada idempotentno + test. (b) Tekst stanja misije je navodio lošiji B kao front kad nova metoda ispadne „dalje“ (sam broj fronta je bio ispravan). (c) Istraživački sweep za w=0.2 je bio grub: konvergirano 0.8715502525 (ne 0.87155365) — ispravljeno u REPORT-u.

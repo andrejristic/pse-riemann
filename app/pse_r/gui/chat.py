@@ -98,8 +98,8 @@ class ProposalWidget(QFrame):
         super().__init__(parent)
         self.meta = meta
         self.on_written = on_written
-        self.setStyleSheet("QFrame{background:#1b1b1b;border:1px solid #333;"
-                           "border-radius:6px;}")
+        self.setStyleSheet("QFrame{background:#1a1f2b;border:1px solid #262d3a;"
+                           "border-radius:12px;}")
         v = QVBoxLayout(self)
         v.setContentsMargins(8, 8, 8, 8)
 
@@ -271,14 +271,14 @@ class ChatPanel(QWidget):
     def _say(self, who: str, text: str, proposals=None):
         box = QFrame()
         box.setStyleSheet(
-            "QFrame{background:%s;border-radius:6px;}" %
-            {"user": "#1e2a35", "assistant": "#1a1a1a",
-             "system": "#181818", "error": "#2b1a1a"}.get(who, "#1a1a1a"))
+            "QFrame{background:%s;border:1px solid #262d3a;border-radius:12px;}" %
+            {"user": "#2a2211", "assistant": "#171b25",
+             "system": "#1a1f2b", "error": "#301618"}.get(who, "#171b25"))
         v = QVBoxLayout(box)
         v.setContentsMargins(8, 6, 8, 6)
         tag = {"user": "ti", "assistant": "asistent", "system": "sistem",
                "error": "greška"}.get(who, who)
-        v.addWidget(small(tag, "#7a8"))
+        v.addWidget(small(tag, "#ffcf7a" if who == "user" else "#9aa4b5"))
         md = MarkdownView(on_card=self.open_card.emit)
         md.set_markdown(text)
         md.document().setTextWidth(self.width() - 60)
