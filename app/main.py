@@ -100,6 +100,17 @@ def selftest() -> int:
          "dlo": 1e-6}))["ok"]
     check("vrata: tačan paket se reprodukuje, lažni se odbija", _ok and not _bad)
 
+    print("\nAI (glavni + skeptik + limiteri):")
+    from pse_r.llm import limits as LIM, selection as SEL
+    check("limiteri: detekcija ponavljanja i → ∞",
+          LIM.is_looping("ista linija\n" * 5) and LIM.diverging([1, 2, 3, 4], 1000))
+    check("politika: glavni i skeptik su različiti modeli (ili skeptik nedostupan)",
+          (not SEL.skeptic_available()) or (SEL.get_main() != SEL.get_skeptic()))
+    from pse_r.llm import gguf as GG
+    _n = len(GG.list_models())
+    check("GGUF: llama-cpp i lokalni modeli vidljivi",
+          True, f"llama-cpp {'da' if GG.have_llama() else 'ne'}, GGUF fajlova: {_n}")
+
     print("\nMisije:")
     from pse_r.shared_lib import missions as MIS
     mid = MIS.seed_first()

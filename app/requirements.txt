@@ -11,3 +11,7 @@ matplotlib>=3.7
 sympy>=1.12          # method explorer: exact polynomials (base package, A and B)
 scipy>=1.11          # method explorer extras (full package B / research add-on C)
 pytest>=7            # tests (development only)
+# Optional — local GGUF skeptic (F3). Needs the CPU wheel index; see setup.sh:
+#   pip install --only-binary :all: \
+#     --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu llama-cpp-python
+# llama-cpp-python>=0.3

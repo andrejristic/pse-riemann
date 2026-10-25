@@ -83,6 +83,9 @@ BASELINE_DB = DIR_STATE / "guardian_baselines.json"
 PIN_STORE = DIR_STATE / "tls_pins.json"
 BUDGET_STORE = DIR_STATE / "budget.json"
 SHARED_LIB_DB = DIR_STATE / "shared_lib.db"   # mutable SHARED_LIB state (queue, declarations, methods, missions, reports)
+# Local GGUF models (llama-cpp). Beside the project by default, never in the vault,
+# never on git (*.gguf is gitignored). Override with PSE_RIEMANN_MODELS.
+DIR_MODELS = _env_path("PSE_RIEMANN_MODELS", PROJECT_ROOT / "models")
 DIR_REPORTS = VAULT / "reports"                # final reports (guarded by keeper units)
 DIR_METHODS = VAULT / "methods"                # accepted method packs
 VAULT_DIRS += [DIR_REPORTS, DIR_METHODS]

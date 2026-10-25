@@ -59,7 +59,20 @@ def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str,
     J.log(METHOD_KIND, proposer,
           {"event": "reproduced_queued", "name": pack.name, "pid": pid,
            "computed_B": res["computed_B"]}, subject=pack.name, verdict="reproduced")
-    return {"reproduced": True, "pid": pid, "result": res}
+
+    # reproduction test → skeptic → operator (plan F9). The skeptic (a different
+    # model) attacks the reproduced method; its objections queue alongside. If no
+    # distinct skeptic is available, only the deterministic test stands — fine.
+    skeptic = None
+    try:
+        from ..llm import skeptic as SK
+        if SK.SEL.skeptic_available():
+            claim = (f"Metoda {pack.name}: granica B*={res['computed_B']:.12f} "
+                     f"(izvor {pack.source}). Narušeni zidovi: {res['broken_walls']}.")
+            skeptic = SK.attack(f"Metoda {pack.name}", claim, subject=pack.name)
+    except Exception:                                  # noqa: BLE001
+        skeptic = None
+    return {"reproduced": True, "pid": pid, "result": res, "skeptic": skeptic}
 
 
 def _on_decision(item: dict, approved: bool) -> None:
