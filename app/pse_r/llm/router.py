@@ -71,7 +71,8 @@ class Router:
     # ------------------------------------------------------------------ #
     def available(self) -> list[str]:
         s = SEC.store()
-        return [p for p, cls in B.BACKENDS.items() if s.has(cls.key_name)]
+        from . import providers as P
+        return [p for p, pr in P.all_presets().items() if s.has(pr.key_name)]
 
     def resolve(self, role: str, avoid: str = "") -> Route:
         """
@@ -119,8 +120,13 @@ class Router:
                         effort=tune["effort"])
 
         if route.provider != "gguf":                  # a local model costs nothing
+            raw = reply.raw or {}
+            out = budget().worst_case_out(route.provider, reply.out_tokens,
+                                          int(raw.get("max_tokens", 0)),
+                                          bool(raw.get("cut")),
+                                          bool(raw.get("usage_reported", True)))
             budget().record(route.provider, reply.model, role,
-                            reply.in_tokens, reply.out_tokens)
+                            reply.in_tokens, out, worst_case=(out != reply.out_tokens))
         # model output is other-directed work: it moves theta toward "other"
         TH.record("model_output", max(reply.out_tokens, 1) / 500.0,
                   source=f"{route.provider}:{role}")

@@ -13,14 +13,17 @@
 | 2026-10-25 | 5 · povratnost akcija (S4) | ✅ | pytest 119/119, selftest ✅ | `core/actions.py`: 12 deklarisanih, 7 smije samo; nedeklarisano = nepovratno → operateru; liječenje izvodi nivo iz deklaracija; vraćanje iz pečata sada čuva izmijenjenu verziju u `forensic/` (prije je brisalo trag — nije bilo stvarno povratno) |
 | 2026-10-25 | 6 · ponovljive odluke (P1) | ✅ | pytest 126/126, selftest ✅ | `core/replay.py` + `replay_deciders.py`: kapija (odluka razdvojena na kontekst + čistu funkciju), vrata (test reprodukcije), plan liječenja, „→ ∞“ okidanje, allowlist egress-a; lažiran zapis → prijetnja + „NARUŠEN INTEGRITET“ u redu; izmijenjen ulaz hvata hash; svakodnevna provjera u pozadini + u selftestu. Postojeći dnevnik nema zapise (0/0) — važi od sad |
 | 2026-10-25 | 7 · retencija + sidra arhive (S8 + P3) | ✅ | pytest 131/131, selftest ✅ | `core/archive.py`: stari događaji → `.state/archive/*.jsonl.gz` (sha256, samo za čitanje) → sidro (append-only tabela + događaj u lancu) → tek onda brisanje; okidač dozvoljava DELETE samo ispod sidra; lanac se nastavlja preko sidra; lažirana arhiva otkrivena; dnevno u pozadini (> 200 000 događaja, čuva 90 dana / min 20 000). Replay čita i arhive; keš za replay (hash zapisa + hash koda) — test 58 s → 0,1 s. Pravi dnevnik: okidač migriran, lanac netaknut |
+| 2026-10-25 | 9 · provajderi | ✅ | pytest 144/144 | `llm/providers.py`: Claude (sada `claude-opus-5-5`, effort uvijek eksplicitno, server-side fallback „default“ pri odbijanju), OpenAI, Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Fireworks — svi na allowlisti sa svojim ključem; vlastita OpenAI-kompatibilna adresa = prijedlog deklaracije, otvara se tek kad operater potvrdi (kind `endpoints`); GGUF sa bilo kog mjesta po putanji (bez kopiranja, prijem po sha256); `list_models()` nudi prava imena modela sa servera. Uživo NIJE testirano — nema nijednog ključa (živi test = stavka 26) |
+| 2026-10-25 | 10 · strujanje kroz egress | ✅ | pravi socket: prekid → server dobija prekinutu vezu | `egress.stream_post`: iste kapije kao `request` (izdvojeno u `_gate`/`_connect`, TLS pinovi), čita red po red, `gen.close()`/otkaz/„→ ∞“/vrtnja/rok → `shutdown(SHUT_RDWR)`; `kill_streams()` prekida sve tokove odjednom (za stavku 12). Nađeno testom: `http.client` zaboravi socket posle odgovora → prekidač nije sjekao vezu; sada se socket čuva posebno |
+| 2026-10-25 | 11 · naplata | ✅ (UI u stavci 8) | testovi | po provajderu: prekid zaustavlja naplatu ili ne (nepoznato = najgori slučaj); za „ne“: max_tokens ≤ 1500, ulaz ≤ 60 000 znakova; budžet broji max_tokens kad prekinemo provajdera koji naplaćuje sve ili kad nema podatka o potrošnji; cijene Claude modela ažurirane, ostale upisuje operater (bez izmišljanja) |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** Faza 2 — stavka 8 (početno podešavanje pri prvom otvaranju).
+**Sljedeće:** stavka 8 (početno podešavanje; radi se posle 9–11 jer nudi ono što oni daju), pa 12–13.
 
-**Preostalo:** oko 83–132 h.
+**Preostalo:** oko 75–122 h.
 
 ---
 

@@ -145,6 +145,9 @@ class Egress:
         self._lock = threading.Lock()
         self.network = network_id()
         self.learn_pins = True          # wizard turns this off after first run
+        self._live: dict = {}           # open streaming connection → its raw socket
+        self._killed: set = set()       # hung up by kill_streams()
+        self._live_lock = threading.Lock()
 
     # ------------------------------------------------------------------ #
     def request(self, method: str, url: str, *, headers: Optional[dict] = None,
@@ -160,9 +163,74 @@ class Egress:
         query:<param>.
         """
         t0 = time.monotonic()
-        headers = dict(headers or {})
+        url, headers, host, endpoint, parts, rule, privesc = self._gate(
+            method, url, headers, body, secret_name, auth_style)
         max_bytes = max_bytes or config.LIM["max_response_bytes"]
         timeout = timeout or config.LIM["http_timeout"]
+        g = guardian()
+
+        # 6-8. connect, pin, fetch
+        try:
+            resp = self._fetch(host, parts, url, method, headers, body,
+                               max_bytes, timeout)
+        except PinFailure:
+            raise
+        except (socket.timeout, TimeoutError) as e:
+            self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
+            raise EgressBlocked(f"{host}: isteklo vrijeme ({e})") from e
+        except ssl.SSLError as e:
+            self._observe(host, endpoint, 0, 0, 0.0, privesc + 1, ok=False)
+            raise EgressBlocked(
+                f"{host}: TLS greška ({e}). Na javnoj mreži ovo je često znak "
+                f"presretanja ili captive portala — ne unosi ključeve dok se ne razriješi"
+            ) from e
+        except (socket.gaierror, ConnectionError, OSError) as e:
+            self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
+            raise EgressBlocked(f"{host}: mreža nedostupna ({e})") from e
+
+        # 7. redirects — manual, capped, each hop revalidated from step 1
+        if resp.status in (301, 302, 303, 307, 308):
+            loc = resp.headers.get("location", "")
+            if _depth >= 3:
+                raise EgressBlocked(f"{host}: previše preusmjeravanja")
+            nxt = urllib.parse.urljoin(url, loc)
+            nhost = (urllib.parse.urlsplit(nxt).hostname or "").lower()
+            if not policy.is_allowed(nhost):
+                g.quarantine(host, f"preusmjerava na host van allowliste: {nhost}")
+                raise EgressBlocked(
+                    f"{host} preusmjerava na '{nhost}' koji nije dozvoljen. "
+                    f"Ovo je potpis captive portala ili otetog DNS-a. Host je u karantinu.")
+            # a credentialed request never follows a redirect carrying its key
+            return self.request(method, nxt, headers=None, body=body,
+                                secret_name="", max_bytes=max_bytes,
+                                timeout=timeout, _depth=_depth + 1)
+
+        # captive-portal shape: an API host answering HTML
+        ctype = resp.headers.get("content-type", "")
+        if rule.klass == policy.CREDENTIALED and "html" in ctype.lower():
+            g.quarantine(host, "API host vratio HTML — captive portal ili presretanje")
+            raise EgressBlocked(
+                f"{host} je vratio HTML umjesto JSON-a. Skoro sigurno si iza captive "
+                f"portala. Prijavi se na mrežu pa probaj ponovo — ključ NIJE poslat.")
+
+        sent = len(body or b"") + sum(len(k) + len(v) for k, v in headers.items())
+        self._observe(host, endpoint, sent, len(resp.body),
+                      shannon_entropy(resp.body), privesc,
+                      ok=True, status=resp.status)
+        resp.elapsed = time.monotonic() - t0
+        J.log(J.EGRESS, "egress",
+              {"host": host, "path": endpoint, "method": method,
+               "status": resp.status, "bytes": len(resp.body),
+               "ms": int(resp.elapsed * 1000), "pin": resp.pin_state,
+               "network": self.network, "replay": _policy_record(host)},
+              subject=host, verdict="allow")
+        return resp
+
+    def _gate(self, method: str, url: str, headers: Optional[dict], body: Optional[bytes],
+              secret_name: str, auth_style: str):
+        """Steps 1–5 + rate limit, shared by request() and stream(): scheme,
+        allowlist, quarantine, credential containment, key-leak scan."""
+        headers = dict(headers or {})
         g = guardian()
         parts = urllib.parse.urlsplit(url)
         host = (parts.hostname or "").lower()
@@ -226,75 +294,124 @@ class Egress:
         wait = self._bucket(host, rule.max_rps).take(g.rps_factor(host))
         if wait > 0:
             time.sleep(min(wait, 10.0))
-
-        # 6-8. connect, pin, fetch
-        try:
-            resp = self._fetch(host, parts, url, method, headers, body,
-                               max_bytes, timeout)
-        except PinFailure:
-            raise
-        except (socket.timeout, TimeoutError) as e:
-            self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
-            raise EgressBlocked(f"{host}: isteklo vrijeme ({e})") from e
-        except ssl.SSLError as e:
-            self._observe(host, endpoint, 0, 0, 0.0, privesc + 1, ok=False)
-            raise EgressBlocked(
-                f"{host}: TLS greška ({e}). Na javnoj mreži ovo je često znak "
-                f"presretanja ili captive portala — ne unosi ključeve dok se ne razriješi"
-            ) from e
-        except (socket.gaierror, ConnectionError, OSError) as e:
-            self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
-            raise EgressBlocked(f"{host}: mreža nedostupna ({e})") from e
-
-        # 7. redirects — manual, capped, each hop revalidated from step 1
-        if resp.status in (301, 302, 303, 307, 308):
-            loc = resp.headers.get("location", "")
-            if _depth >= 3:
-                raise EgressBlocked(f"{host}: previše preusmjeravanja")
-            nxt = urllib.parse.urljoin(url, loc)
-            nhost = (urllib.parse.urlsplit(nxt).hostname or "").lower()
-            if not policy.is_allowed(nhost):
-                g.quarantine(host, f"preusmjerava na host van allowliste: {nhost}")
-                raise EgressBlocked(
-                    f"{host} preusmjerava na '{nhost}' koji nije dozvoljen. "
-                    f"Ovo je potpis captive portala ili otetog DNS-a. Host je u karantinu.")
-            # a credentialed request never follows a redirect carrying its key
-            return self.request(method, nxt, headers=None, body=body,
-                                secret_name="", max_bytes=max_bytes,
-                                timeout=timeout, _depth=_depth + 1)
-
-        # captive-portal shape: an API host answering HTML
-        ctype = resp.headers.get("content-type", "")
-        if rule.klass == policy.CREDENTIALED and "html" in ctype.lower():
-            g.quarantine(host, "API host vratio HTML — captive portal ili presretanje")
-            raise EgressBlocked(
-                f"{host} je vratio HTML umjesto JSON-a. Skoro sigurno si iza captive "
-                f"portala. Prijavi se na mrežu pa probaj ponovo — ključ NIJE poslat.")
-
-        sent = len(body or b"") + sum(len(k) + len(v) for k, v in headers.items())
-        self._observe(host, endpoint, sent, len(resp.body),
-                      shannon_entropy(resp.body), privesc,
-                      ok=True, status=resp.status)
-        resp.elapsed = time.monotonic() - t0
-        J.log(J.EGRESS, "egress",
-              {"host": host, "path": endpoint, "method": method,
-               "status": resp.status, "bytes": len(resp.body),
-               "ms": int(resp.elapsed * 1000), "pin": resp.pin_state,
-               "network": self.network, "replay": _policy_record(host)},
-              subject=host, verdict="allow")
-        return resp
+        return url, headers, host, endpoint, parts, rule, privesc
 
     # ------------------------------------------------------------------ #
-    def _fetch(self, host: str, _stale_parts, url: str, method: str,
-               headers: dict, body: Optional[bytes], max_bytes: int,
-               timeout: float) -> Response:
-        # Re-split the URL HERE, from the string we are actually about to send.
-        # The caller's copy was parsed before credential injection, so for a
-        # query-style key (`?key=…`) it does not contain the credential — using
-        # it silently sends an unauthenticated request, which Google reports as
-        # "method doesn't allow unregistered callers" and which looks for all
-        # the world like a bad key.
+    # streaming (round 3, item 10): every model call streams, so cutting the
+    # connection really stops the generation (and, where the provider honours
+    # it, the billing). The same gate as request(); the socket is shut down
+    # hard on cancel, on close of the generator, and by kill_streams().
+    # ------------------------------------------------------------------ #
+    def stream_post(self, url: str, payload: dict, *, headers: Optional[dict] = None,
+                    secret_name: str = "", auth_style: str = "",
+                    timeout: Optional[float] = None, max_bytes: int = 0,
+                    cancel: Optional[threading.Event] = None):
+        """Generator of raw response lines (bytes). Close it to hang up."""
+        h = dict(headers or {})
+        h["Content-Type"] = "application/json"
+        h["Accept"] = "text/event-stream"
+        body = json.dumps(payload).encode("utf-8")
+        url, h, host, endpoint, parts, rule, privesc = self._gate(
+            "POST", url, h, body, secret_name, auth_style)
+        h["Accept-Encoding"] = "identity"          # line framing needs plain bytes
+        timeout = timeout or config.LIM["http_timeout"]
+        max_bytes = max_bytes or config.LIM["max_response_bytes"] * 4
+        t0 = time.monotonic()
         parts = urllib.parse.urlsplit(url)
+        try:
+            conn, state = self._connect(host, parts, timeout)
+        except PinFailure:
+            raise
+        except (socket.timeout, TimeoutError, ssl.SSLError, OSError) as e:
+            self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
+            raise EgressBlocked(f"{host}: veza nije uspostavljena ({e})") from e
+        # http.client drops conn.sock once a "close" response arrives, so the raw
+        # socket is kept here: it is what a hang-up must shut down.
+        with self._live_lock:
+            self._live[conn] = conn.sock
+        total, status, cancelled, err = 0, 0, False, ""
+        try:
+            path = urllib.parse.urlunsplit(("", "", parts.path or "/", parts.query, ""))
+            conn.request("POST", path, body=body, headers=h)
+            r = conn.getresponse()
+            status = r.status
+            if status >= 400:
+                raw = self._read_capped(r, config.LIM["max_response_bytes"], host)
+                err = raw.decode("utf-8", "replace")[:600]
+                raise EgressBlocked(f"{host}: HTTP {status}: {err}")
+            while True:
+                if cancel is not None and cancel.is_set():
+                    cancelled = True
+                    break
+                try:
+                    line = r.readline(1 << 16)
+                except (OSError, ValueError, AttributeError,
+                        http.client.HTTPException) as e:
+                    # kill_streams() shut the socket under us — that is a hang-up
+                    if self._was_killed(conn):
+                        cancelled = True
+                        break
+                    raise EgressBlocked(f"{host}: tok prekinut ({e})") from e
+                if not line:
+                    cancelled = cancelled or self._was_killed(conn)
+                    break
+                total += len(line)
+                if total > max_bytes:
+                    raise EgressBlocked(f"{host}: tok prelazi {max_bytes // 1024} KB — prekinut")
+                yield line
+        except GeneratorExit:
+            cancelled = True
+            raise
+        finally:
+            self._hangup(conn)
+            with self._live_lock:
+                self._killed.discard(conn)
+            self._observe(host, endpoint, len(body), total, 0.0, privesc,
+                          ok=(200 <= status < 300), status=status)
+            J.log(J.EGRESS, "egress",
+                  {"host": host, "path": endpoint, "method": "POST", "stream": True,
+                   "status": status, "bytes": total, "cancelled": cancelled,
+                   "ms": int((time.monotonic() - t0) * 1000), "pin": state,
+                   "network": self.network, "replay": _policy_record(host)},
+                  subject=host, verdict="allow")
+
+    def _was_killed(self, conn) -> bool:
+        with self._live_lock:
+            return conn in self._killed
+
+    def _hangup(self, conn) -> None:
+        with self._live_lock:
+            sock = self._live.pop(conn, None) or getattr(conn, "sock", None)
+        if sock is not None:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)     # FIN now, not when GC runs
+            except OSError:
+                pass
+        try:
+            conn.close()
+        except OSError:
+            pass
+
+    def kill_streams(self) -> int:
+        """Hang up every open model stream at once (kill switch). Returns count."""
+        with self._live_lock:
+            live = list(self._live.items())
+            self._live.clear()
+            self._killed.update(c for c, _ in live)
+        for c, sock in live:
+            if sock is not None:
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+        return len(live)
+
+    def live_streams(self) -> int:
+        with self._live_lock:
+            return len(self._live)
+
+    def _connect(self, host: str, parts, timeout: float):
+        """TCP + TLS + pin check. Returns (connection, pin_state). Raises PinFailure."""
         port = parts.port or 443
         conn = http.client.HTTPSConnection(host, port, timeout=timeout,
                                            context=self._ctx)
@@ -314,6 +431,27 @@ class Egress:
                     f"presretanje. Na tuđem WiFi-ju pretpostavi presretanje: prekini "
                     f"rad na ovoj mreži. Ako si siguran da je rotacija, obriši pin "
                     f"u Guardian tabu — ali to uradi sa mreže kojoj vjeruješ.")
+        except BaseException:
+            try:
+                conn.close()
+            except OSError:
+                pass
+            raise
+        return conn, state
+
+    # ------------------------------------------------------------------ #
+    def _fetch(self, host: str, _stale_parts, url: str, method: str,
+               headers: dict, body: Optional[bytes], max_bytes: int,
+               timeout: float) -> Response:
+        # Re-split the URL HERE, from the string we are actually about to send.
+        # The caller's copy was parsed before credential injection, so for a
+        # query-style key (`?key=…`) it does not contain the credential — using
+        # it silently sends an unauthenticated request, which Google reports as
+        # "method doesn't allow unregistered callers" and which looks for all
+        # the world like a bad key.
+        parts = urllib.parse.urlsplit(url)
+        conn, state = self._connect(host, parts, timeout)
+        try:
             path = urllib.parse.urlunsplit(("", "", parts.path or "/",
                                             parts.query, ""))
             conn.request(method, path, body=body, headers=headers)
