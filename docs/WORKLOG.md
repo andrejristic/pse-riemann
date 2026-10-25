@@ -20,8 +20,9 @@ Vodi se posle svake faze: šta je urađeno, stanje testova, šta je sljedeće, p
 | 2026-10-25 | F5 · čuvari + liječenje | ✅ gotovo | 67/67 pytest + selftest prolaze | commit `3c8441c`; `guardian/harms.py`,`healing.py`,`shared_lib/reports.py`; seal/patrol/restore, tri zla, ljestvica liječenja, tier2→red |
 | 2026-10-25 | F7 · QRH sadržaj | ✅ gotovo | 71/71 pytest + selftest prolaze | commit `9307983`; `vault/qrh_seed.py`, izvori (Liu/XS CITED, OpenAI/Quanta FOLKLORE), tema, barijere, naši rezultati preko laba |
 | 2026-10-25 | **Izvlačenje + TEST PRIHVATANJA (poenta)** | ✅ **PROLAZI** | 74/74 pytest + selftest prolaze | commit `2609bf1`; 4 paketa metoda, replay istorije kroz vrata: Liu→XS, front 0.874957→0.874886 „bliže", lažni rad odbijen |
+| 2026-10-25 | F6 · GUI (tab Misije + red) | ✅ gotovo (funkcija) | 75/75 pytest (exit 0) + selftest | commit `b1cbce9`; `gui/qrh_tabs.py`, tab Misije + „Čeka tvoju odluku" (Odobri/Ne), izbor modela, Uvezi metodu, pilule glavni/skeptik; vizuelni QSS nije auto-verifikovan |
 
-**Sljedeće:** F6 · GUI (PySide6/QSS, Svarog izgled) — tab Misije, red „Čeka tvoju odluku" (Odobri/Ne odobri), izbor glavni/skeptik model, dugme „Uvezi metodu", statusne pilule; verifikacija kroz offscreen GUI smoke-test (vizuelni QSS se ne može verifikovati automatski). Zatim F10 završnica: .deb full (B), A lean, C dodatak, .exe (CI), pa spajanje u main uz odobrenje.
+**Sljedeće:** F10 završnica — .deb full (B) prvi, pa A lean + C dodatak + .exe (CI), vodiči SR/EN; GGUF smoke-test (download pri kraju). Spajanje u `main` TEK uz izričito odobrenje Andreja (ne radim ga sam).
 
 GGUF smoke: model se preuzima (~70%); kad završi → verify (sha256) + jedan mali chat poziv kroz limitere, upis rezultata ovdje.
 
