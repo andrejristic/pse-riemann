@@ -14,7 +14,7 @@ lands at the correct source tier — PREPRINT for an arXiv method).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from .. import config
 from ..core import journal as J
@@ -27,7 +27,8 @@ from . import registry as REG
 METHOD_KIND = "method"             # human-queue kind and journal kind
 
 
-def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str) -> dict:
+def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str,
+                mission_id: Optional[str] = None) -> dict:
     """
     Parse → reproduce → (only if reproduced) propose to the human queue.
     Returns {"reproduced", "pid"|None, "result"}. Raises PackError for a
@@ -51,7 +52,8 @@ def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str) ->
     pid = store().propose(
         METHOD_KIND,
         f"Metoda „{pack.name}“ ({pack.source}) — reprodukovano B*={res['computed_B']:.12f}",
-        {"pack": pack.to_dict(), "result": {k: res[k] for k in
+        {"pack": pack.to_dict(), "mission_id": mission_id,
+         "result": {k: res[k] for k in
          ("computed_B", "claimed_B", "error", "poly_ok", "broken_walls")}},
         proposer)
     J.log(METHOD_KIND, proposer,
@@ -69,8 +71,17 @@ def _on_decision(item: dict, approved: bool) -> None:
         REG.register(pack.spec())
     except ValueError:
         pass                                   # already registered — idempotent
-    _write_method_card(pack, item["payload"].get("result", {}),
-                       item.get("decided_by", "operator"))
+    who = item.get("decided_by", "operator")
+    _write_method_card(pack, item["payload"].get("result", {}), who)
+    mission_id = item["payload"].get("mission_id")
+    if mission_id:
+        from ..shared_lib import missions as MIS
+        res = item["payload"].get("result", {})
+        B = res.get("computed_B", pack.spec().optimum().B)
+        try:
+            MIS.record_method(mission_id, pack.name, B, source=pack.source)
+        except KeyError:
+            pass                                   # mission gone — nothing to update
 
 
 def _write_method_card(pack: PK.MethodPack, result: dict, who: str) -> None:

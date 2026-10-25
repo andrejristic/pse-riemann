@@ -129,7 +129,8 @@ def connect() -> sqlite3.Connection:
     if config.SHARED_LIB_DB.exists():
         conn.execute("ATTACH DATABASE ? AS s", (_ro_uri(config.SHARED_LIB_DB),))
         for (name,) in conn.execute(
-                "SELECT name FROM s.sqlite_master WHERE type='table' AND name!='kv'"):
+                "SELECT name FROM s.sqlite_master WHERE type='table' "
+                "AND name!='kv' AND name NOT LIKE 'sqlite_%'"):
             conn.execute(f'CREATE TEMP VIEW "{name}" AS SELECT * FROM s."{name}"')
     return conn
 

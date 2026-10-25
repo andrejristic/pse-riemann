@@ -29,7 +29,11 @@ from pse_r.core import journal as J           # noqa: E402
 def _boot() -> None:
     config.ensure_vault()
     from pse_r.shared_lib import declarations as DECL
+    from pse_r.shared_lib import missions as MIS
+    from pse_r import methods as M
     DECL.install_hooks()
+    M.install_hooks()                 # method-pack door: approval → register + card
+    MIS.seed_first()                  # the standing QRH mission
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,
                             "profile": config.PROFILE})
 
@@ -95,6 +99,15 @@ def selftest() -> int:
         {"name": "x", "family": "liu", "source": "arxiv:1", "claimed_B": 0.5,
          "dlo": 1e-6}))["ok"]
     check("vrata: tačan paket se reprodukuje, lažni se odbija", _ok and not _bad)
+
+    print("\nMisije:")
+    from pse_r.shared_lib import missions as MIS
+    mid = MIS.seed_first()
+    m = MIS.get(mid)
+    check("prva misija postoji (kontinualna transformacija)",
+          m is not None and "transformacij" in m["question"].lower())
+    from pse_r.methods import arxiv as AX
+    check("arXiv QRH upit je postavljen", AX.QRH_QUERY == "quasi-Riemann hypothesis")
 
     print("\nJournal:")
     good, bad = J.journal().verify_chain()
