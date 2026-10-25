@@ -150,6 +150,19 @@ def selftest() -> int:
     from pse_r.methods import arxiv as AX
     check("arXiv QRH upit je postavljen", AX.QRH_QUERY == "quasi-Riemann hypothesis")
 
+    print("\nTest prihvatanja (poenta):")
+    try:
+        from pathlib import Path as _P
+        from pse_r.methods.pack import MethodPack as _MP, reproduce as _rep
+        _pk = _P(__file__).resolve().parent.parent / "research" / "qrh-2026-10" / "method-packs"
+        _all_ok = True
+        for _f in ("liu.json", "xu-sang.json", "openai-11-12.json", "openai-7-8.json"):
+            _p = _pk / _f
+            _all_ok = _all_ok and _p.exists() and _rep(_MP.from_file(_p))["ok"]
+        check("sva 4 izvučena paketa se reprodukuju (Liu/XS/11-12/7-8)", _all_ok)
+    except Exception as _e:                              # noqa: BLE001
+        check("paketi metoda dostupni i reproducibilni", False, str(_e)[:60])
+
     print("\nJournal:")
     good, bad = J.journal().verify_chain()
     check("hash-lanac neprekinut", good, f"prekid na {bad}" if bad else

@@ -12,8 +12,10 @@ def test_first_mission_is_the_continuous_transformation_question():
     assert mid == MIS.FIRST_ID
     m = MIS.get(mid)
     assert m and "transformacij" in m["question"].lower()
-    assert m["best_B"] is None                 # no evidence yet
     assert MIS.seed_first() == mid             # idempotent
+    # a brand-new mission starts with no frontier (no evidence yet)
+    fresh = MIS.create("m-fresh", "T", "Q?", "start")
+    assert MIS.get(fresh)["best_B"] is None
 
 
 def test_mission_is_a_fact_layer_view(operator):

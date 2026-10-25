@@ -1,0 +1,11 @@
+{
+  "name": "liu",
+  "family": "liu",
+  "source": "arxiv:2610.12234",
+  "claimed_B": 0.874957019420,
+  "dlo": 1e-6,
+  "tol": 1e-7,
+  "exact_poly": "1188*xi**3 - 2160*xi**2 + 171*xi + 190   (B=(18*xi+7)/(18*xi+9)); u B: -7884*B**3 + 18819*B**2 - 14643*B + 3686",
+  "note": "Liu, 08-12.10.2026. Korijen kubne; tri ravni L0, L_K, H_xi se sijeku u jednoj tacki; licenca kappa = 2B-1.",
+  "tags": ["qrh", "liu"]
+}

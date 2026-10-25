@@ -45,6 +45,7 @@ class MethodPack:
     source: str
     claimed_B: float
     dlo: float = 1 / 8
+    ell: float = 0.0                  # 'line' family: the point ℓ
     tol: float = 1e-7
     exact_poly: str = ""
     note: str = ""
@@ -73,6 +74,7 @@ class MethodPack:
             source=str(d["source"]).strip(),
             claimed_B=claimed,
             dlo=float(d.get("dlo", 1 / 8)),
+            ell=float(d.get("ell", 0.0)),
             tol=float(d.get("tol", 1e-7)),
             exact_poly=str(d.get("exact_poly", "")),
             note=str(d.get("note", "")),
@@ -92,13 +94,14 @@ class MethodPack:
 
     def to_dict(self) -> dict:
         return {"name": self.name, "family": self.family, "source": self.source,
-                "claimed_B": self.claimed_B, "dlo": self.dlo, "tol": self.tol,
-                "exact_poly": self.exact_poly, "note": self.note, "tags": self.tags}
+                "claimed_B": self.claimed_B, "dlo": self.dlo, "ell": self.ell,
+                "tol": self.tol, "exact_poly": self.exact_poly, "note": self.note,
+                "tags": self.tags}
 
     def spec(self) -> MethodSpec:
         return MethodSpec(self.name, self.family, self.source, self.claimed_B,
-                          dlo=self.dlo, exact_poly=self.exact_poly, note=self.note,
-                          tags=list(self.tags))
+                          dlo=self.dlo, ell=self.ell, exact_poly=self.exact_poly,
+                          note=self.note, tags=list(self.tags))
 
 
 def reproduce(pack: MethodPack, tol: Optional[float] = None,

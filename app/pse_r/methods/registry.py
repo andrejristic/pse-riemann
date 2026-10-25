@@ -30,6 +30,7 @@ class MethodSpec:
     source: str                       # resolvable reference (arxiv:… / doi:… / book:…)
     claimed_B: float                  # the number the paper states
     dlo: float = 1 / 8                # admissible lower edge of δ
+    ell: float = 0.0                  # for the 'line' family: the point ℓ (11/12 is ℓ=0, 7/8 is ℓ=1/6)
     exact_poly: str = ""              # optional: claimed minimal polynomial of B, as text
     note: str = ""
     tags: list = field(default_factory=list)
@@ -40,8 +41,8 @@ class MethodSpec:
         if self.family == "xs":
             return C.optimum(C.E_xs, self.dlo)
         if self.family == "line":
-            # the line is not optimised; its "optimum" is the ℓ=0 end, 11/12
-            return C.Optimum(C.Bof(0.0), 0.0, 0.0, 2 * C.Bof(0.0) - 1)
+            # the line is not optimised; a 'line' method is a POINT on it, B(ℓ).
+            return C.Optimum(C.Bof(self.ell), self.ell, 0.0, 2 * C.Bof(self.ell) - 1)
         raise ValueError(f"nepoznata familija '{self.family}'")
 
 

@@ -1,0 +1,11 @@
+{
+  "name": "xu-sang",
+  "family": "xs",
+  "source": "arxiv:2610.15291",
+  "claimed_B": 0.874886647040,
+  "dlo": 0.125,
+  "tol": 1e-7,
+  "exact_poly": "133488*B**4 - 376596*B**3 + 384534*B**2 - 167541*B + 26231",
+  "note": "Xu-Sang, 15.10.2026. Sistemski optimum (w=1/4): 3/4 koristi redova, brise clan l*delta. Objavljeni 0.8748867 je ~5.3e-8 iznad optimuma.",
+  "tags": ["qrh", "xu-sang"]
+}

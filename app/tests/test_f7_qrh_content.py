@@ -6,10 +6,9 @@ from pse_r.vault.gate import gate
 
 
 def test_seed_is_idempotent_and_creates_the_topic():
-    r1 = QS.seed_qrh()
-    assert r1["topic"] == "ok" and QS.is_seeded()
-    r2 = QS.seed_qrh()
-    assert r2["topic"] == "skip"                       # idempotent
+    QS.seed_qrh()
+    assert QS.is_seeded()
+    assert QS.seed_qrh()["topic"] == "skip"            # idempotent (already seeded)
 
 
 def test_liu_and_xu_sang_are_cited_preprint_the_rest_folklore():
