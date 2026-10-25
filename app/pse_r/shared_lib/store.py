@@ -36,7 +36,8 @@ _SCHEMA = [
         status      TEXT NOT NULL DEFAULT 'open',
         decided_by  TEXT,
         decided_at  REAL,
-        reason      TEXT
+        reason      TEXT,
+        consumed_at REAL
     )""",
     "CREATE INDEX IF NOT EXISTS idx_pending_status ON pending(status)",
     """CREATE TABLE IF NOT EXISTS declarations (
@@ -67,6 +68,9 @@ class Store:
             self._conn.execute("PRAGMA journal_mode=WAL")
             for ddl in _SCHEMA:
                 self._conn.execute(ddl)
+            cols = {r[1] for r in self._conn.execute("PRAGMA table_info(pending)")}
+            if "consumed_at" not in cols:           # databases from round 2
+                self._conn.execute("ALTER TABLE pending ADD COLUMN consumed_at REAL")
             self._conn.commit()
 
     # ---- schema extension (later phases add their tables) -------------- #
@@ -124,21 +128,49 @@ class Store:
             fns.append(fn)
 
     def decide(self, pid: str, approve: bool, reason: str = "") -> dict:
+        """
+        One decision = one execution (fixes A4; S2 + P5 without rank).
+        The open → decided transition is a single conditional UPDATE, so of two
+        racing decisions exactly one wins and the other gets "već odlučeno".
+        The winner then CONSUMES the decision (another conditional UPDATE) and
+        only the consumer runs the hooks — a decision can never take effect
+        twice, not even if decide() is re-entered or the hooks are re-run.
+        """
         who = OP.require_operator()
         item = self.get(pid)
         if item is None:
             raise KeyError(pid)
-        if item["status"] != OPEN:
-            raise ValueError(f"'{pid}' je već odlučeno ({item['status']})")
         status = APPROVED if approve else REJECTED
-        self.execute("UPDATE pending SET status=?, decided_by=?, decided_at=?, reason=?"
-                     " WHERE id=?", (status, who, time.time(), reason, pid))
+        cur = self.execute("UPDATE pending SET status=?, decided_by=?, decided_at=?, reason=?"
+                           " WHERE id=? AND status='open'",
+                           (status, who, time.time(), reason, pid))
+        if cur.rowcount != 1:
+            now = self.get(pid)
+            raise ValueError(f"'{pid}' je već odlučeno ({now['status'] if now else '?'})")
         J.log(DECISION, who, {"event": status, "id": pid, "kind": item["kind"],
                               "reason": reason}, subject=pid, verdict=status)
         item = self.get(pid)
-        for fn in self._on_decision.get(item["kind"], []):
-            fn(item, approve)
+        if self.consume(pid):
+            for fn in self._on_decision.get(item["kind"], []):
+                try:
+                    fn(item, approve)
+                except Exception as e:              # noqa: BLE001
+                    J.log(DECISION, "system", {"event": "hook_failed", "id": pid,
+                                               "kind": item["kind"], "error": str(e)[:300]},
+                          subject=pid, verdict="hook_failed")
+                    raise
         return item
+
+    def consume(self, pid: str) -> bool:
+        """Atomically mark a decided item as executed. True exactly once."""
+        cur = self.execute("UPDATE pending SET consumed_at=? WHERE id=? AND "
+                           "status IN ('approved','rejected') AND consumed_at IS NULL",
+                           (time.time(), pid))
+        if cur.rowcount == 1:
+            J.log(DECISION, "system", {"event": "consumed", "id": pid},
+                  subject=pid, verdict="consumed")
+            return True
+        return False
 
     def withdraw(self, pid: str, actor: str, reason: str) -> None:
         self.execute("UPDATE pending SET status=?, reason=? WHERE id=? AND status='open'",

@@ -28,6 +28,8 @@ DEFAULTS: dict[str, Any] = {
     "win_state": "",
     "splits": {},           # name -> [sizes]
     "daily_cap": 5.0,
+    # "→ ∞" ceilings L, set by the operator (master §5)
+    "limits_L": {"s_per_token": 2.0, "rss_gb": 12.0, "queue": 8},
 }
 
 _CACHE: Optional[dict] = None

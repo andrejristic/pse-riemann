@@ -35,6 +35,7 @@ REPORT_EXT = {".md", ".txt", ".pdf", ".html", ".json", ".png"}
 ARXIV_INTERVAL_S = 24 * 3600
 ARXIV_KIND = "arxiv-paper"
 RELEASE_KIND = "heal-release"
+GUARD_KIND = "guard-pause"          # "→ ∞" tripped: approve = resume model calls
 
 _contained: dict[str, str] = {}          # agent -> case signature
 _SYNC_FOR_TESTS = False
@@ -208,9 +209,46 @@ def _on_arxiv(item: dict, approved: bool) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# "→ ∞" (master §5, fix A1): pause → free → tell the operator
+# --------------------------------------------------------------------------- #
+_METRIC_TEXT = {"latency": "trajanje poziva (s)", "rss": "memorija procesa (GB)",
+                "queue": "dužina reda poziva"}
+
+
+def _on_guard_trip(metric: str, value: float, L: float) -> None:
+    from ..llm.gguf import GGUFBackend
+    GGUFBackend.unload()
+    J.log(J.SYSTEM, "guard", {"event": "diverging", "metric": metric,
+                              "value": value, "L": L}, subject=metric, verdict="paused")
+    if store().open_items(GUARD_KIND):
+        return
+    store().propose(GUARD_KIND,
+                    f"„→ ∞“: {_METRIC_TEXT.get(metric, metric)} = {value:.3g} (L = {L:.3g})"
+                    " — pozivi modelu pauzirani, model oslobođen. Odobri = nastavi.",
+                    {"metric": metric, "value": value, "L": L}, proposer="guard")
+
+
+def _on_guard_decision(item: dict, approved: bool) -> None:
+    from ..llm import limits as LIM
+    if approved:
+        LIM.resume()
+        J.log(J.SYSTEM, "guard", {"event": "resumed", "id": item["id"]},
+              subject=item["payload"].get("metric", ""), verdict="resumed")
+
+
 def install_hooks() -> None:
+    from ..llm import limits as LIM
     store().on_decision(RELEASE_KIND, _on_release)
     store().on_decision(ARXIV_KIND, _on_arxiv)
+    store().on_decision(GUARD_KIND, _on_guard_decision)
+    LIM.on_pause(_on_guard_trip)
+    LIM.configure(LIM.Limits.from_settings())
+    # a pause survives a restart: an open "→ ∞" item means calls stay paused
+    for it in store().open_items(GUARD_KIND):
+        p = it["payload"]
+        LIM.trip(p.get("metric", "?"), float(p.get("value", 0)), float(p.get("L", 0)),
+                 notify=False)
+        break
 
 
 def tick(online: Optional[bool] = None) -> dict:
