@@ -42,6 +42,7 @@ from ..core import theta as TH
 from .card import (Card, CITED, COMPUTED, FOLKLORE, SPECULATION, SUSPECT, REFUTED,
                    STATUSES, TYPES, VERIFIED_STATUSES, is_resolvable_source,
                    source_hint, now_iso)
+from . import tiers as T
 
 # Claims the app refuses to store as established, no matter who says them.
 # Serbian declension matters here: "Rimanove hipoteze", "Riemannovu hipotezu",
@@ -140,7 +141,8 @@ class Gate:
                       1.0, source=actor, note=card.id)
         J.log(J.GATE, actor,
               {"card": card.id, "title": card.title, "status": card.status,
-               "type": card.type, "path": str(path.relative_to(self.vault)),
+               "type": card.type, "tier": T.card_tier(card),
+               "path": str(path.relative_to(self.vault)),
                "sources": card.sources, "warnings": v.warnings,
                "digest": card.digest()[:16]},
               subject=card.id, verdict="accept")
@@ -179,6 +181,10 @@ class Gate:
                 return Verdict(False, "CITED bez razrješivog izvora. " + source_hint())
             if bad:
                 w.append(f"izvori koje ne umijem razriješiti (ignorisani): {bad}")
+            if not T.is_established(card):
+                w.append(f"nivo {T.card_tier(card)}: oslonjeno samo na "
+                         f"neredovno recenziran izvor — nije utvrđena (REFEREED/LEAN) "
+                         f"tvrdnja i ne smije podupirati utvrđenu tvrdnju")
         elif card.status == COMPUTED:
             if not card.lab_run:
                 return Verdict(False, "COMPUTED bez lab_run id — pokreni eksperiment "
@@ -193,21 +199,29 @@ class Gate:
             if not (card.body or "").strip():
                 return Verdict(False, f"{card.status} mora obrazložiti zašto")
 
-        # 4. dependency sanity + no unverified support under a verified card
+        # 4. dependency sanity + no unverified support under a verified card +
+        #    (F2) no preprint/weak support under an ESTABLISHED (REFEREED/LEAN) claim
+        card_is_established = T.is_established(card)
         for dep in card.depends_on:
             dpath = self.find(dep)
             if dpath is None:
                 return Verdict(False, f"depends_on '{dep}' ne postoji u vaultu")
-            if card.status in VERIFIED_STATUSES:
-                try:
-                    dcard = Card.load(dpath)
-                except OSError:
-                    continue
-                if dcard.status in (FOLKLORE, SPECULATION, SUSPECT, REFUTED):
-                    return Verdict(False,
-                                   f"{card.status} kartica se oslanja na "
-                                   f"{dcard.status} karticu '{dep}' — neprovjerena "
-                                   f"podrška se ne propagira naviše")
+            try:
+                dcard = Card.load(dpath)
+            except OSError:
+                continue
+            if card.status in VERIFIED_STATUSES and \
+                    dcard.status in (FOLKLORE, SPECULATION, SUSPECT, REFUTED):
+                return Verdict(False,
+                               f"{card.status} kartica se oslanja na "
+                               f"{dcard.status} karticu '{dep}' — neprovjerena "
+                               f"podrška se ne propagira naviše")
+            if card_is_established and not T.is_established(dcard):
+                dt = T.card_tier(dcard)
+                return Verdict(False,
+                               f"utvrđena ({T.card_tier(card)}) tvrdnja se oslanja na "
+                               f"karticu '{dep}' nivoa {dt} — {dt} ne može biti "
+                               f"oslonac utvrđene tvrdnje (plan F2)")
 
         # spec §3 four-condition contribution check, applied to model authors
         if actor.startswith("model:"):

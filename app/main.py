@@ -71,6 +71,14 @@ def selftest() -> int:
           g.validate(Card(title="x", type="note", status=SPECULATION,
                           body="Weil je dokazao analogon RH nad funkcijskim "
                                "poljima.")).ok)
+    from pse_r.vault import tiers as T
+    check("nivo: doi=REFEREED, arxiv=PREPRINT",
+          T.source_tier("doi:10.1112/plms/x") == T.REFEREED
+          and T.source_tier("arxiv:2610.12234") == T.PREPRINT)
+    _pre = g.validate(Card(title="x", type="note", status=CITED,
+                           sources=["arxiv:2610.12234"]))
+    check("preprint kartica nije utvrđena (nosi upozorenje)",
+          _pre.ok and any("PREPRINT" in w or "utvrđena" in w for w in _pre.warnings))
 
     print("\nJournal:")
     good, bad = J.journal().verify_chain()

@@ -32,6 +32,7 @@ from typing import Optional
 
 from .. import config
 from ..vault import store as VS
+from ..vault import tiers as _TIERS
 
 MAX_ROWS = 500
 MAX_STEPS = 5_000_000           # progress-handler budget (~ a few seconds)
@@ -80,7 +81,7 @@ def _load_cards(conn: sqlite3.Connection) -> None:
             c = VS.Card.load(p)
         except (OSError, UnicodeDecodeError):
             continue
-        rows.append((c.id, c.title, c.type, c.status, getattr(c, "tier", "") or "",
+        rows.append((c.id, c.title, c.type, c.status, _TIERS.card_tier(c),
                      c.author, c.created, c.updated, c.lab_run, c.script_sha256,
                      json.dumps(c.sources, ensure_ascii=False),
                      json.dumps(c.depends_on, ensure_ascii=False),
