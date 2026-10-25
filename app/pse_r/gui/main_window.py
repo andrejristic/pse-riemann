@@ -84,7 +84,12 @@ class MainWindow(QMainWindow):
         self.tab_editor = EditorTab()
         self.tab_graph = GraphTab()
         self.tab_guard = GuardianTab()
-        for w, name in ((self.tab_plan, "Plan"), (self.tab_lab, "Lab"),
+        from .qrh_tabs import MissionsTab, QueueTab
+        self.tab_missions = MissionsTab()
+        self.tab_queue = QueueTab()
+        self.tab_queue.decided.connect(self.tab_missions.refresh)
+        for w, name in ((self.tab_missions, "Misije"), (self.tab_queue, "Čeka tvoju odluku"),
+                        (self.tab_plan, "Plan"), (self.tab_lab, "Lab"),
                         (self.tab_corpus, "Corpus"),
                         (self.tab_board, "Tabla"), (self.tab_editor, "Editor"),
                         (self.tab_graph, "Graf"), (self.tab_guard, "Guardian")):
@@ -116,10 +121,11 @@ class MainWindow(QMainWindow):
         self.lb_net = QLabel("")
         self.lb_guard = QLabel("")
         self.lb_vault = QLabel("")
+        self.lb_ai = QLabel("")
         from ..shared_lib import operator as OP
         self.lb_op = QLabel(f"operater: {OP.current() or '—'}")
         for lb in (self.lb_op, self.lb_theta, self.lb_vault, self.lb_budget, self.lb_net,
-                   self.lb_guard):
+                   self.lb_guard, self.lb_ai):
             lb.setStyleSheet("padding:0 10px;")
             sb.addWidget(lb)
         self.refresh_status()
@@ -309,6 +315,15 @@ class MainWindow(QMainWindow):
         self.lb_guard.setToolTip(
             f"{g['observations']} zahtjeva · {g['tier1']} tier-1 · "
             f"{g['tier2']} tier-2")
+        # main AI + skeptic pills (plan F3/F6)
+        try:
+            from ..llm import selection as SEL
+            main = SEL.get_main() or "—"
+            sk = SEL.get_skeptic() if SEL.skeptic_available() else "nedostupan"
+            self.lb_ai.setText(f"🤖 {main} · 🗡 {sk}")
+            self.lb_ai.setToolTip("glavni model · skeptik (uvijek drugi model)")
+        except Exception:                               # noqa: BLE001
+            self.lb_ai.setText("")
         from ..llm.router import router
         provs = router().available()
         self.lb_net.setText(("🔌 " + ", ".join(provs)) if provs
