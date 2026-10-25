@@ -1,6 +1,21 @@
 # WORKLOG — PSE Riemann v2
 
-**STATUS: ČEKA ANDREJA** — sve faze plana i svih 9 popravki iz nadzirane provjere su **urađeni i provjereni**. Ostaje samo tvoja odluka: **spajanje grane `feature/qrh-shared-lib` u `main`** (oba repoa). Reci „spoji u main“.
+**STATUS: RUNDA 3 U TOKU** (grana `feature/runda3`; plan: `docs/PLAN.md` §6). Prethodni status („ČEKA ANDREJA“, runda 2) je zatvoren: Andrej je dao „kreni“ za rundu 3, a grana `feature/qrh-shared-lib` je spojena u `main`.
+
+## Runda 3 — napredak
+
+| Datum | Stavka | Stanje | Testovi | Napomena |
+|---|---|---|---|---|
+| 2026-10-25 | 1 · spajanje u `main` | ✅ | pytest 102/102 | fast-forward `feature/qrh-shared-lib` → `main` @ `6f428b4`, lokalno + GitHub; nova grana `feature/runda3` |
+| 2026-10-25 | 2 · zakazani zadatak | ✅ | — | auto-nastavak ugašen; sedmični podsjetnik (pon 10:00) |
+
+**Sljedeće:** Faza 1 — stavka 3 (popravke A1–A4).
+
+---
+
+## Runda 2 (arhiva)
+
+Status runde 2 (zatvoreno): sve faze plana i svih 9 popravki iz nadzirane provjere su **urađeni i provjereni**. Ostaje samo tvoja odluka: **spajanje grane `feature/qrh-shared-lib` u `main`** (oba repoa). Reci „spoji u main“.
 
 **Sve što čeka Andreja (2026-10-25):**
 1. **Spoji u main** — grana `feature/qrh-shared-lib` → `main` (lokalno i GitHub).

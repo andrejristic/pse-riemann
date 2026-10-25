@@ -19,7 +19,7 @@ Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Cl
 
 ## Git
 - Lokalni `master` prati `origin/main` (GitHub podrazumijevana grana je `main`). Push u main: `git push origin HEAD:main`, samo uz odobrenje.
-- Rad na grani (trenutno `feature/qrh-shared-lib`; runda 3 dobija novu granu).
+- Rad na grani: runda 3 = `feature/runda3` (runda 2 je spojena u `main` @ `6f428b4`).
 - Na ovom računaru nema globalnog git identiteta: `git -c user.name="Andrej Ristić" -c user.email=andrej.s.ristic@gmail.com commit …`
 - Commit poruka završava sa `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - Zabranjeno: force-push, `sudo`, sistemske instalacije, globalna podešavanja, brisanje van projekta.
