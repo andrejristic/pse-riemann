@@ -223,6 +223,11 @@ class GGUFBackend(Backend):
             except L.Aborted as a:
                 raise GGUFUnavailable(str(a)) from None
         refuse_if_stopped()                             # paused / cancelled up front
+        from .local_only import local_only
+        with local_only(f"gguf:{Path(self.model).name}"):
+            return self._chat_local(messages, system, max_tokens, cancel)
+
+    def _chat_local(self, messages, system, max_tokens, cancel) -> Reply:
         llm = self._ensure_loaded()                     # one-time load + sha256: not timed
         guard = L.CallGuard(self.lim, cancel=cancel)    # deadline = wait + generation
         if self.lim.must_unload():
