@@ -113,3 +113,15 @@ def test_runaway_query_is_interrupted(operator):
 def test_journal_chain_still_intact():
     ok, bad = J.journal().verify_chain()
     assert ok, bad
+
+
+def test_one_decision_takes_effect_once_even_if_hooks_installed_twice(operator):
+    calls = []
+
+    def hook(item, ok):
+        calls.append(item["id"])
+    store().on_decision("dup", hook)
+    store().on_decision("dup", hook)
+    pid = store().propose("dup", "duplikat", {}, "unit:test")
+    store().decide(pid, True)
+    assert calls == [pid]

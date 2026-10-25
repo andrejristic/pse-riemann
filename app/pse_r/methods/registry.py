@@ -34,8 +34,27 @@ class MethodSpec:
     exact_poly: str = ""              # optional: claimed minimal polynomial of B, as text
     note: str = ""
     tags: list = field(default_factory=list)
+    system: Optional[dict] = None      # exponent system as data (preferred over family)
+    _sys: object = field(default=None, repr=False, compare=False)
+    _opt: object = field(default=None, repr=False, compare=False)
+
+    def system_obj(self):
+        if self.system is None:
+            return None
+        if self._sys is None:
+            from .system import ExponentSystem
+            self._sys = ExponentSystem.from_dict(self.system)
+        return self._sys
 
     def optimum(self) -> C.Optimum:
+        if self._opt is not None:
+            return self._opt
+        self._opt = self._compute()
+        return self._opt
+
+    def _compute(self) -> C.Optimum:
+        if self.system is not None:
+            return self.system_obj().optimum()
         if self.family == "liu":
             return C.optimum(C.E_liu, self.dlo)
         if self.family == "xs":

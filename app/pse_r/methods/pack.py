@@ -32,6 +32,7 @@ from . import core as C
 from .registry import MethodSpec
 
 _FAMILIES = {"liu", "xs", "line"}
+FAMILY_AGREEMENT_TOL = 1e-9       # data system vs built-in family, when both are given
 
 
 class PackError(Exception):
@@ -70,16 +71,29 @@ class MethodPack:
     exact_poly: str = ""
     note: str = ""
     tags: list = field(default_factory=list)
+    system: Optional[dict] = None     # the exponent system AS DATA (methods.system)
 
     # -- parsing -------------------------------------------------------------- #
     @classmethod
     def from_dict(cls, d: dict) -> "MethodPack":
         if not isinstance(d, dict):
             raise PackError("paket nije objekat")
-        missing = [k for k in ("name", "family", "source", "claimed_B") if k not in d]
+        if not d.get("family"):
+            d = {k: v for k, v in d.items() if k != "family"}
+        missing = [k for k in ("name", "source", "claimed_B") if k not in d]
         if missing:
             raise PackError(f"paket nema obavezna polja: {missing}")
-        if d["family"] not in _FAMILIES:
+        if "family" not in d and "system" not in d:
+            raise PackError("paket mora nositi 'system' (sistem eksponenata kao podatak) "
+                            "ili 'family' (ugrađena familija)")
+        if "system" in d:
+            from .system import ExponentSystem, SystemError_
+            from .expr import ExprError
+            try:
+                ExponentSystem.from_dict(d["system"])
+            except (SystemError_, ExprError, KeyError, TypeError, ValueError) as e:
+                raise PackError(f"sistem eksponenata nije ispravan: {e}") from e
+        if "family" in d and d["family"] not in _FAMILIES:
             raise PackError(f"nepoznata familija '{d['family']}' (dozvoljeno: "
                             f"{sorted(_FAMILIES)})")
         try:
@@ -90,7 +104,7 @@ class MethodPack:
             raise PackError(f"claimed_B van (0,1): {claimed}")
         return cls(
             name=str(d["name"]).strip(),
-            family=str(d["family"]),
+            family=str(d.get("family", "")),
             source=str(d["source"]).strip(),
             claimed_B=claimed,
             dlo=float(d.get("dlo", 1 / 8)),
@@ -99,6 +113,7 @@ class MethodPack:
             exact_poly=str(d.get("exact_poly", "")),
             note=str(d.get("note", "")),
             tags=list(d.get("tags", [])),
+            system=d.get("system"),
         )
 
     @classmethod
@@ -113,15 +128,16 @@ class MethodPack:
             raise PackError(f"paket nije ispravan JSON: {e}") from e
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "family": self.family, "source": self.source,
+        return {"name": self.name, **({"family": self.family} if self.family else {}),
+                "source": self.source,
                 "claimed_B": self.claimed_B, "dlo": self.dlo, "ell": self.ell,
                 "tol": self.tol, "exact_poly": self.exact_poly, "note": self.note,
-                "tags": self.tags}
+                "tags": self.tags, **({"system": self.system} if self.system else {})}
 
     def spec(self) -> MethodSpec:
         return MethodSpec(self.name, self.family, self.source, self.claimed_B,
                           dlo=self.dlo, ell=self.ell, exact_poly=self.exact_poly,
-                          note=self.note, tags=list(self.tags))
+                          note=self.note, tags=list(self.tags), system=self.system)
 
 
 def reproduce(pack: MethodPack, tol: Optional[float] = None,
@@ -137,26 +153,52 @@ def reproduce(pack: MethodPack, tol: Optional[float] = None,
     Never raises for a numeric mismatch — that is a verdict, not an error.
     """
     tol = pack.tol if tol is None else tol
-    opt = pack.spec().optimum()
+    spec = pack.spec()
+    opt = spec.optimum()
     err = abs(opt.B - pack.claimed_B)
     ok = err <= tol
+    notes = []
 
+    # When a pack carries BOTH its data system and a built-in family, the two
+    # must agree — that is how a data system is checked against validated code.
+    agree = None
+    if pack.system and pack.family in ("liu", "xs"):
+        ref = (C.optimum(C.E_liu, pack.dlo) if pack.family == "liu"
+               else C.optimum(C.E_xs, pack.dlo))
+        agree = abs(ref.B - opt.B) <= FAMILY_AGREEMENT_TOL
+        if not agree:
+            ok = False
+            notes.append(f"sistem kao podatak ({opt.B:.12f}) se ne slaže sa ugrađenom "
+                         f"familijom '{pack.family}' ({ref.B:.12f})")
+
+    # A claimed minimal polynomial is CHECKED, not recorded: P must change sign at
+    # the reproduced boundary. A wrong polynomial refuses the pack.
     poly_ok = None
-    if check_poly and pack.family in ("liu", "xs"):
-        try:
-            _poly, root = C.exact_polynomial(pack.family)
-            poly_ok = abs(root - pack.claimed_B) <= max(tol, 1e-9)
-        except Exception:                                  # noqa: BLE001
-            poly_ok = None
+    if check_poly and pack.exact_poly.strip():
+        from .system import check_polynomial
+        if "xi" in pack.exact_poly:
+            notes.append("polinom u ξ (stari zapis) — nije provjeren; zapiši ga u B")
+        else:
+            poly_ok, why = check_polynomial(pack.exact_poly, opt.B)
+        if poly_ok is False:
+            ok = False
+            notes.append("tvrđeni polinom: " + why)
 
-    walls = C.broken_walls(opt.B, opt.l, opt.b, opt.k)
-    if ok:
+    walls = (C.broken_walls(opt.B, opt.l, opt.b, opt.k) if not pack.system
+             else [w for w, m in spec.system_obj().wall_margins(opt.b, opt.l, opt.k).items()
+                   if m <= 0])
+    if err <= tol:
         reading = (f"reprodukovano: naš pipeline daje B*={opt.B:.12f}, rad tvrdi "
                    f"{pack.claimed_B:.12f} (razlika {err:.2e} ≤ tol {tol:.0e}).")
     else:
         reading = (f"NIJE reprodukovano: naš pipeline daje B*={opt.B:.12f}, rad "
                    f"tvrdi {pack.claimed_B:.12f} (razlika {err:.2e} > tol {tol:.0e}).")
+    if notes:
+        reading += " " + " · ".join(notes)
+    if not ok and err <= tol:
+        reading = "ODBIJENO uprkos broju — " + reading
     return {"ok": ok, "computed_B": opt.B, "claimed_B": pack.claimed_B,
             "error": err, "poly_ok": poly_ok, "broken_walls": walls,
+            "family_agrees": agree, "notes": notes,
             "optimum": {"B": opt.B, "l": opt.l, "b": opt.b, "k": opt.k},
             "reading": reading}

@@ -120,10 +120,11 @@ def record_method(mid: str, method_name: str, B: float, source: str = "") -> str
         raise KeyError(mid)
     old = m["best_B"]
     outcome = "bliže" if old is None else C.verdict(old, B)
-    nearest = min(TARGETS, key=lambda t: abs(t - B))
-    new_state = (f"Front na B={B:.9f}. Zadnji unos ({method_name}) "
+    front = B if old is None else min(old, B)
+    nearest = min(TARGETS, key=lambda t: abs(t - front))
+    new_state = (f"Front na B={front:.9f}. Zadnji unos ({method_name}) "
                  f"{'je prva tačka' if old is None else f'je {outcome} (prije {old:.9f})'}; "
-                 f"najbliži cilj {nearest:.6f}, udaljenost {abs(B - nearest):.6f}.")
+                 f"najbliži cilj {nearest:.6f}, udaljenost {abs(front - nearest):.6f}.")
     action = f"uvezena i potvrđena metoda {method_name} (B*={B:.9f})"
     outcome_line = (f"{outcome}: front {old:.9f} → {B:.9f}" if old is not None
                     else f"prva tačka fronta: {B:.9f}")

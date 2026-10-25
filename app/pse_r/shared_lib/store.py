@@ -116,8 +116,12 @@ class Store:
         return out
 
     def on_decision(self, kind: str, fn: Callable[[dict, bool], None]) -> None:
-        """Register what happens after a human decides an item of `kind`."""
-        self._on_decision.setdefault(kind, []).append(fn)
+        """Register what happens after a human decides an item of `kind`.
+        Idempotent: registering the same function twice must not make one
+        human decision take effect twice."""
+        fns = self._on_decision.setdefault(kind, [])
+        if fn not in fns:
+            fns.append(fn)
 
     def decide(self, pid: str, approve: bool, reason: str = "") -> dict:
         who = OP.require_operator()

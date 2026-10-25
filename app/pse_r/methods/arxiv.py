@@ -44,7 +44,8 @@ def propose_from_recipe(source_ref: str, family: str, claimed_B: float,
                         proposer: str, dlo: float = 1 / 8, tol: float = 1e-7,
                         exact_poly: str = "", note: str = "",
                         mission_id: Optional[str] = None,
-                        name: Optional[str] = None) -> dict:
+                        name: Optional[str] = None,
+                        system: Optional[dict] = None) -> dict:
     """
     Turn an extracted recipe into a method pack and send it through the door.
     `source_ref` is the paper (arxiv:… / doi:…); `family` selects the exponent
@@ -55,8 +56,11 @@ def propose_from_recipe(source_ref: str, family: str, claimed_B: float,
     from . import door as DOOR
     from . import pack as PK
     nm = name or source_ref.split(":")[-1]
-    pack = PK.MethodPack.from_dict({
-        "name": nm, "family": family, "source": source_ref,
-        "claimed_B": claimed_B, "dlo": dlo, "tol": tol,
-        "exact_poly": exact_poly, "note": note, "tags": ["qrh", "arxiv"]})
+    d = {"name": nm, "source": source_ref, "claimed_B": claimed_B, "dlo": dlo,
+         "tol": tol, "exact_poly": exact_poly, "note": note, "tags": ["qrh", "arxiv"]}
+    if family:
+        d["family"] = family
+    if system:
+        d["system"] = system           # a genuinely new paper: its system AS DATA
+    pack = PK.MethodPack.from_dict(d)
     return DOOR.import_pack(pack, proposer=proposer, mission_id=mission_id)

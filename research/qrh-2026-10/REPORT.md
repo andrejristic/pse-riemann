@@ -57,7 +57,7 @@ Tumačenje (ispravljeno): Xu–Sang **brišu član ℓδ** iz Liuove ocjene (dob
 | Poluga | Šta se dešava | Zaključak |
 |---|---|---|
 | **t** (E_Liu + t·T, "više iste ideje") | t=0: 0.87495702 (Liu), 0.5: 0.87492636, 1: 0.87488665 (XS), 1.5: 0.87483318, 2: 0.87475723, 2.5: 0.87473555, t=3 nedopustivo (b→0) | približava se, ukupno ≤ 1.5·10⁻⁴; zasićuje |
-| **w** (udio izgubljene koristi redova; XS w=1/4) | w=0–0.1: 0.86999 (zid), 0.15: 0.87015, 0.2: 0.87155, 0.25: 0.87489, **w ≥ 0.26: metoda puca** | XS sjede na litici; jeftiniji pojačani moment = najjača poluga (~30× od t) — **hipoteza** |
+| **w** (udio izgubljene koristi redova; XS w=1/4) | w=0–0.1: 0.86999 (zid), 0.15: 0.87015, 0.2: 0.87155 (grubi sweep; konvergirano 0.8715502525 — vidi app `test_open_door_data`), 0.25: 0.87489, **w ≥ 0.26: metoda puca** | XS sjede na litici; jeftiniji pojačani moment = najjača poluga (~30× od t) — **hipoteza** |
 | **licenca** κ←2B−1 | kontrakcija faktora 0.0012 (Liu), 0.0030 (XS); iscrpljena za ~3 koraka | mrtva poluga |
 
 → `results/sweep_w_t.txt`, `results/sweep_wall_adjacent.txt`, `results/step2_sensitivities_licence.txt`
