@@ -44,10 +44,15 @@ def default_packs_dir() -> Optional[Path]:
     folder; in an installed package it is bundled beside the code (the build
     copies it there). Returns the first that exists, or None.
     """
+    import sys
     from .. import config
-    for d in (config.PROJECT_ROOT / "research" / "qrh-2026-10" / "method-packs",
-              config.APP_ROOT / "method-packs",
-              config.APP_DIR / "method-packs"):
+    cands = [config.PROJECT_ROOT / "research" / "qrh-2026-10" / "method-packs",
+             config.APP_ROOT / "method-packs",
+             config.APP_DIR / "method-packs"]
+    meipass = getattr(sys, "_MEIPASS", None)            # PyInstaller onedir/onefile
+    if meipass:
+        cands.insert(0, Path(meipass) / "method-packs")
+    for d in cands:
         if d.is_dir():
             return d
     return None

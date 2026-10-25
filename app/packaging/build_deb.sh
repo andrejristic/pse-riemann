@@ -10,6 +10,7 @@ rm -rf "$APP/build/pyi" "$STAGE"
 "$PY" -m PyInstaller --noconfirm --clean --onedir --name "$PKG" \
   --distpath "$APP/build/pyi/dist" --workpath "$APP/build/pyi/work" --specpath "$APP/build/pyi" \
   --collect-submodules pse_r --collect-data pse_r --collect-all matplotlib \
+  --add-data "$REPO/research/qrh-2026-10/method-packs:method-packs" \
   "$APP/main.py"
 APPDIR="$STAGE/opt/$PKG"; mkdir -p "$APPDIR"
 cp -a "$APP/build/pyi/dist/$PKG/." "$APPDIR/"
