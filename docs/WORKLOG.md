@@ -18,8 +18,12 @@ Vodi se posle svake faze: šta je urađeno, stanje testova, šta je sljedeće, p
 | 2026-10-25 | F3 · glavni AI + skeptik + limiteri | ✅ gotovo (logika) | 49/49 pytest + selftest prolaze | commit `0414b44`; `llm/limits.py`,`gguf.py`,`selection.py`,`skeptic.py`; llama-cpp 0.3.36 instaliran (CPU wheel); GGUF download u toku |
 | 2026-10-25 | F4 · glas SHARED_LIB-a | ✅ gotovo | 56/56 pytest + selftest prolaze | commit `4795b0a`; `shared_lib/voice.py`, citati+verify_numbers+UNKNOWN+scrub, samo operateru, radi i bez modela |
 | 2026-10-25 | F5 · čuvari + liječenje | ✅ gotovo | 67/67 pytest + selftest prolaze | commit `3c8441c`; `guardian/harms.py`,`healing.py`,`shared_lib/reports.py`; seal/patrol/restore, tri zla, ljestvica liječenja, tier2→red |
+| 2026-10-25 | F7 · QRH sadržaj | ✅ gotovo | 71/71 pytest + selftest prolaze | commit `9307983`; `vault/qrh_seed.py`, izvori (Liu/XS CITED, OpenAI/Quanta FOLKLORE), tema, barijere, naši rezultati preko laba |
+| 2026-10-25 | **Izvlačenje + TEST PRIHVATANJA (poenta)** | ✅ **PROLAZI** | 74/74 pytest + selftest prolaze | commit `2609bf1`; 4 paketa metoda, replay istorije kroz vrata: Liu→XS, front 0.874957→0.874886 „bliže", lažni rad odbijen |
 
-**Sljedeće:** F7 · QRH sadržaj — kartice izvora (OpenAI 7/8, 11/12, Siegel; Liu; Xu–Sang; Quanta), `tema-quasi-rh`, naši rezultati (polinom 4. stepena, litica w≈0.26, zid 5/6) kao NAŠE-NERECENZIRANO, barijere. (F6 GUI nosim poslije — glavni dio je PySide6/QSS i vizuelno; sadržaj i determinističko jezgro su prioritet za autonomni rad.) Zatim F6, F10 + izvlačenje + test prihvatanja.
+**Sljedeće:** F6 · GUI (PySide6/QSS, Svarog izgled) — tab Misije, red „Čeka tvoju odluku" (Odobri/Ne odobri), izbor glavni/skeptik model, dugme „Uvezi metodu", statusne pilule; verifikacija kroz offscreen GUI smoke-test (vizuelni QSS se ne može verifikovati automatski). Zatim F10 završnica: .deb full (B), A lean, C dodatak, .exe (CI), pa spajanje u main uz odobrenje.
+
+GGUF smoke: model se preuzima (~70%); kad završi → verify (sha256) + jedan mali chat poziv kroz limitere, upis rezultata ovdje.
 
 Napomene uz F3: skeptik u automatskom pokretanju je „nedostupan" (nema oblak-ključa, jedan model) → samo determinističke provjere (validna grana po planu). GGUF download pao na HTTP/2 (err 92) na ~1.3/5.6 GB; resume pokrenut (HTTP/1.1). Živi smoke-test GGUF-a tek kad download završi.
 
