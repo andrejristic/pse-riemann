@@ -12,8 +12,9 @@ Vodi se posle svake faze: šta je urađeno, stanje testova, šta je sljedeće, p
 | 2026-10-25 | Postavka | ✅ | alert testiran | grana, `tools/alert.py`, `tools/worklock.sh`, zakazani zadatak svaka 2 h |
 | 2026-10-25 | app/.venv | ✅ | numpy/sympy/PySide6 importuju | venv ponovo napravljen, deps OK |
 | 2026-10-25 | F1 · SHARED_LIB sloj | ✅ gotovo | 19/19 pytest + selftest prolaze | commit `b73c2e3` (lokalno; push čeka — vidi problem 1) |
+| 2026-10-25 | F2 · nivoi izvora u kapiji | ✅ gotovo | 25/25 pytest + selftest prolaze | commit `aae6d02`; `vault/tiers.py`, preprint≠oslonac utvrđene; `lean:` izvor |
 
-**Sljedeće:** F2 · nivoi izvora u kapiji (REFEREED / PREPRINT / LEAN / AI-UNREVIEWED / NAŠE-NERECENZIRANO; preprint ne može biti oslonac utvrđene tvrdnje).
+**Sljedeće:** F8 · istraživač metoda + "otvorena vrata" — registar metoda E(δ,x; ℓ,b,κ), V(ℓ)/optimum/egzaktni polinom (sympy, validirano na Liuovom kubnom), transformacija T, proširenja, presuda bliže/dalje/zid; **paket metode** ulazi SAMO kroz kapiju uz obavezni test reprodukcije; lab eksperimenti qrh_*.
 
 ## Otvoreni problemi
 1. **`git push` blokiran u automatskom (nenadziranom) pokretanju.** Harness traži ljudsko odobrenje za mrežne radnje, a u zakazanom pokretanju niko nije prisutan, pa i `push origin feature/qrh-shared-lib` biva odbijen (probano i sa isključenim sandbox-om). Commitovi su bezbjedni lokalno (i na Desktop kopiji); grana je ispred `origin` za N commitova. Riješiti: pokrenuti push iz nadzirane sesije (Andrej otvori Claude) ili ručno `git push origin feature/qrh-shared-lib`. Rad se nastavlja normalno — ovo ne blokira nijednu fazu.
