@@ -112,7 +112,36 @@ class Report:
         return s + (" · " + ", ".join(extra) if extra else "")
 
 
-def replay_event(ev: dict) -> str:
+# Source files whose code decides. A replay that once agreed is not repeated
+# while neither the record nor this code changed (a door replay costs ~10 s).
+_DECIDING_CODE = ("core/replay_deciders.py", "core/actions.py", "vault/gate.py",
+                  "vault/card.py", "vault/tiers.py", "methods/pack.py",
+                  "methods/core.py", "methods/system.py", "methods/expr.py",
+                  "guardian/healing.py", "guardian/harms.py",
+                  "guardian/policy.py", "llm/limits.py")
+_CODE_SHA: Optional[str] = None
+
+
+def code_sha() -> str:
+    global _CODE_SHA
+    if _CODE_SHA is None:
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        h = hashlib.sha256()
+        for rel in _DECIDING_CODE:
+            p = root / rel
+            h.update(rel.encode())
+            h.update(p.read_bytes() if p.exists() else b"-")
+        _CODE_SHA = h.hexdigest()
+    return _CODE_SHA
+
+
+def _cache_key(r: dict) -> str:
+    return sha([r.get("decider"), r.get("v"), code_sha(), r.get("in_sha"),
+                sha(r.get("out"))])
+
+
+def replay_event(ev: dict, cache: Optional[set] = None) -> str:
     """'ok' | 'mismatch' | 'redacted' | 'other_version' | 'unknown' | 'error'."""
     r = (ev.get("payload") or {}).get("replay")
     if not r:
@@ -124,21 +153,42 @@ def replay_event(ev: dict) -> str:
         return "other_version"
     if sha(r.get("in")) != r.get("in_sha"):
         return "redacted"
+    key = _cache_key(r) if cache is not None else ""
+    if key and key in cache:
+        return "ok"
     try:
         out = json.loads(canon(d.fn(r["in"])))
     except NotComparable:
         return "other_version"
     except Exception:                                   # noqa: BLE001
         return "error"
-    return "ok" if canon(out) == canon(r.get("out")) else "mismatch"
+    if canon(out) == canon(r.get("out")):
+        if key:
+            cache.add(key)
+        return "ok"
+    return "mismatch"
 
 
-def replay_all(events: Optional[list] = None, notify: bool = True) -> Report:
+CACHE_KEY = "replay_ok_cache"
+CACHE_MAX = 50_000
+
+
+def replay_all(events: Optional[list] = None, notify: bool = True,
+               use_cache: bool = True) -> Report:
     """Re-derive every recorded decision. Mismatches → threat + operator."""
     _load_deciders()
     rep = Report()
-    for ev in (events if events is not None else J.journal().with_replay()):
-        st = replay_event(ev)
+    cache = None
+    if use_cache:
+        from ..shared_lib.store import store
+        cache = set(store().kv_get(CACHE_KEY, []))
+        n0 = len(cache)
+    if events is None:
+        from . import archive as AR
+        import itertools
+        events = itertools.chain(AR.archived_events_with_replay(), J.journal().with_replay())
+    for ev in events:
+        st = replay_event(ev, cache)
         if not st:
             continue
         rep.checked += 1
@@ -154,6 +204,9 @@ def replay_all(events: Optional[list] = None, notify: bool = True) -> Report:
             rep.unknown += 1
         else:
             rep.errors.append(ev.get("id"))
+    if cache is not None and len(cache) != n0:
+        from ..shared_lib.store import store
+        store().kv_set(CACHE_KEY, sorted(cache)[-CACHE_MAX:])
     if rep.mismatches and notify:
         J.log(J.THREAT, "replay", {"event": "integrity_violation",
                                    "mismatches": rep.mismatches[:50]},

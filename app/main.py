@@ -180,6 +180,10 @@ def selftest() -> int:
     from pse_r.core import replay as RPL
     _rep = RPL.replay_all(notify=False)
     check("odluke se mogu ponovo izvesti iz dnevnika", _rep.intact, _rep.summary())
+    from pse_r.core import archive as ARC
+    _aok, _apr = ARC.verify_archives()
+    check("arhive dnevnika: sha256 + lanac + sidra", _aok,
+          "; ".join(_apr[:2]) if _apr else f"{len(J.journal().anchors())} sidara")
 
     print("\nSHARED_LIB:")
     from pse_r.shared_lib import views as V

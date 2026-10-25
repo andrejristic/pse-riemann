@@ -30,7 +30,7 @@ def test_tampered_record_is_an_integrity_violation(operator):
                        body="bez izvora"), actor="user")
     ev = copy.deepcopy(_events("gate.decide")[-1])
     ev["payload"]["replay"]["out"]["ok"] = True          # someone "fixed" a reject
-    rep = R.replay_all([ev])
+    rep = R.replay_all([ev])                             # cache cannot hide a forged out
     assert not rep.intact and rep.mismatches[0][1] == "gate.decide"
     items = store().open_items(R.INTEGRITY_KIND)
     assert items and "NARUŠEN INTEGRITET" in items[0]["title"]
@@ -89,3 +89,17 @@ def test_whole_journal_replays_clean():
     assert rep.checked > 0
     # the deliberately tampered copies above were never written to the journal
     assert rep.intact, rep.mismatches
+
+
+def test_cache_skips_only_unchanged_records(operator, monkeypatch):
+    gate().submit(Card(title="r3 keš", status="FOLKLORE", type="note", body="x"),
+                  actor="user")
+    ev = _events("gate.decide")[-1]
+    assert R.replay_all([ev], notify=False).ok == 1
+    calls = []
+    real = R._DECIDERS["gate.decide"].fn
+    monkeypatch.setattr(R._DECIDERS["gate.decide"], "fn",
+                        lambda i: calls.append(1) or real(i))
+    assert R.replay_all([ev], notify=False).ok == 1 and not calls     # cached
+    monkeypatch.setattr(R, "_CODE_SHA", "drugi-kod")                    # code changed
+    assert R.replay_all([ev], notify=False).ok == 1 and calls          # re-derived

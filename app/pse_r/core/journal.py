@@ -45,9 +45,35 @@ CREATE TRIGGER IF NOT EXISTS events_no_update
 BEFORE UPDATE ON events
 BEGIN SELECT RAISE(ABORT, 'journal is append-only: UPDATE forbidden'); END;
 
-CREATE TRIGGER IF NOT EXISTS events_no_delete
+-- Archive anchors (round 3, item 7; Perun P3). An anchor says: every event up
+-- to `upto_id` has been written to `file` (sha256 = `sha256`), and the chain
+-- continues from `last_hash`. Anchors are append-only like events.
+CREATE TABLE IF NOT EXISTS anchors (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          REAL    NOT NULL,
+    from_id     INTEGER NOT NULL,
+    upto_id     INTEGER NOT NULL,
+    count       INTEGER NOT NULL,
+    first_prev  TEXT    NOT NULL,
+    last_hash   TEXT    NOT NULL,
+    file        TEXT    NOT NULL,
+    sha256      TEXT    NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS anchors_no_update
+BEFORE UPDATE ON anchors
+BEGIN SELECT RAISE(ABORT, 'anchors are append-only: UPDATE forbidden'); END;
+CREATE TRIGGER IF NOT EXISTS anchors_no_delete
+BEFORE DELETE ON anchors
+BEGIN SELECT RAISE(ABORT, 'anchors are append-only: DELETE forbidden'); END;
+"""
+
+# DELETE is allowed ONLY for events already covered by an archive anchor; every
+# other delete still aborts. (Round 2 had an unconditional ban; replaced on boot.)
+_DELETE_TRIGGER = """
+CREATE TRIGGER events_no_delete
 BEFORE DELETE ON events
-BEGIN SELECT RAISE(ABORT, 'journal is append-only: DELETE forbidden'); END;
+WHEN OLD.id > (SELECT COALESCE(MAX(upto_id), 0) FROM anchors)
+BEGIN SELECT RAISE(ABORT, 'journal is append-only: DELETE forbidden (not archived)'); END;
 """
 
 # Event kinds (keep the vocabulary small and stable — reports parse these)
@@ -80,6 +106,11 @@ class Journal:
         self._conn.row_factory = sqlite3.Row
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            row = self._conn.execute("SELECT sql FROM sqlite_master WHERE type='trigger'"
+                                     " AND name='events_no_delete'").fetchone()
+            if row is None or "anchors" not in (row["sql"] or ""):
+                self._conn.execute("DROP TRIGGER IF EXISTS events_no_delete")
+                self._conn.executescript(_DELETE_TRIGGER)
             self._conn.commit()
 
     # -- write ------------------------------------------------------------- #
@@ -170,6 +201,13 @@ class Journal:
         prev = "genesis"
         with self._lock:
             rows = self._conn.execute("SELECT * FROM events ORDER BY id ASC").fetchall()
+            a = self._conn.execute("SELECT * FROM anchors ORDER BY upto_id DESC LIMIT 1"
+                                   ).fetchone()
+        if a is not None and rows and rows[0]["id"] > 1:
+            # the head was archived: the chain must continue exactly from the anchor
+            if rows[0]["id"] != a["upto_id"] + 1:
+                return False, int(rows[0]["id"])
+            prev = a["last_hash"]
         for r in rows:
             h = hashlib.sha256(
                 f"{prev}|{r['ts']}|{r['kind']}|{r['actor']}|{r['subject']}|"
@@ -178,6 +216,11 @@ class Journal:
                 return False, int(r["id"])
             prev = r["hash"]
         return True, None
+
+    def anchors(self) -> list[dict]:
+        with self._lock:
+            return [dict(r) for r in self._conn.execute(
+                "SELECT * FROM anchors ORDER BY upto_id").fetchall()]
 
     def close(self) -> None:
         with self._lock:

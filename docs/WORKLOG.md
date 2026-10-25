@@ -12,14 +12,15 @@
 | 2026-10-25 | 4 · odluka jednom (S2 + P5 bez ranga) | ✅ | trka 8 niti → 1 izvršenje | `consumed_at`; kuke radi samo onaj ko potroši odluku |
 | 2026-10-25 | 5 · povratnost akcija (S4) | ✅ | pytest 119/119, selftest ✅ | `core/actions.py`: 12 deklarisanih, 7 smije samo; nedeklarisano = nepovratno → operateru; liječenje izvodi nivo iz deklaracija; vraćanje iz pečata sada čuva izmijenjenu verziju u `forensic/` (prije je brisalo trag — nije bilo stvarno povratno) |
 | 2026-10-25 | 6 · ponovljive odluke (P1) | ✅ | pytest 126/126, selftest ✅ | `core/replay.py` + `replay_deciders.py`: kapija (odluka razdvojena na kontekst + čistu funkciju), vrata (test reprodukcije), plan liječenja, „→ ∞“ okidanje, allowlist egress-a; lažiran zapis → prijetnja + „NARUŠEN INTEGRITET“ u redu; izmijenjen ulaz hvata hash; svakodnevna provjera u pozadini + u selftestu. Postojeći dnevnik nema zapise (0/0) — važi od sad |
+| 2026-10-25 | 7 · retencija + sidra arhive (S8 + P3) | ✅ | pytest 131/131, selftest ✅ | `core/archive.py`: stari događaji → `.state/archive/*.jsonl.gz` (sha256, samo za čitanje) → sidro (append-only tabela + događaj u lancu) → tek onda brisanje; okidač dozvoljava DELETE samo ispod sidra; lanac se nastavlja preko sidra; lažirana arhiva otkrivena; dnevno u pozadini (> 200 000 događaja, čuva 90 dana / min 20 000). Replay čita i arhive; keš za replay (hash zapisa + hash koda) — test 58 s → 0,1 s. Pravi dnevnik: okidač migriran, lanac netaknut |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** stavka 7 (ograničena retencija + sidra arhive, S8 + P3).
+**Sljedeće:** Faza 2 — stavka 8 (početno podešavanje pri prvom otvaranju).
 
-**Preostalo:** oko 86–135 h (plan proširen: stavka 36 + polja uz 32).
+**Preostalo:** oko 83–132 h.
 
 ---
 

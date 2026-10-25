@@ -288,8 +288,34 @@ def replay_round(force: bool = False) -> dict:
     return {"skipped": False}
 
 
+def retention_round(force: bool = False) -> dict:
+    """At most daily: archive the journal's oldest events behind an anchor, and
+    check every archive against its anchor (a broken archive is a threat)."""
+    from ..core import archive as AR
+    last = store().kv_get("retention_last", 0)
+    if not force and time.time() - last < REPLAY_INTERVAL_S:
+        return {"skipped": True}
+    store().kv_set("retention_last", time.time())
+    from .. import settings as S
+    st = S.load()
+    out = AR.retention_round(keep_days=float(st.get("journal_keep_days", 90)),
+                             keep_min=int(st.get("journal_keep_min", 20000)),
+                             max_live=int(st.get("journal_max_live", 200000)))
+    ok, problems = AR.verify_archives()
+    if not ok:
+        J.log(J.THREAT, "keeper", {"event": "archive_broken", "problems": problems[:20]},
+              subject="archive", verdict="threat")
+        if not store().open_items("integrity"):
+            store().propose("integrity", "NARUŠEN INTEGRITET arhive dnevnika: "
+                            + "; ".join(problems[:3]), {"problems": problems[:50]},
+                            proposer="keeper")
+    out["archives_ok"] = ok
+    return out
+
+
 def tick(online: Optional[bool] = None) -> dict:
-    out = {"keepers": keepers_round(), "replay": replay_round()}
+    out = {"keepers": keepers_round(), "replay": replay_round(),
+           "retention": retention_round()}
     if online:
         try:
             out["arxiv"] = arxiv_round()
