@@ -4,8 +4,11 @@ Local GGUF backend — llama-cpp in-process (plan F3, master §8).
 The model runs inside this process (no server, no extra port), loaded lazily and
 only when actually selected, with every limiter from limits.py applied:
 
-  * sha256 of the weights is checked against the declarations the operator
-    confirmed (master §8); an undeclared or mismatched file is refused;
+  * sha256 of the weights is checked (master §8): against the operator's
+    declaration if there is one; otherwise against the hash PUBLISHED by a known
+    source (PUBLISHED below). A match with a published hash is admitted and a
+    declaration is proposed to the operator; an unknown, undeclared file is
+    refused until the operator declares it (propose_declaration);
   * it will not load unless free RAM ≥ file size + headroom, and it unloads at
     once if free RAM falls under the floor;
   * n_threads = cores − 1, n_ctx capped, one call at a time, per-call timeout,
@@ -52,6 +55,33 @@ def list_models() -> list[dict]:
     return out
 
 
+# Hashes published by known sources (HuggingFace LFS sha256), checked 2026-10-25.
+PUBLISHED: dict[str, dict] = {
+    "DeepSeek-R1-0528-Qwen3-8B-Q5_K_M.gguf": {
+        "sha256": "044519a2d9821f9a91fbc8bda4eb2333180842bf56845d130e71144c11a1140e",
+        "size": 5851113984,
+        "source": "huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF"},
+}
+
+
+def propose_declaration(path, sha: str = "", note: str = "") -> Optional[str]:
+    """Queue a model declaration for the operator (never applies it). Idempotent:
+    no second proposal while one for the same path is open."""
+    from ..shared_lib import declarations as DECL
+    from ..shared_lib.store import store
+    p = str(Path(path))
+    for it in store().open_items(DECL.PROPOSAL_KIND):
+        if p in it["payload"].get("changes", {}).get("models", {}):
+            return None
+    sha = sha or sha256_of(Path(p))
+    pid = DECL.propose({"models": {p: sha}}, "gguf")
+    if note:
+        from ..core import journal as J
+        J.log(J.SYSTEM, "gguf", {"event": "declaration_proposed", "path": p,
+                                 "sha256": sha, "note": note}, subject=pid)
+    return pid
+
+
 def sha256_of(path: Path, chunk: int = 1 << 20) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -90,9 +120,9 @@ class GGUFBackend(Backend):
 
     def verify(self) -> tuple[bool, str]:
         """
-        Check the file exists, is declared, and its sha256 matches the declaration.
-        A file with no declared hash yet is allowed but flagged (the operator must
-        declare it to make loading deterministic across sessions).
+        Master §8 admission: the weights hash is compared with the operator's
+        declaration, or — before any declaration — with the hash published by a
+        known source. Unknown and undeclared → refused.
         """
         p = self.path()
         if not p.exists():
@@ -103,7 +133,15 @@ class GGUFBackend(Backend):
         except Exception:           # noqa: BLE001
             declared = None
         if declared is None:
-            return True, "hash nije deklarisan — učitavanje dozvoljeno, ali deklariši ga"
+            actual = sha256_of(p)
+            pub = PUBLISHED.get(p.name)
+            if pub and pub["sha256"] == actual:
+                propose_declaration(p, actual,
+                                    f"odgovara objavljenom hash-u ({pub['source']})")
+                return True, (f"sha256 odgovara objavljenom ({pub['source']}); "
+                              f"deklaracija predložena — potvrdi u „Čeka tvoju odluku“")
+            return False, ("nepoznat model: hash nije deklarisan i ne odgovara nijednom "
+                           "objavljenom — deklariši ga (Modeli → Deklariši) pa potvrdi")
         actual = sha256_of(p)
         if actual != declared:
             return False, (f"sha256 se ne poklapa sa deklaracijom (deklarisano "

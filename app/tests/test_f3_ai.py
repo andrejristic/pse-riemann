@@ -125,3 +125,25 @@ def test_gguf_verify_rejects_missing_and_mismatched_hash(tmp_path, operator):
     store().decide(pid, True)                        # declare a wrong hash
     ok, why = G.GGUFBackend(str(f)).verify()
     assert not ok and "sha256" in why
+
+
+def test_gguf_unknown_undeclared_is_refused_and_published_hash_is_admitted(tmp_path, operator, monkeypatch):
+    f = tmp_path / "nepoznat.gguf"
+    f.write_bytes(b"some weights")
+    ok, why = G.GGUFBackend(str(f)).verify()
+    assert not ok and "nepoznat" in why                 # master §8: unknown → refused
+
+    g = tmp_path / "poznat.gguf"
+    g.write_bytes(b"published weights")
+    monkeypatch.setitem(G.PUBLISHED, "poznat.gguf",
+                        {"sha256": G.sha256_of(g), "size": 17, "source": "test-izvor"})
+    ok, why = G.GGUFBackend(str(g)).verify()
+    assert ok and "objavljenom" in why
+    from pse_r.shared_lib import declarations as DECL
+    opens = [i for i in store().open_items(DECL.PROPOSAL_KIND)
+             if str(g) in i["payload"]["changes"].get("models", {})]
+    assert len(opens) == 1                               # declaration proposed, not applied
+    G.GGUFBackend(str(g)).verify()                       # idempotent: still one proposal
+    assert len([i for i in store().open_items(DECL.PROPOSAL_KIND)
+                if str(g) in i["payload"]["changes"].get("models", {})]) == 1
+    assert DECL.model_hash(str(g)) is None
