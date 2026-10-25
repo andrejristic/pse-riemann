@@ -15,7 +15,7 @@ from typing import Iterator, Optional
 from .. import config
 from .card import Card, VERIFIED_STATUSES, FOLKLORE, SPECULATION, SUSPECT, REFUTED
 
-CARD_DIRS = ("knowledge", "sources", "speculation", "notes", "daily")
+CARD_DIRS = ("knowledge", "sources", "speculation", "notes", "daily", "methods")
 
 
 def iter_paths(dirs: tuple[str, ...] = CARD_DIRS) -> Iterator[Path]:

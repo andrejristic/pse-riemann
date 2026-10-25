@@ -51,11 +51,20 @@ def _script_source(exp: EX.Experiment) -> str:
         fn = inspect.getsource(exp.run)
     except (OSError, TypeError):
         fn = f"# (source unavailable for {exp.run})\n"
-    try:
-        zsrc = inspect.getsource(Z)
-    except (OSError, TypeError):
-        zsrc = ""
-    return header + "# ---- zeta.py ----\n" + zsrc + "\n\n# ---- experiment ----\n" + fn
+    # QRH experiments depend on the method explorer, not on zeta.py — record the
+    # module that actually produced the number, so the run is truly reproducible.
+    if exp.key.startswith("qrh_"):
+        try:
+            from ..methods import core as MC
+            dep = "# ---- methods/core.py ----\n" + inspect.getsource(MC)
+        except (OSError, TypeError, ImportError):
+            dep = ""
+    else:
+        try:
+            dep = "# ---- zeta.py ----\n" + inspect.getsource(Z)
+        except (OSError, TypeError):
+            dep = ""
+    return header + dep + "\n\n# ---- experiment ----\n" + fn
 
 
 def validate_params(exp: EX.Experiment, params: dict) -> dict:

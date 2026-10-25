@@ -261,7 +261,7 @@ class Gate:
 
     def find(self, card_id: str) -> Optional[Path]:
         for d in (config.DIR_KNOWLEDGE, config.DIR_SOURCES, config.DIR_SPECULATION,
-                  config.DIR_NOTES, config.DIR_DAILY):
+                  config.DIR_NOTES, config.DIR_DAILY, config.DIR_METHODS):
             p = d / f"{card_id}.md"
             if p.exists():
                 return p

@@ -80,6 +80,22 @@ def selftest() -> int:
     check("preprint kartica nije utvrđena (nosi upozorenje)",
           _pre.ok and any("PREPRINT" in w or "utvrđena" in w for w in _pre.warnings))
 
+    print("\nIstraživač metoda (QRH):")
+    from pse_r.methods import core as MC, pack as MPK
+    liuB = MC.optimum(MC.E_liu, 1e-6).B
+    check("Liu optimum B*=0.874957019420", abs(liuB - 0.874957019420) < 1e-9,
+          f"{liuB:.12f}")
+    _p, _root = MC.exact_polynomial("xs")
+    check("Xu–Sang egzaktna kvartna, korijen 0.874886647040",
+          _p.degree() == 4 and abs(_root - 0.874886647040) < 1e-12)
+    _ok = MPK.reproduce(MPK.MethodPack.from_dict(
+        {"name": "liu", "family": "liu", "source": "arxiv:2610.12234",
+         "claimed_B": 0.874957019420, "dlo": 1e-6}))["ok"]
+    _bad = MPK.reproduce(MPK.MethodPack.from_dict(
+        {"name": "x", "family": "liu", "source": "arxiv:1", "claimed_B": 0.5,
+         "dlo": 1e-6}))["ok"]
+    check("vrata: tačan paket se reprodukuje, lažni se odbija", _ok and not _bad)
+
     print("\nJournal:")
     good, bad = J.journal().verify_chain()
     check("hash-lanac neprekinut", good, f"prekid na {bad}" if bad else
