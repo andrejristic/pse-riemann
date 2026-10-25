@@ -134,7 +134,7 @@ Oko **40–60 sati rada**, kalendarski realno **2–4 dana**. Mogu produžiti: k
 
 ---
 
-## 6. Runda 3 (dogovorena 2026-10-25, čeka „kreni“)
+## 6. Runda 3 (dogovorena 2026-10-25; „kreni“ dato 2026-10-25)
 
 Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitHub Release). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
 
@@ -193,7 +193,7 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
 32. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori.
 33. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
 34. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
-    **Uzor: Android aplikacija „Calculus Tools“** (Andy McSherry, `com.andymc.derivative`; skinuta sa Google Playa 2018). Po izvorima je imala izvode, određene integrale, dužinu luka, Taylorove redove i grafove (kartezijanski, polarni, parametarski, vektorska polja). Detalji interakcije nisu potvrđeni iz izvora. Prevod za naš tab:
+    **Uzor: Android aplikacija „Calculus Tools“** (Andy McSherry, `com.andymc.derivative`; skinuta sa Google Playa 2018). Po izvorima je imala izvode, određene integrale, dužinu luka, Taylorove redove i grafove (kartezijanski, polarni, parametarski, vektorska polja). Interakciju je potvrdio Andrej (ispod). Prevod za naš tab:
     - kartezijanski: funkcije eksponenata E(δ), prava B(ℓ) = 11/12 − ℓ/4, presjeci;
     - parametarski: putanje (ℓ(t), B(t)) za proširenja t i w;
     - vektorsko polje nad ravni parametara (npr. ℓ, κ): strelice pokazuju kuda proširenje gura B (bliže ili dalje od cilja), što je srž prve misije;
@@ -204,6 +204,15 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     - praćenje kursorom, zum točkićem, pomjeranje prevlačenjem, tabela vrijednosti;
     - polarni graf kao jeftin dodatak.
     **Potvrđeno (Andrej, 2026-10-25), kako je aplikacija radila:** zum; režim miša u kojem kursor na tački grafa pokazuje sve što se zna o značenju te tačke; neograničen broj funkcija na jednom grafu, svaka svojom bojom; tamna pozadina. Tri odvojena dijela: **Grafovi** (samo crtanje), **Funkcije** (upis funkcija), **Kalkulacije** (računi nad upisanom funkcijom). Na telefonu su to tri taba; **za ekran računara prilagoditi**, npr. tri panela jedan pored drugog sa mogućnošću da se graf raširi preko cijelog prozora. Kod nas „sve o tački“ znači: koordinate, koja funkcija/metoda, parametri, da li je presjek/zid/cilj, udaljenost do ciljeva, nivo izvora (RAD / NAŠE-NERECENZIRANO) i link na karticu.
+    **Računi na zahtjev u tački** (Andrej, 2026-10-25): jeftino se prikazuje odmah; skuplje se nudi pitanjem „Želiš li da izračunam…?“, uz procjenu trajanja, najviše 3–4 ponude prilagođene vrsti tačke (ostalo pod „više…“):
+    - bilo gdje na krivoj: izvod i tangenta, drugi izvod (konkavnost), Taylorov polinom;
+    - u ravni parametara: gradijent (smjer najbržeg rasta/pada B);
+    - optimum: Hesijan (da li je optimum i koliko je oštar);
+    - presjek: tačan algebarski korijen (sympy) + strogi interval-certifikat;
+    - blizu cilja/zida: koliki i koji pomak parametara dostiže cilj, ili dokaz da zid to sprečava;
+    - između dvije funkcije: osjenčana površina („rezerva“);
+    - za misiju: kuda proširenje (t, w, kasnije d) pomjera tačku — bliže ili dalje od cilja.
+    Pravila: računa Python deterministički (AI samo objašnjava, i to na zahtjev); red u pozadini sa „prekini“, poštuje limitere (RAM, CPU, „→ ∞“) i profil mašine; rezultat se kešira i bilježi kao lab run u SHARED_LIB-u sa oznakom NAŠE-NERECENZIRANO.
 35. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
 
 ### Faza 7 · Dokumentacija i izdanje
