@@ -13,6 +13,7 @@ Hard rule enforced across the app (see vault.gate and guardian.egress):
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 APP_NAME = "PSE Riemann"
@@ -39,7 +40,7 @@ def is_packaged() -> bool:
     """True when running from an installed package rather than a checkout.
     A marker file the build drops — not a guess from write permissions, which
     would give a different answer for root than for you."""
-    return PACKAGED_MARKER.exists()
+    return getattr(sys, "frozen", False) or PACKAGED_MARKER.exists()
 
 
 def _default_vault() -> Path:
@@ -52,8 +53,11 @@ def _default_vault() -> Path:
     failure mode. Set PSE_RIEMANN_VAULT to put it anywhere else.
     """
     if is_packaged():
-        xdg = os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")
-        return Path(xdg).expanduser() / APP_SLUG / "vault"
+        if sys.platform == "win32":
+            base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        else:
+            base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")).expanduser()
+        return base / APP_SLUG / "vault"
     return PROJECT_ROOT / "vault"
 
 
@@ -80,8 +84,11 @@ PIN_STORE = DIR_STATE / "tls_pins.json"
 BUDGET_STORE = DIR_STATE / "budget.json"
 
 # Secrets NEVER live in the vault (the vault is meant to be syncable / shareable).
-CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME",
-                                 Path.home() / ".config")).expanduser() / APP_SLUG
+if sys.platform == "win32":
+    CONFIG_DIR = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / APP_SLUG
+else:
+    CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME",
+                                     Path.home() / ".config")).expanduser() / APP_SLUG
 SECRETS_FILE = CONFIG_DIR / "secrets.json"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"
 

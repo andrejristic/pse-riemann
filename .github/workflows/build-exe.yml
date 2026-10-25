@@ -1,0 +1,46 @@
+name: build-exe
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  exe:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/Scripts/pip install -e . pyinstaller
+      - name: Inno Setup
+        run: |
+          if [ ! -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then choco install innosetup --no-progress -y; fi
+      - name: Build installer
+        run: bash packaging/build_exe.sh
+      - name: Install silently
+        shell: pwsh
+        working-directory: app
+        run: |
+          $setup = Get-ChildItem ..\dist\PSERiemann-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$env:RUNNER_TEMP\rie" -Wait
+          if (-not (Test-Path "$env:RUNNER_TEMP\rie\pse-riemann.exe")) { throw "not installed" }
+      - name: App starts (headless)
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $p = Start-Process "$env:RUNNER_TEMP\rie\pse-riemann.exe" -PassThru
+          Start-Sleep -Seconds 18
+          if ($p.HasExited) { throw "pse-riemann exited with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pse-riemann-exe
+          path: dist/*.exe
