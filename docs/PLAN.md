@@ -185,6 +185,16 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 23. SR/EN prekidač za cijeli interfejs.
 24. Automatski profil mašine (Dell i5-6600 / Acer i3, oba 16 GB): ograničenja se sama prilagode, kartice „kad birati“ upozore da je DeepSeek spor na Aceru, testovi rade i sa simuliranim Acerom.
 
+### Faza 6b · Druga misija, inspiracije, grafovi (dodato 2026-10-25, radi se prije Faze 7)
+Sve iz ove faze mora biti u završnom .deb i .exe.
+
+30. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
+31. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Prijedlozi su u chatu 2026-10-25.
+32. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori.
+33. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
+34. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
+35. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
+
 ### Faza 7 · Dokumentacija i izdanje
 25. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
 26. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
@@ -194,4 +204,4 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4), kalendarski 5–8 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4) + oko 26–40 sati za Fazu 6b = **oko 88–132 sata**, kalendarski 5–8 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
