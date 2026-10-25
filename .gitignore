@@ -53,3 +53,5 @@ keys.json
 secrets.json
 *.sqlite*
 .worklock
+# --- local scratch (Claude temp files; never on git) ---
+scratch/

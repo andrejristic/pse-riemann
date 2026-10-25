@@ -26,25 +26,25 @@ T_amp (w 0->1/4 inside XS structure): +9.77e-03
  t=2: B*=0.87475722 l=0.16764 b=0.0209  broken walls: ['(1+k)/2-B']
  t=3: B*=0.87631091 l=0.16142 b=0.0000  broken walls: ['6kl-3/4', '(1+k)/2-B']
 Traceback (most recent call last):
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/analysis/step23.py", line 54, in <module>
+  File "scratch/analysis/step23.py", line 54, in <module>
     B,l,b,k=opt(Ef,1/8,iters=6); W=walls(B,l,b,k); bad=[a for a,v in W.items() if v<=0]
             ^^^^^^^^^^^^^^^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/analysis/step23.py", line 15, in opt
+  File "scratch/analysis/step23.py", line 15, in opt
     r=minimize_scalar(lambda b:-ls(b),bounds=(0.0,0.3),method='bounded',options={'xatol':1e-10}); b,l=r.x,-r.fun
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/venv/lib/python3.12/site-packages/scipy/optimize/_minimize.py", line 1027, in minimize_scalar
+  File "scratch/venv/lib/python3.12/site-packages/scipy/optimize/_minimize.py", line 1027, in minimize_scalar
     res = _minimize_scalar_bounded(fun, bounds, args, **options)
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/venv/lib/python3.12/site-packages/scipy/optimize/_optimize.py", line 2336, in _minimize_scalar_bounded
+  File "scratch/venv/lib/python3.12/site-packages/scipy/optimize/_optimize.py", line 2336, in _minimize_scalar_bounded
     fx = func(x, *args)
          ^^^^^^^^^^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/analysis/step23.py", line 15, in <lambda>
+  File "scratch/analysis/step23.py", line 15, in <lambda>
     r=minimize_scalar(lambda b:-ls(b),bounds=(0.0,0.3),method='bounded',options={'xatol':1e-10}); b,l=r.x,-r.fun
                                 ^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/analysis/step23.py", line 13, in <lambda>
+  File "scratch/analysis/step23.py", line 13, in <lambda>
     ls=lambda b: brentq(lambda l: vmax(Ef,b,l,k,dlo,xs),0.0,0.6,xtol=1e-14)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/claude-1000/-home-a-Desktop-PSE-MORANA/64cfd122-b062-4159-9dbf-54836553fc8a/scratchpad/venv/lib/python3.12/site-packages/scipy/optimize/_zeros_py.py", line 858, in brentq
+  File "scratch/venv/lib/python3.12/site-packages/scipy/optimize/_zeros_py.py", line 858, in brentq
     r = _zeros._brentq(f, a, b, xtol, rtol, maxiter, args, full_output, disp)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ValueError: f(a) and f(b) must have different signs

@@ -47,3 +47,11 @@ Oznake truda: **S** (sati), **M** (dan), **L** (više dana).
 ## D. Šta PSE Riemann već radi bolje (zadržati; detalji u dokumentima Svaroga i Peruna)
 
 Jedna mrežna kapija (allowlist, samo https, SPKI pinning, ključ samo svom hostu, redirect bez ključa), append-only dnevnik sa okidačima i hash lancem, kapija sa „istinom statusa“ i nivoima izvora, činjenični sloj (samo SELECT kroz SQLite authorizer), prijem modela po hash-u (deklaracija → objavljeni → odbij), limiteri modela, nezavisni skeptik, pečati i čuvari izvještaja, tri zla + ljestvica liječenja (povezano u aplikaciji), siguran kompajler izraza + vrata sa testom reprodukcije, pitanje „bez interneta“, izolovani testovi, tri .deb varijante sa Provides/Conflicts i pravim dodatkom.
+
+## E. Odloženo iz runde 3 (2026-10-25)
+
+Ove stavke **ne ulaze** u rundu 3 (v0.2.0); ostaju za kasnije:
+
+- **B1 / C4 — prava prijava operatera** (lozinka, šef, kod, rang, prigušenje). Andrej je odlučio „zaboravi p4“: operater ostaje samo ime. Zbog toga i C5 ulazi **bez ranga**.
+- **B10 — mTLS federacija.**
+- **C2 — vanjski merač + potpis.**

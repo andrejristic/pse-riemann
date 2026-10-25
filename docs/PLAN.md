@@ -122,7 +122,7 @@ Ko liječi liječnika: SHARED_LIB zamjenjuje bolesnog Fizičara svježim (naslje
 - zabranjeno: `sudo`, sistemske instalacije, globalna podešavanja, brisanje van radnog foldera, force-push
 - prije teških koraka provjera RAM-a i diska; teški poslovi u pozadini, niži prioritet, vremensko ograničenje; gase se samo vlastiti procesi
 - `docs/WORKLOG.md` posle svake faze: urađeno, testovi, sljedeće, procjena preostalog
-- **auto-nastavak**: zakazani zadatak svaki sat čita WORKLOG + memoriju projekta i nastavlja; **brava** (`.worklock` sa otkucajem) sprečava dva istovremena rada; zadatak se sam isključuje kad je plan gotov. Uslov: aplikacija Claude otvorena, računar budan.
+- **auto-nastavak**: zakazani zadatak svaka 2 sata čita `CLAUDE.md` + PLAN + WORKLOG i nastavlja; **brava** (`.worklock` sa otkucajem) sprečava dva istovremena rada; zadatak se sam isključuje kad je plan gotov. Uslov: aplikacija Claude otvorena, računar budan.
 
 ## 4. Procjena
 Oko **40–60 sati rada**, kalendarski realno **2–4 dana**. Mogu produžiti: kompajliranje `llama-cpp-python` (20–40 min po buildu), PyInstaller sa sympy/scipy, .exe preko CI, preuzimanje DeepSeek-a (~6 GB).
@@ -131,3 +131,67 @@ Oko **40–60 sati rada**, kalendarski realno **2–4 dana**. Mogu produžiti: k
 - Sve oko QRH je nerecenzirano (radovi i naši računi).
 - Automatsko izvlačenje sistema eksponenata iz rada od 200 strana je teško; zato test reprodukcije odlučuje, ne model.
 - `app/.venv` je pokvaren od ranije — prvi korak je `./setup.sh`.
+
+---
+
+## 6. Runda 3 (dogovorena 2026-10-25, čeka „kreni“)
+
+Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitHub Release). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
+
+**P4 (prava prijava) je izbačen** (Andrej, 2026-10-25: „zaboravi p4“). Operater ostaje **samo ime**; nema lozinki, šefa ni ranga.
+
+### Faza 0 · Početak
+1. Spajanje trenutnog stanja u `main` (lokalno i GitHub); novi rad na novoj grani, spajanje na kraju uz odobrenje.
+2. Zakazani zadatak ostaje dok traje posao, na kraju se briše; kontroliše se samo iz Claude aplikacije.
+
+### Faza 1 · Temelj: popravke i integritet odluka
+3. Popravke A1–A4: „→ ∞“ čuvar se zaista pokreće; detekcija vrtnje prekida generisanje u toku; timeout pokriva i generisanje; nema trke u redu odluka.
+4. Odobrenje se troši jednom (S2) i atomično rješavanje stavki (P5, **bez ranga**): jedna odluka = jedno izvršenje.
+5. Svaki alat i akcija deklariše povratnost; nedeklarisano = nepovratno (S4). Od toga zavisi šta čuvari i liječenje smiju sami, a šta ide čovjeku.
+6. Ponovljive odluke (P1): svaka odluka se može ponovo izvesti iz dnevnika; neslaganje = narušen integritet.
+7. Ograničena retencija + sidra arhive (S8 + P3): dnevnik se skraćuje bez gubitka dokaza; arhiva dobija sha256 i pečat; lanac se nastavlja preko sidra.
+
+### Faza 2 · Operater i početno podešavanje
+8. Početno podešavanje pri prvom otvaranju, prije glavnog prozora:
+   1. ime operatera (samo ime);
+   2. glavni AI: OpenAI ili kompatibilni (proizvoljna adresa), Claude, Gemini ili GGUF sa bilo kog mjesta (po putanji i hash-u, bez kopiranja);
+   3. skeptik: drugi model;
+   4. deklaracije za svaki izabrani model (GGUF hash poređen sa objavljenim; nova cloud adresa kao prijedlog koji operater potvrđuje);
+   5. „bez AI za sada“, uz jasan spisak šta radi, a šta ne;
+   6. da li čuvar kreće sam pri prijavi u sistem.
+   Sve se kasnije može mijenjati.
+
+### Faza 3 · Modeli, strujanje, naplata, prekidač
+9. Provajderi: OpenAI i kompatibilni (gotove postavke za Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Fireworks), Claude, Gemini i GGUF, za obje uloge.
+10. Strujanje za sve pozive kroz Guardian egress, sa pravim prekidom veze.
+11. Savjetovanje o naplati: po provajderu opcije + šta je najbolje (prekid strujanja zaustavlja naplatu kod Anthropic, OpenAI, DeepSeek, xAI, Together, Fireworks; **ne** kod Gemini, Mistral, Groq; bez strujanja uvijek puna naplata; ulazni tokeni se uvijek naplaćuju); stroži `max_tokens` i limit ulaza za provajdere bez prekida; budžet računa najgori slučaj kad nema podatka o potrošnji.
+12. Prekidač za online AI: dugme u gornjoj traci, u meniju ikone u traci i Ctrl+K; zatvara put u egress-u, prekida pozive u toku, briše ključeve iz memorije (po izboru ih trajno zaboravlja); prelazi na GGUF ili „bez AI“; preživljava restart, uključuje ga samo operater; automatski se okida na „→ ∞“ broja, veličine i troška poziva, uz alarm i link za opoziv ključa.
+13. Lokalni model ne smije se obraćati nijednoj adresi osim ovog računara (P8).
+
+### Faza 4 · SSH čuvar i zaštita domaćina
+14. SSH čuvar (PSE jedinica, radi uvijek): čita SSH dnevnik bez root-a, otporno na rotaciju (S6); računa po izvoru, uz „→ ∞“; theta blizu 30, ali ne ravna; skupi, prijavi SHARED_LIB-u i ukloni smetnju; kad su tri principa narušena, blokira prekršioca.
+15. Povratno zadržavanje sa automatskim poništavanjem (S3): prekid sesije i privremena IP blokada 24 h (sama se skida, preživljava restart) su automatski. Gašenje SSH-a i trajne blokade su prijedlog operateru sa tačnom komandom.
+16. Bez sudoers pravila → opasno upozorenje: veliki prozor, crvena pilula, SHARED_LIB i uporno bip-bip-bip dok operater ne klikne „U redu“, uz tačnu komandu.
+17. Šablonske poruke za kritične stvari (P6): alarmi, liječenje i upozorenja koriste samo provjerene šablone, ne tekst modela.
+18. Uputstvo za usko sudoers pravilo (ufw deny/delete od IP, systemctl stop/start ssh), korak po korak.
+19. Pozadinski rad i gašenje: čuvar je proces sa ikonom u traci (Otvori · Stanje θ · Prekini online AI · Ugasi čuvara); pri zatvaranju pitanje „Ugasi sve“ ili „Zatvori prozor, čuvar ostaje“; korisnički servis po izboru, sa systemd hardeningom (S9).
+
+### Faza 5 · Pametniji Fizičar i mjerenje
+20. Statistički jača dijagnoza (S5) u liječenju i čuvarima: CUSUM, posterior i pravilo 3-od-3, manje lažnih „infekcija“.
+21. Budžeti otkrivanja + takmičenje hipoteza (P7).
+22. Mjereni benchmark (S7): označeni primjeri za tri zla, SSH napade i prekidač; lažno pozitivni i lažno negativni ulaze u izvještaj.
+
+### Faza 6 · Interfejs i mašina
+23. SR/EN prekidač za cijeli interfejs.
+24. Automatski profil mašine (Dell i5-6600 / Acer i3, oba 16 GB): ograničenja se sama prilagode, kartice „kad birati“ upozore da je DeepSeek spor na Aceru, testovi rade i sa simuliranim Acerom.
+
+### Faza 7 · Dokumentacija i izdanje
+25. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
+26. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
+27. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
+28. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
+29. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, brisanje zakazanog zadatka.
+
+**Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
+
+**Procjena:** oko 62–92 sata rada (bez P4), kalendarski 5–8 dana uz auto-nastavak. Napredak faza po fazu u WORKLOG.
