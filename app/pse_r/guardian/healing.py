@@ -40,9 +40,16 @@ REINFECTION_DEATH = 3
 CONTAIN, DIAGNOSE, TREAT, DECONTAMINATE, RECOVER, IMMUNITY, DEATH = (
     "contain", "diagnose", "treat", "decontaminate", "recover", "immunity", "death")
 
-# which treatments a human must approve (tier 2)
-TIER2 = {"fisija", "zamjena", "ponovni-prijem-modela", "vraćanje-fajlova-operatera",
-         "smrt"}
+# Which treatments a human must approve is no longer a hand-kept list: it is
+# whatever core/actions.py does NOT declare reversible (undeclared = irreversible).
+from ..core import actions as A
+
+
+def _tier2() -> set:
+    return {s.name for s in A.all_specs() if not s.auto}
+
+
+TIER2 = _tier2()
 
 
 @dataclass
@@ -85,6 +92,7 @@ class Healer:
         return case
 
     def _contain(self, case: Case) -> None:
+        A.require_auto("contain")
         case.stage = CONTAIN
         case.quarantined = True
         self._log(case, "contained", {"harms": [f.sign for f in case.findings],
@@ -127,10 +135,11 @@ class Healer:
         """Apply tier-1 treatments; queue tier-2 ones for the operator."""
         case.stage = TREAT
         plan = self._ladder(case.findings)
-        for action, tier in plan:
-            if tier == 1:
+        for action, _ in plan:
+            if A.may_auto(action):
                 case.actions.append(action)
-                self._log(case, "treated", {"action": action, "tier": 1})
+                self._log(case, "treated", {"action": action, "tier": 1,
+                                            "undo": A.spec(action).undo})
             else:
                 pid = store().propose(
                     HEAL_KIND, f"Liječenje [{case.agent}]: {action} (traži odobrenje)",
@@ -138,12 +147,14 @@ class Healer:
                      "harms": [f.sign for f in case.findings]}, proposer="physician")
                 case.pending.append((pid, action))
                 self._log(case, "treatment_queued", {"action": action, "tier": 2,
-                                                     "pid": pid})
+                                                     "pid": pid,
+                                                     "declared": A.spec(action).declared})
         return case
 
     @staticmethod
     def _ladder(findings) -> list:
-        """(action, tier) mildest first, by which harms are present."""
+        """(action, tier) mildest first, by which harms are present. The tier
+        shown here is informative; treat() asks core/actions.py."""
         harms = {f.harm for f in findings}
         signs = {f.sign for f in findings}
         plan = [("boundary-reset", 1)]

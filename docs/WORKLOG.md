@@ -10,14 +10,15 @@
 | 2026-10-25 | 2 · zakazani zadatak | ✅ | — | auto-nastavak ugašen; sedmični podsjetnik (pon 10:00) |
 | 2026-10-25 | 3 · popravke A1–A4 | ✅ | pytest 114/114, selftest ✅, živi DeepSeek | A1 „→ ∞“ čuvar hranjen (s/token, RSS, red), okidanje pauzira pozive + oslobađa model + stavka „Čeka tvoju odluku“, pauza preživi restart; A2 GGUF strujanje, vrtnja prekida u toku (fake: 7/500 komada); A3 rok = čekanje + generisanje (živo: 8,0 s pri roku 8 s); A4 uslovni UPDATE |
 | 2026-10-25 | 4 · odluka jednom (S2 + P5 bez ranga) | ✅ | trka 8 niti → 1 izvršenje | `consumed_at`; kuke radi samo onaj ko potroši odluku |
+| 2026-10-25 | 5 · povratnost akcija (S4) | ✅ | pytest 119/119, selftest ✅ | `core/actions.py`: 12 deklarisanih, 7 smije samo; nedeklarisano = nepovratno → operateru; liječenje izvodi nivo iz deklaracija; vraćanje iz pečata sada čuva izmijenjenu verziju u `forensic/` (prije je brisalo trag — nije bilo stvarno povratno) |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** stavka 5 (deklarisana povratnost alata i akcija).
+**Sljedeće:** stavka 6 (ponovljive odluke, P1).
 
-**Preostalo:** oko 85–127 h.
+**Preostalo:** oko 83–125 h.
 
 ---
 

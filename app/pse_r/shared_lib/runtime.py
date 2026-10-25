@@ -216,7 +216,10 @@ _METRIC_TEXT = {"latency": "trajanje poziva (s)", "rss": "memorija procesa (GB)"
 
 
 def _on_guard_trip(metric: str, value: float, L: float) -> None:
+    from ..core import actions as A
     from ..llm.gguf import GGUFBackend
+    A.require_auto("guard.pause")
+    A.require_auto("model.unload")
     GGUFBackend.unload()
     J.log(J.SYSTEM, "guard", {"event": "diverging", "metric": metric,
                               "value": value, "L": L}, subject=metric, verdict="paused")

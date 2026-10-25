@@ -117,17 +117,28 @@ def restore(path, actor: Optional[str] = None) -> bool:
     if rec is None:
         return False
     who = actor or OP.current() or "system"
+    from ..core import actions as A
+    A.require_auto("vraćanje-fajlova-iz-pečata")
     try:
         os.chmod(p, 0o644)
     except OSError:
         pass
+    kept = ""
+    if p.is_file():                         # keep the tampered version: reversible
+        fdir = config.DIR_STATE / "forensic"
+        fdir.mkdir(parents=True, exist_ok=True)
+        bad = sha256_of(p)
+        dst = fdir / f"{p.name}.{bad[:12]}.{time.strftime('%Y%m%d-%H%M%S')}.tampered"
+        shutil.copy2(p, dst)
+        kept = str(dst)
     shutil.copy2(rec["sealed_copy"], p)
     try:
         os.chmod(p, 0o444)
     except OSError:
         pass
     J.log(J.REPORT, who, {"event": "restored", "path": str(p),
-                          "sha256": rec["sha256"]}, subject=p.name, verdict="restored")
+                          "sha256": rec["sha256"], "tampered_copy": kept},
+          subject=p.name, verdict="restored")
     return True
 
 

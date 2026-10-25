@@ -135,6 +135,14 @@ def selftest() -> int:
     _case = _hz.detect("unit:selftest", HRM.to_file("x.md", via_gate=False))
     check("liječenje: zlo → zadržavanje (povratno)",
           _case is not None and _case.stage == HEAL.CONTAIN and _case.quarantined)
+    from pse_r.core import actions as ACT
+    _ladder_all = {a for a, _ in HEAL.Healer._ladder(
+        [HRM.Finding(h, "injekcija", "x", HRM.HIGH) for h in (HRM.AGENT, HRM.HUMAN, "file")])}
+    check("akcije: sve deklarisane, nedeklarisano = nepovratno",
+          all(ACT.find(a) for a in _ladder_all | {"contain", "smrt"})
+          and not ACT.may_auto("nedeklarisana-akcija"),
+          f"{len(ACT.all_specs())} deklarisano, "
+          f"{sum(1 for x in ACT.all_specs() if x.auto)} smije samo")
 
     print("\nMisije i QRH sadržaj:")
     from pse_r.shared_lib import missions as MIS
