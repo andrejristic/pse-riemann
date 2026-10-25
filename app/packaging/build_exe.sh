@@ -20,8 +20,8 @@ rm -rf "$APP/build/pyi" "$STAGE"
   --icon "$HERE/$PKG.ico" \
   --distpath "$APP/build/pyi/dist" --workpath "$APP/build/pyi/work" --specpath "$APP/build/pyi" \
   --collect-submodules pse_r --collect-data pse_r --collect-all matplotlib \
-  --add-data "$REPO/research/qrh-2026-10/method-packs;method-packs" \
-  --add-data "$HERE/$PKG.png;packaging" \
+  --add-data "$(cygpath -w "$REPO/research/qrh-2026-10/method-packs");method-packs" \
+  --add-data "$(cygpath -w "$HERE/$PKG.png");packaging" \
   "${LLAMA_ARGS[@]}" \
   "$APP/main.py"
 APPDIR="$STAGE/$PKG"; mkdir -p "$APPDIR"

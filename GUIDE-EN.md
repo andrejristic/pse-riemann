@@ -88,21 +88,30 @@ O(√x log x)"* ✅, *"I have proved the Riemann hypothesis"* ⛔.
 
 ## 6. Chat (right 30%)
 
-Input grows with your text to **half the panel height**, then scrolls. Context
-is **explicit** — what is in the tray is what the model sees, no hidden
-retrieval. The model **cannot write**: it proposes a card and you see the gate's
-verdict *before* you click.
+- **Default mode: "SHARED_LIB (činjenice)" — facts.** A question becomes **one
+  read-only SELECT** over the library; the answer carries citations `[id]` and
+  shows the **exact SQL** and rows. No data → "not in the library (UNKNOWN)",
+  never a guess. You can type SQL directly. Without a model it answers the known
+  questions (methods, missions, cards, lab, queue).
+- The other modes (`math`/`chat`/`summarize`) talk to the **main AI**.
+- Context is explicit; the model never writes to the vault.
+- **Every reply is screened for the three harms.** A reply carrying one (e.g. a
+  proof claim, uncritical agreement) puts the agent in **quarantine** until you
+  release it in "Čeka tvoju odluku".
+- **⤢** expands the chat over the whole window; **Esc** restores.
 
 ---
 
-## 7. Routing — why this costs almost nothing
+## 7. Models — one main AI + a skeptic
 
-`math` and `vision` → the strong model. `triage`, `curate`, `summarize` → free
-tiers (Groq/Mistral/Gemini). `skeptic` → deliberately a **different** provider
-from the one that wrote the card; a model grading its own work is not a check.
-
-The daily cap is a hard stop, not a warning (default $5). When it is reached,
-paid calls stop and free providers keep working.
+- The **main AI** (Claude, Gemini, Mistral, Groq or a local GGUF) does **every
+  role**. The **skeptic is always a different model** and only attacks.
+- Default: main = **Claude**, skeptic = **DeepSeek** (local).
+- **No internet:** the app **asks** which local GGUF to use — 2+ models: pick a
+  main and a skeptic; 1: skeptic "unavailable" (deterministic checks only); none:
+  the AI rests while the lab, gate, explorer and keepers keep working. When the
+  network returns it asks whether to switch back to Claude.
+- The daily limit is a hard stop ($5 default); a local model costs nothing.
 
 ---
 
@@ -222,11 +231,16 @@ targets (0.87, 5/6, 3/4, 1/2) or away?
 needing you: method proposals, skeptic objections, declarations, tier-2 healing.
 Approve / reject are real, journalled decisions.
 
-**Import method (the open door).** A method pack (one JSON: family, source,
-claimed B, reproduction test) enters **only through the gate**. First a
+**Import method (the open door).** A method pack is one JSON that carries the
+paper's **exponent system as data** (definitions, the high-side E with its δ
+range, the line, the licence, the walls) plus the source and **the number the
+paper claims** — so a new paper needs no new code. Expressions may only be
+arithmetic (the gate refuses anything else). The pack enters **only through the
+gate**. First a
 **deterministic reproduction test** — our pipeline re-derives the paper's number;
 if it does not match, the pack is **refused at the door** and never reaches the
-queue. No model can wave it through. Example packs in
+queue. A claimed minimal polynomial is **checked** (it must change sign at B*).
+No model can wave it through. Example packs in
 `research/qrh-2026-10/method-packs/` (Liu, Xu–Sang, 7/8, 11/12).
 
 **Lab — QRH experiments.** `qrh_line`, `qrh_poly` (exact minimal polynomial of
@@ -241,7 +255,10 @@ No second model → skeptic "unavailable", deterministic checks only.
 **Local GGUF.** Put DeepSeek-R1-0528-Qwen3-8B (Q5_K_M) in `models/` (off git).
 It loads in-process (llama-cpp) only when selected, under limiters (RAM, 3 of 4
 threads, n_ctx 8K, think budget, timeout, one call queued, loop cut-off, the
-"→ ∞" rule). Declare the model's sha256 to make loading deterministic.
+"→ ∞" rule). Admission per master §8: the hash is compared with your
+declaration, or before one with the **published** hash (DeepSeek: unsloth on
+HuggingFace), which then proposes the declaration to you; an unknown, undeclared
+model is refused. Other GGUFs: *Deklariši GGUF…* in the queue tab.
 
 **Source tiers.** REFEREED · LEAN · PREPRINT · AI-UNREVIEWED · OUR-UNREVIEWED.
 A preprint may not support an **established** claim.
@@ -251,5 +268,21 @@ in the chain, read-only, a patrol restores it from the seal if touched). Every
 agent is watched for three harms (to human / agent / file); an infected one is
 **healed**, never silently deleted; tier-2 steps (fission, death) are yours.
 
-**Packages.** `./packaging/build_deb_pip.sh full` (B: sympy+scipy, first) ·
-`… lean` (A) · `… research` (C: + llama-cpp, offline).
+**arXiv.** Once a day (when online) and via *Provjeri arXiv sada* in Missions:
+a new QRH paper becomes an "extract the method?" item. Approve it and the main AI
+extracts a method pack (in the background) and sends it **through the door** —
+reproduction test, skeptic, your confirmation; the mission updates.
+
+**Overview and top bar.** The *Pregled* tab (every number is a query over the
+library); the top bar shows operator, θ, cards, budget, Guardian, main, skeptic,
+RAM, and a *Čeka tvoju odluku: N* button.
+
+**Reports.** *Izvezi izvještaj misije* writes a report to `vault/reports` and
+seals it at once; any file dropped into `reports/` is sealed on the next 60 s
+heartbeat and guarded from then on.
+
+**Packages.** `./packaging/build_deb_pip.sh full` → **B** `pse-riemann` (sympy +
+scipy + llama-cpp, everything; first) · `… lean` → **A** `pse-riemann-lean` (no
+scipy; conflicts with B) · `… research` → **C** `pse-riemann-research`, an
+**add-on** to A (scipy only, in `/opt/pse-riemann/lib-research`). A + C = B.
+Installed, GGUF models live in `~/.local/share/pse-riemann/models`.

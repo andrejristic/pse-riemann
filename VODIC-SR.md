@@ -142,31 +142,34 @@ Zapiši u `speculation/` i idi dalje.
 
 ## 6. Chat (desnih 30%)
 
+- **Podrazumijevani mod je „SHARED_LIB (činjenice)“.** Pitanje → **jedan
+  read-only SELECT** nad bibliotekom → odgovor sa citatima `[id]`, a ispod vidiš
+  **tačan SQL** i redove. Kad podatka nema: „Nema u biblioteci (UNKNOWN)“, nikad
+  nagađanje. Možeš upisati i SQL direktno (`SELECT …`). Bez modela radi za
+  poznata pitanja (metode, misije, kartice, lab, čeka).
+- Ostali modovi (`math`/`chat`/`summarize`) su razgovor sa **glavnim AI-jem**.
 - Polje za unos **raste sa tekstom do pola visine panela**, pa skroluje.
-- **Kontekst je eksplicitan.** Šta je u traci — to model vidi. Nema skrivenog
-  dohvatanja. Kartice dodaješ dugmetom *→ u kontekst chata* u Corpusu.
-- Model **ne piše u vault.** Predlaže karticu, a ti vidiš **presudu kapije
-  prije nego klikneš** — „⛔ nema izvora" stoji tu prije nego što išta potrošiš.
-- Uloga (`math`/`chat`/`summarize`) bira koji model odgovara.
+- **Kontekst je eksplicitan.** Šta je u traci — to model vidi.
+- Model **ne piše u vault.** Predlaže karticu, a presudu kapije vidiš prije klika.
+- **Svaki odgovor prolazi provjeru tri zla.** Ako nosi znak zla (npr. tvrdnja o
+  dokazu, slaganje bez provjere), agent ide u **karantin** dok ga ti ne pustiš u
+  „Čeka tvoju odluku“.
+- **⤢** širi chat preko cijelog prozora; **Esc** vraća.
 
 ---
 
-## 7. Ruter — zašto ovo košta skoro ništa
+## 7. Modeli — jedan glavni AI + skeptik
 
-| uloga | ko radi | zašto |
-|---|---|---|
-| `math` | Claude → Gemini → Mistral → Groq | jedino mjesto gdje se greška stvarno plaća |
-| `vision` (tabla) | Claude → Gemini | samo oni vide slike |
-| `triage` | **Groq** → Mistral → Gemini → Claude | stotine apstrakata, besplatan tier |
-| `curate` | **Groq** → … | isto |
-| `skeptic` | **Mistral** → Groq → … | namjerno drugi model od onog koji je pisao |
-| `summarize` | **Groq** → … | jeftino |
-
-Skeptik ide na **drugog** provajedera od onog koji je napisao karticu. Model koji
-ocjenjuje sopstveni rad nije provjera.
-
-Dnevni limit je tvrd stop, ne upozorenje (podrazumijevano $5; Ctrl+K →
-„Budžet"). Kad se dostigne, plaćeni pozivi staju — besplatni nastavljaju.
+- **Glavni AI** (Claude, Gemini, Mistral, Groq ili lokalni GGUF) radi **sve
+  uloge**. Biraš ga u „Čeka tvoju odluku“ → *Glavni*.
+- **Skeptik je uvijek drugi model** i samo napada (prigovor · razlog · gdje ·
+  ozbiljnost); nema pravo upisa.
+- Podrazumijevano: glavni = **Claude**, skeptik = **DeepSeek** (lokalno).
+- **Bez interneta** aplikacija **pita** koji lokalni GGUF da koristi: sa 2+
+  modela biraš glavnog i skeptika; sa 1 je skeptik „nedostupan“ (ostaju
+  determinističke provjere); bez ijednog AI miruje, a lab, kapija, istraživač i
+  čuvari rade. Kad se mreža vrati, pita da li da vrati Claude.
+- Dnevni limit je tvrd stop (podrazumijevano $5); lokalni model ne troši budžet.
 
 ---
 
@@ -367,10 +370,14 @@ između QRH metoda i vodi li njeno proširenje prema ciljevima (0.87, 5/6, 3/4,
 metoda, prigovori skeptika, deklaracije, liječenje (stepen 2). *Odobri* /
 *Ne odobri* su prave, zapisane odluke.
 
-**Uvezi metodu (otvorena vrata).** Paket metode (jedan JSON: familija, izvor,
-tvrđeno B, test reprodukcije) ulazi **samo kroz kapiju**. Prvo ide
+**Uvezi metodu (otvorena vrata).** Paket metode je jedan JSON koji nosi
+**sistem eksponenata kao podatak** (definicije, izraz E i opseg δ, prava,
+licenca, zidovi) plus izvor i **broj koji rad tvrdi** — zato nov rad ne traži
+nov kod. Izrazi smiju biti samo aritmetika (kapija odbija sve drugo). Paket
+ulazi **samo kroz kapiju**. Prvo ide
 **deterministički test reprodukcije** — naš pipeline (`methods/`) ponovo izvede
 broj iz rada; ako se ne poklopi, paket se **odbija na vratima** i ne stiže u red.
+Tvrđeni minimalni polinom se **provjerava** (mora promijeniti znak u B*).
 Nijedan model to ne može zaobići. Primjeri paketa: `research/qrh-2026-10/
 method-packs/` (Liu, Xu–Sang, 7/8, 11/12).
 
@@ -388,8 +395,10 @@ skeptik „nedostupan", rade samo determinističke provjere.
 **Lokalni GGUF.** DeepSeek-R1-0528-Qwen3-8B (Q5_K_M) stavi u `models/` (van
 gita). Učitava se u procesu (llama-cpp) tek kad se izabere, uz limitere (RAM, 3
 od 4 niti, n_ctx 8K, think-budžet, timeout, jedan poziv u redu, prekid vrtnje,
-pravilo „→ ∞"). Deklariši sha256 modela (red „Čeka tvoju odluku") da učitavanje
-bude determinističko.
+pravilo „→ ∞"). Prijem po master §8: hash se poredi sa tvojom deklaracijom, a
+prije nje sa **objavljenim** hash-om (za DeepSeek: unsloth na HuggingFace) — tada
+se deklaracija predloži tebi; nepoznat nedeklarisan model se odbija. Drugi GGUF:
+*Deklariši GGUF…* u „Čeka tvoju odluku“.
 
 **Nivoi izvora.** REFEREED (doi/book) · LEAN (mašinski dokaz) · PREPRINT
 (arxiv/url) · AI-UNREVIEWED (model) · NAŠE-NERECENZIRANO (naš COMPUTED). Preprint
@@ -401,5 +410,22 @@ se prati na tri zla (čovjeku / agentu / fajlu); zaraženi se **liječi** (ne br
 zadržavanje → dijagnoza → liječenje → oporavak → imunitet; stepen 2 (fisija,
 smrt) odlučuješ ti.
 
-**Paketi.** `./packaging/build_deb_pip.sh full` (B: sympy+scipy, prvi) ·
-`… lean` (A: bez scipy) · `… research` (C: + llama-cpp, offline).
+**arXiv.** Jednom dnevno (ako ima mreže) i dugmetom *Provjeri arXiv sada* u
+Misijama: novi QRH rad postaje stavka „izvući metodu?“. Kad odobriš, glavni AI
+izvuče paket metode iz rada (u pozadini) i šalje ga **kroz vrata** — test
+reprodukcije, skeptik, pa tvoja potvrda; misija se ažurira.
+
+**Pregled i gornja traka.** Tab *Pregled* (sve brojke su upiti nad
+bibliotekom: front misije, red odluka, metode, pečati, kartice, lab, dnevnik).
+Gornja traka: operater, θ, kartice, budžet, Guardian, glavni, skeptik, RAM, i
+dugme *Čeka tvoju odluku: N*.
+
+**Izvještaji.** *Izvezi izvještaj misije* piše izvještaj u `vault/reports` i
+odmah ga pečati; čuvari ga od tada čuvaju. Svaki fajl ubačen u `reports/` se
+pečati pri sljedećem otkucaju (60 s).
+
+**Paketi.** `./packaging/build_deb_pip.sh full` → **B** `pse-riemann` (sympy +
+scipy + llama-cpp, sve; prvi) · `… lean` → **A** `pse-riemann-lean` (bez scipy;
+ne može uz B) · `… research` → **C** `pse-riemann-research`, **dodatak** uz A
+(samo scipy, u `/opt/pse-riemann/lib-research`). A + C = B. U instaliranoj
+verziji GGUF modeli idu u `~/.local/share/pse-riemann/models`.
