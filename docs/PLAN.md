@@ -142,7 +142,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 
 ### Faza 0 · Početak
 1. Spajanje trenutnog stanja u `main` (lokalno i GitHub); novi rad na novoj grani, spajanje na kraju uz odobrenje.
-2. Zakazani zadatak: auto-nastavak je **ugašen** (2026-10-25); zadatak je sada sedmični podsjetnik koji pita da li ga ponovo aktivirati. Kontroliše se samo iz Claude aplikacije.
+2. Zakazani zadatak: auto-nastavak je **ugašen** (2026-10-25); zadatak je sada sedmični podsjetnik koji pita da li ga ponovo aktivirati. Pokreće se iz foldera PSE MORANA; Andrej je rekao da je to u redu i da se više ne dira. Kontroliše se samo iz Claude aplikacije.
 
 ### Faza 1 · Temelj: popravke i integritet odluka
 3. Popravke A1–A4: „→ ∞“ čuvar se zaista pokreće; detekcija vrtnje prekida generisanje u toku; timeout pokriva i generisanje; nema trke u redu odluka.
@@ -203,7 +203,7 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     - traženje nula i presjeka (tačni korijeni, npr. Liuov kubni polinom);
     - praćenje kursorom, zum točkićem, pomjeranje prevlačenjem, tabela vrijednosti;
     - polarni graf kao jeftin dodatak.
-    Prije gradnje: Andrej potvrđuje da je to ta aplikacija.
+    **Potvrđeno (Andrej, 2026-10-25), kako je aplikacija radila:** zum; režim miša u kojem kursor na tački grafa pokazuje sve što se zna o značenju te tačke; neograničen broj funkcija na jednom grafu, svaka svojom bojom; tamna pozadina. Tri odvojena dijela: **Grafovi** (samo crtanje), **Funkcije** (upis funkcija), **Kalkulacije** (računi nad upisanom funkcijom). Na telefonu su to tri taba; **za ekran računara prilagoditi**, npr. tri panela jedan pored drugog sa mogućnošću da se graf raširi preko cijelog prozora. Kod nas „sve o tački“ znači: koordinate, koja funkcija/metoda, parametri, da li je presjek/zid/cilj, udaljenost do ciljeva, nivo izvora (RAD / NAŠE-NERECENZIRANO) i link na karticu.
 35. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
 
 ### Faza 7 · Dokumentacija i izdanje
