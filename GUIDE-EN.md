@@ -203,3 +203,53 @@ Not a theorem prover (no formal checking — that would need Lean). Not a comple
 LaTeX renderer (matplotlib mathtext is a large subset; what it cannot parse is
 shown as source, never dropped silently). Not endpoint security. It does not
 know whether RH is true and will not pretend to.
+
+## 16. v2 — quasi-Riemann hypothesis (QRH)
+
+The 2026-10 upgrade adds QRH research (bounds "no zeros for Re s > B") with
+SHARED_LIB as the overseer. The point: **a new arXiv paper → a proposed method →
+reproduction test → skeptic → you confirm.**
+
+**Operator.** At launch you type only a **name** (no password). The name is bound
+to every write, decision and report. The library's voice speaks only to you.
+
+**Missions tab.** Standing questions with a frontier B and a log of
+{state, action, outcome} steps. The first mission: is there a continuous
+transformation between QRH methods, and does extending it move B toward the
+targets (0.87, 5/6, 3/4, 1/2) or away?
+
+**"Čeka tvoju odluku" (awaiting your decision).** The single queue for everything
+needing you: method proposals, skeptic objections, declarations, tier-2 healing.
+Approve / reject are real, journalled decisions.
+
+**Import method (the open door).** A method pack (one JSON: family, source,
+claimed B, reproduction test) enters **only through the gate**. First a
+**deterministic reproduction test** — our pipeline re-derives the paper's number;
+if it does not match, the pack is **refused at the door** and never reaches the
+queue. No model can wave it through. Example packs in
+`research/qrh-2026-10/method-packs/` (Liu, Xu–Sang, 7/8, 11/12).
+
+**Lab — QRH experiments.** `qrh_line`, `qrh_poly` (exact minimal polynomial of
+B*), `qrh_transform` (T = E_XS − E_Liu and its extensions), `qrh_walls`
+(≈ 5/6 wall), `qrh_licence`. Each writes a COMPUTED card (our, unreviewed).
+
+**Main AI + skeptic.** One main model does every role; the **skeptic is always a
+different model** and only attacks (objection · reason · where · severity), with
+no write access. Default: main = Claude (cloud), skeptic = DeepSeek GGUF (local).
+No second model → skeptic "unavailable", deterministic checks only.
+
+**Local GGUF.** Put DeepSeek-R1-0528-Qwen3-8B (Q5_K_M) in `models/` (off git).
+It loads in-process (llama-cpp) only when selected, under limiters (RAM, 3 of 4
+threads, n_ctx 8K, think budget, timeout, one call queued, loop cut-off, the
+"→ ∞" rule). Declare the model's sha256 to make loading deterministic.
+
+**Source tiers.** REFEREED · LEAN · PREPRINT · AI-UNREVIEWED · OUR-UNREVIEWED.
+A preprint may not support an **established** claim.
+
+**Keepers & the three harms.** When a final report appears it is sealed (sha256
+in the chain, read-only, a patrol restores it from the seal if touched). Every
+agent is watched for three harms (to human / agent / file); an infected one is
+**healed**, never silently deleted; tier-2 steps (fission, death) are yours.
+
+**Packages.** `./packaging/build_deb_pip.sh full` (B: sympy+scipy, first) ·
+`… lean` (A) · `… research` (C: + llama-cpp, offline).

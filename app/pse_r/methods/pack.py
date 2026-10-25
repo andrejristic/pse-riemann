@@ -38,6 +38,21 @@ class PackError(Exception):
     pass
 
 
+def default_packs_dir() -> Optional[Path]:
+    """
+    Where the extracted method packs live. In a checkout that is the research
+    folder; in an installed package it is bundled beside the code (the build
+    copies it there). Returns the first that exists, or None.
+    """
+    from .. import config
+    for d in (config.PROJECT_ROOT / "research" / "qrh-2026-10" / "method-packs",
+              config.APP_ROOT / "method-packs",
+              config.APP_DIR / "method-packs"):
+        if d.is_dir():
+            return d
+    return None
+
+
 @dataclass
 class MethodPack:
     name: str

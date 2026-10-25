@@ -348,3 +348,58 @@ Veličina prozora i svih panela se **pamti između pokretanja**.
   podskup, ne sve. Ono što ne umije prikazuje kao izvor, ne guta ćutke.
 - Nije endpoint security. Vidi §10.
 - Ne zna da li je RH tačna, i neće se pretvarati da zna.
+
+## 17. v2 — kvazi-Rimanova hipoteza (QRH)
+
+Nadogradnja iz 2026-10 dodaje istraživanje QRH (granice "nema nula za Re s > B")
+i SHARED_LIB kao nadzornika. Poenta: **novi rad sa arXiva → prijedlog metode →
+test reprodukcije → skeptik → ti potvrđuješ.**
+
+**Operater.** Pri pokretanju upišeš **samo ime** (bez lozinke). Ime se veže za
+svaki upis, odluku i izvještaj. Glas biblioteke govori samo tebi.
+
+**Tab Misije.** Stojeća pitanja sa frontom (najniže B) i dnevnikom koraka
+(stanje → akcija → ishod). Prva misija: postoji li kontinualna transformacija
+između QRH metoda i vodi li njeno proširenje prema ciljevima (0.87, 5/6, 3/4,
+1/2) ili od njih.
+
+**Red „Čeka tvoju odluku".** Jedino mjesto gdje sve čeka tebe: prijedlozi
+metoda, prigovori skeptika, deklaracije, liječenje (stepen 2). *Odobri* /
+*Ne odobri* su prave, zapisane odluke.
+
+**Uvezi metodu (otvorena vrata).** Paket metode (jedan JSON: familija, izvor,
+tvrđeno B, test reprodukcije) ulazi **samo kroz kapiju**. Prvo ide
+**deterministički test reprodukcije** — naš pipeline (`methods/`) ponovo izvede
+broj iz rada; ako se ne poklopi, paket se **odbija na vratima** i ne stiže u red.
+Nijedan model to ne može zaobići. Primjeri paketa: `research/qrh-2026-10/
+method-packs/` (Liu, Xu–Sang, 7/8, 11/12).
+
+**Lab — QRH eksperimenti.** `qrh_line` (V(ℓ) duž prave), `qrh_poly` (egzaktni
+minimalni polinom B*), `qrh_transform` (T = E_XS − E_Liu, produženja), `qrh_walls`
+(ljestvica zidova ≈ 5/6), `qrh_licence` (iteracija κ). Svaki daje COMPUTED
+karticu (NAŠE-NERECENZIRANO).
+
+**Glavni AI + skeptik.** Jedan glavni model radi sve uloge; **skeptik je uvijek
+drugi model** (nezavisnost) i samo napada (prigovor · razlog · gdje ·
+ozbiljnost), bez prava upisa. Izbor u tabu „Čeka tvoju odluku". Podrazumijevano:
+glavni = Claude (oblak), skeptik = DeepSeek GGUF (lokalno). Bez drugog modela →
+skeptik „nedostupan", rade samo determinističke provjere.
+
+**Lokalni GGUF.** DeepSeek-R1-0528-Qwen3-8B (Q5_K_M) stavi u `models/` (van
+gita). Učitava se u procesu (llama-cpp) tek kad se izabere, uz limitere (RAM, 3
+od 4 niti, n_ctx 8K, think-budžet, timeout, jedan poziv u redu, prekid vrtnje,
+pravilo „→ ∞"). Deklariši sha256 modela (red „Čeka tvoju odluku") da učitavanje
+bude determinističko.
+
+**Nivoi izvora.** REFEREED (doi/book) · LEAN (mašinski dokaz) · PREPRINT
+(arxiv/url) · AI-UNREVIEWED (model) · NAŠE-NERECENZIRANO (naš COMPUTED). Preprint
+ne može biti oslonac za **utvrđenu** tvrdnju.
+
+**Čuvari i tri zla.** Čim se pojavi finalni izvještaj, biblioteka ga pečati
+(sha256 u lancu, read-only, patrola vraća iz pečata ako je dirnut). Svaki agent
+se prati na tri zla (čovjeku / agentu / fajlu); zaraženi se **liječi** (ne briše):
+zadržavanje → dijagnoza → liječenje → oporavak → imunitet; stepen 2 (fisija,
+smrt) odlučuješ ti.
+
+**Paketi.** `./packaging/build_deb_pip.sh full` (B: sympy+scipy, prvi) ·
+`… lean` (A: bez scipy) · `… research` (C: + llama-cpp, offline).

@@ -82,6 +82,11 @@ touch "$STAGE/opt/$APP/app/.packaged"   # must sit beside main.py: config looks 
 find "$STAGE/opt/$APP/app" -name '__pycache__' -type d -prune -exec rm -rf {} +
 find "$STAGE/opt/$APP/app" -name '*.pyc' -delete
 cp -r packaging "$STAGE/opt/$APP/app/" 2>/dev/null || true
+# bundle the extracted method packs so the packaged app can run the acceptance
+# reproduction (plan F10: test prihvatanja na pravoj aplikaciji)
+if [ -d ../research/qrh-2026-10/method-packs ]; then
+    cp -r ../research/qrh-2026-10/method-packs "$STAGE/opt/$APP/app/method-packs"
+fi
 for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md; do
     [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"
 done
