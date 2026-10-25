@@ -16,6 +16,8 @@ Oznake: **[RAD]** = iz objavljenog rada, provjereno našim računom · **[NAŠE]
 
 Odbačeno kao nepouzdano: tech-insider "Claude 67.2%" (nedosljedni datumi, nepotvrđeno).
 
+![Slika 1 — traka, zum oko 7/8, Liuova kubna](figures/fig1_overview.png)
+
 ## 1. Sistemi eksponenata — odakle brojevi [RAD]
 
 Granice ne nastaju presjekom samih L-funkcija, nego presjekom **funkcija eksponenata** iz dokaza (niska strana vs visoka strana).
@@ -28,6 +30,8 @@ Granice ne nastaju presjekom samih L-funkcija, nego presjekom **funkcija ekspone
 **Zajednička prava:** svi leže na B(ℓ) = 11/12 − ℓ/4 (ℓ = dužina primova). 11/12 je tačka ℓ=0, 7/8 je ℓ=1/6.
 
 Detalji formula: `AGENT_EXTRACTION.md`. Provjere: `results/check_agent_verification.txt`.
+
+![Slika 2 — šest presjeka eksponenata](figures/fig2_crossings.png)
 
 ## 2. Funkcija koja daje tačke [RAD + NAŠE]
 
@@ -67,6 +71,8 @@ Najniže B koje prava B(ℓ)=11/12−ℓ/4 dozvoljava, kad se uslovi dopustivost
 
 **Zaključak:** nijedna kontinualna deformacija unutar ove geometrije ne prolazi ispod 5/6; uz uslove iz radova ~0.867–0.870. Prema 3/4 ili 1/2 ova familija ne vodi — treba nova geometrija. → `results/walls_ladder.txt`
 
+![Slika 3 — kontinuitet V(ℓ), proširenje transformacije, ljestvica zidova](figures/fig3_continuity_walls.png)
+
 ## 6. Ograde
 - Pretpostavljeni su analitički ulazi OpenAI rada (moment-ocjene, 7/8 kao licenca).
 - Uslovi dopustivosti mogu biti artefakti lema, ne prave granice.
@@ -88,5 +94,6 @@ Djelimičan odgovor (ovaj izvještaj): unutar Liu/Xu–Sang familije — da, kon
 ## Sadržaj foldera
 - `REPORT.md` — ovo · `AGENT_EXTRACTION.md` — izvlačenje formula iz izvora · `SOURCES.md` — linkovi
 - `scripts/` — sve skripte (pokretati iz venv-a sa sympy, numpy, scipy)
-- `results/` — izlazi skripti · `figures/` — fig1–3.html (otvoriti u browseru)
+- `results/` — izlazi skripti · `figures/` — slike kao PNG (`fig1_overview.png`, `fig2_crossings.png`, `fig3_continuity_walls.png`) i interaktivne verzije fig1–3.html (otvoriti u browseru, trebaju internet za Chart.js)
+- `scripts/make_png_figures.py` — ponovo crta sve PNG slike
 - `papers-local/` — izvori radova, **samo lokalno** (nije na GitHubu zbog licenci)

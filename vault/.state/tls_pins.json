@@ -1,9 +1,0 @@
-{
-  "generativelanguage.googleapis.com": {
-    "pins": [
-      "JtP5gI2N+d3v7JPiML4GHt1gPj/e5lWJ1CFS3BYG2Xw="
-    ],
-    "pinned_on": "10.0.0.1/e0:db:d1:3e:40:36",
-    "issuer": "commonName=WR2|countryName=US|organizationName=Google Trust Services"
-  }
-}

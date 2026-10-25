@@ -1,5 +1,7 @@
 # Izvori
 
+Ovo su svi izvori na kojima počiva analiza kvazi-Rimanove hipoteze u ovom folderu. Polazna tačka je OpenAI rad od 30. septembra 2026, koji tvrdi da ζ i sve Dirichletove L-funkcije nemaju nula za Re s > 7/8, i kraći dokaz za 11/12 od 5. oktobra. Na njega se nadovezuju dva preprinta koja granicu pomjeraju malo ispod 7/8: Liu (0.874957) i Xu–Sang (0.8748867). Nijedan od ovih radova još nije prošao recenziju, iako su glavni iskazi formalizovani u Lean-u. Novinski i blog izvori služe samo za kontekst i reakcije matematičara; brojevi i formule su uzeti isključivo iz samih radova.
+
 - OpenAI, *The Quasi-Riemann Hypothesis* (Sept 30, 2026; 7/8) i (Oct 5, 2026; 11/12): https://github.com/openai/math/tree/main/preprints
   - Lean: https://github.com/openai/math/tree/main/lean (QuasiRiemannHypothesis.lean, DirichletSevenEighths.lean, HeckeSevenEighths.lean, SiegelZeros.lean)
 - OpenAI, *Uniform exclusion of Landau–Siegel zeros* (Oct 1, 2026): isti repo

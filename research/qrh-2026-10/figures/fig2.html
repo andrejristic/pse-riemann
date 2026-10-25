@@ -35,7 +35,7 @@ mk('c2',[ln(F(t=>(11+5*t)/12,0,.1),'#2a78d6',{label:'e1=(11+5ϑ)/12'}),ln(F(t=>(
 mk('c3',[ln(F(s=>s-11/16,.8,.95,2),'#2a78d6',{label:'C(s)=s−11/16'}),ln(F(()=>3/16,.8,.95,2),'#eb6834',{label:'3/16'}),{label:'σ0=7/8',data:[{x:.875,y:.1875}],backgroundColor:'#1baf7a',pointRadius:7}],'s','eksponent');
 mk('c4',[ln(Z(D.oai_d,D.oai_E),M,{label:'OpenAI 7/8 (rezerva)'}),ln(Z(D.oai_d,D.liu_E),'#6250d6',{label:'Liu (dodir)'}),ln(Z(D.oai_d,D.liu_Ebad),'#e34948',{borderDash:[5,3],label:'Liu, ℓ+0.002 (probija)'})],'δ','E ×10⁻³',{y:{min:-8,max:3.5},x:{min:.15,max:.65}});
 const kx=x=>(18*x*x-57*x+20)/(6*(36*x*x-78*x+25)),Bx=x=>(18*x+7)/(18*x+9);
-mk('c5',[ln(F(kx,.37,.41),'#6250d6',{label:'κ(ξ)'}),ln(F(x=>2*Bx(x)-1,.37,.41),'#1baf7a',{label:'2B(ξ)−1'}),{label:'ξ*',data:[{x:xi,y:2*Bx(xi)-1}],backgroundColor:'#eb6834',pointRadius:6}],'ξ','κ');
+mk('c5',[ln(F(kx,.375,.3895),'#6250d6',{label:'κ(ξ)'}),ln(F(x=>2*Bx(x)-1,.375,.3895),'#1baf7a',{label:'2B(ξ)−1'}),{label:'ξ*',data:[{x:xi,y:2*Bx(xi)-1}],backgroundColor:'#eb6834',pointRadius:6}],'ξ (pol kod 0.3911 izostavljen)','κ',{y:{min:.735,max:.765}});
 mk('c6',[ln(Z(D.x0d,D.x0),'#eb6834',{label:'faza 0'}),ln(Z(D.x1d,D.x1),'#2a78d6',{label:'faza 1'}),ln(F(()=>-1,.452,.486,2),'#eb6834',{borderWidth:1,borderDash:[4,4],label:'−g0'}),ln(F(()=>-0.1,.452,.486,2),'#2a78d6',{borderWidth:1,borderDash:[4,4],label:'−g1'})],'δ','E ×10⁻⁶',{y:{min:-8,max:.5}});
 </script>
 </body></html>
