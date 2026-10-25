@@ -128,6 +128,20 @@ class Journal:
             rows = self._conn.execute(q, args).fetchall()
         return [self._row(r) for r in rows]
 
+    def with_replay(self, batch: int = 500):
+        """Every event that carries a replay record, oldest first (streamed)."""
+        last = 0
+        while True:
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT * FROM events WHERE id > ? AND payload LIKE '%\"replay\":%'"
+                    " ORDER BY id LIMIT ?", (last, batch)).fetchall()
+            if not rows:
+                return
+            for r in rows:
+                last = r["id"]
+                yield self._row(r)
+
     def count(self, kind: str = "") -> int:
         with self._lock:
             if kind:

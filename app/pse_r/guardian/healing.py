@@ -135,6 +135,10 @@ class Healer:
         """Apply tier-1 treatments; queue tier-2 ones for the operator."""
         case.stage = TREAT
         plan = self._ladder(case.findings)
+        from ..core import replay as RPL
+        self._log(case, "plan", {"replay": RPL.record(
+            "heal.plan", {"findings": [[f.harm, f.sign] for f in case.findings]},
+            {"plan": [[a, A.may_auto(a)] for a, _ in plan]})})
         for action, _ in plan:
             if A.may_auto(action):
                 case.actions.append(action)

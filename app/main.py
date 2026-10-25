@@ -177,6 +177,9 @@ def selftest() -> int:
     good, bad = J.journal().verify_chain()
     check("hash-lanac neprekinut", good, f"prekid na {bad}" if bad else
           f"{J.journal().count()} događaja")
+    from pse_r.core import replay as RPL
+    _rep = RPL.replay_all(notify=False)
+    check("odluke se mogu ponovo izvesti iz dnevnika", _rep.intact, _rep.summary())
 
     print("\nSHARED_LIB:")
     from pse_r.shared_lib import views as V

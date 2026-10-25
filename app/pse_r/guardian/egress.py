@@ -280,7 +280,7 @@ class Egress:
               {"host": host, "path": endpoint, "method": method,
                "status": resp.status, "bytes": len(resp.body),
                "ms": int(resp.elapsed * 1000), "pin": resp.pin_state,
-               "network": self.network},
+               "network": self.network, "replay": _policy_record(host)},
               subject=host, verdict="allow")
         return resp
 
@@ -399,7 +399,8 @@ class Egress:
 
     def _refuse(self, host: str, endpoint: str, privesc: int, msg: str):
         self._observe(host, endpoint, 0, 0, 0.0, privesc, ok=False)
-        J.log(J.EGRESS, "egress", {"host": host, "path": endpoint, "reason": msg},
+        J.log(J.EGRESS, "egress", {"host": host, "path": endpoint, "reason": msg,
+                                   "replay": _policy_record(host)},
               subject=host, verdict="block")
         raise EgressBlocked(msg)
 
@@ -461,6 +462,17 @@ class Egress:
 
 
 _EG: Optional[Egress] = None
+
+
+def _policy_record(host: str) -> dict:
+    """What the allowlist said about this host — replayable (round 3, item 6).
+    The record covers only the policy part of the decision; rate limits,
+    quarantine and pinning are journalled alongside as facts."""
+    from ..core import replay as RPL
+    from ..core.replay_deciders import policy_sha
+    r = policy.rule_for(host)
+    return RPL.record("egress.policy", {"host": host, "policy_sha": policy_sha()},
+                      {"allowed": r is not None, "klass": r.klass if r else ""})
 
 
 def egress() -> Egress:

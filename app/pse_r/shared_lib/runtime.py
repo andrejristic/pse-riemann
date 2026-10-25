@@ -221,8 +221,15 @@ def _on_guard_trip(metric: str, value: float, L: float) -> None:
     A.require_auto("guard.pause")
     A.require_auto("model.unload")
     GGUFBackend.unload()
+    from ..core import replay as RPL
+    from ..llm import limits as LIM
+    st = LIM.pause_state()
+    inp = {"metric": metric, "L": L, "floor": st.get("floor", 0.5),
+           "history": st.get("history") or [value]}
     J.log(J.SYSTEM, "guard", {"event": "diverging", "metric": metric,
-                              "value": value, "L": L}, subject=metric, verdict="paused")
+                              "value": value, "L": L,
+                              "replay": RPL.record("guard.trip", inp, {"trip": True})},
+          subject=metric, verdict="paused")
     if store().open_items(GUARD_KIND):
         return
     store().propose(GUARD_KIND,
@@ -254,8 +261,35 @@ def install_hooks() -> None:
         break
 
 
+REPLAY_INTERVAL_S = 24 * 3600
+
+
+def replay_round(force: bool = False) -> dict:
+    """At most daily, in the background: re-derive every recorded decision
+    (round 3, item 6). A mismatch is journalled and queued by core.replay."""
+    last = store().kv_get("replay_last", 0)
+    if not force and time.time() - last < REPLAY_INTERVAL_S:
+        return {"skipped": True}
+    store().kv_set("replay_last", time.time())
+    import threading
+
+    def work():
+        from ..core import replay as RPL
+        rep = RPL.replay_all()
+        store().kv_set("replay_report", {"at": time.time(), "summary": rep.summary(),
+                                         "intact": rep.intact, "checked": rep.checked})
+        J.log(J.SYSTEM, "replay", {"event": "replayed", "summary": rep.summary(),
+                                   "intact": rep.intact}, subject="journal",
+              verdict="intact" if rep.intact else "violation")
+    t = threading.Thread(target=work, name="replay", daemon=True)
+    t.start()
+    if _SYNC_FOR_TESTS:
+        t.join()
+    return {"skipped": False}
+
+
 def tick(online: Optional[bool] = None) -> dict:
-    out = {"keepers": keepers_round()}
+    out = {"keepers": keepers_round(), "replay": replay_round()}
     if online:
         try:
             out["arxiv"] = arxiv_round()

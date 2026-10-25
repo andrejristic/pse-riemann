@@ -42,11 +42,14 @@ def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str,
         pack = PK.MethodPack.from_file(Path(source))
 
     res = PK.reproduce(pack, check_poly=True)
+    from ..core import replay as RPL
+    from ..core.replay_deciders import reproduce_out
+    rec = RPL.record("door.reproduce", {"pack": pack.to_dict()}, reproduce_out(res))
     if not res["ok"]:
         J.log(METHOD_KIND, proposer,
               {"event": "refused_at_door", "name": pack.name,
                "claimed_B": pack.claimed_B, "computed_B": res["computed_B"],
-               "error": res["error"]}, subject=pack.name, verdict="refused")
+               "error": res["error"], "replay": rec}, subject=pack.name, verdict="refused")
         return {"reproduced": False, "pid": None, "result": res}
 
     pid = store().propose(
@@ -58,7 +61,8 @@ def import_pack(source: Union[str, Path, dict, PK.MethodPack], proposer: str,
         proposer)
     J.log(METHOD_KIND, proposer,
           {"event": "reproduced_queued", "name": pack.name, "pid": pid,
-           "computed_B": res["computed_B"]}, subject=pack.name, verdict="reproduced")
+           "computed_B": res["computed_B"], "replay": rec},
+          subject=pack.name, verdict="reproduced")
 
     # reproduction test → skeptic → operator (plan F9). The skeptic (a different
     # model) attacks the reproduced method; its objections queue alongside. If no

@@ -250,15 +250,18 @@ def observe(metric: str, value: float) -> bool:
     w = watchdogs().get(metric)
     if w is None or not w.observe(float(value)):
         return False
-    trip(metric, float(value), w.L)
+    trip(metric, float(value), w.L, history=list(w.history), floor=w.floor)
     return True
 
 
-def trip(metric: str, value: float, L: float, notify: bool = True) -> None:
+def trip(metric: str, value: float, L: float, notify: bool = True,
+         history: Optional[list] = None, floor: float = 0.5) -> None:
     import time as _t
     with _PAUSE_LOCK:
         already = _PAUSE["on"]
-        _PAUSE.update(on=True, metric=metric, value=value, L=L, at=_t.time())
+        _PAUSE.update(on=True, metric=metric, value=value, L=L, at=_t.time(),
+                      history=list(history) if history else [float(value)],
+                      floor=floor)
     if already or not notify:
         return
     for fn in list(_LISTENERS):
