@@ -136,8 +136,13 @@ def selftest() -> int:
     check("liječenje: zlo → zadržavanje (povratno)",
           _case is not None and _case.stage == HEAL.CONTAIN and _case.quarantined)
 
-    print("\nMisije:")
+    print("\nMisije i QRH sadržaj:")
     from pse_r.shared_lib import missions as MIS
+    from pse_r.vault import qrh_seed as QS
+    QS.seed_qrh()
+    _liu = QS.gate().find("izvor-liu-2610-12234")
+    check("QRH izvori zasijani (Liu CITED/PREPRINT, tema postoji)",
+          _liu is not None and QS.is_seeded())
     mid = MIS.seed_first()
     m = MIS.get(mid)
     check("prva misija postoji (kontinualna transformacija)",
@@ -289,6 +294,9 @@ def main() -> int:
 
     if not seed.is_seeded():
         seed.seed_all()
+    from pse_r.vault import qrh_seed as QS
+    if not QS.is_seeded():
+        QS.seed_qrh()                  # QRH source cards + topic + barriers (fast)
     try:
         IX.index().reindex()
     except Exception as e:                              # noqa: BLE001
