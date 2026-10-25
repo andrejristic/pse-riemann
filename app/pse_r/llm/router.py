@@ -127,6 +127,10 @@ class Router:
                                           bool(raw.get("usage_reported", True)))
             budget().record(route.provider, reply.model, role,
                             reply.in_tokens, out, worst_case=(out != reply.out_tokens))
+            from ..guardian import killswitch as KS
+            KS.observe_cloud_call(route.provider, reply.in_tokens + out,
+                                  budget().price(reply.model, reply.in_tokens, out,
+                                                 route.provider))
         # model output is other-directed work: it moves theta toward "other"
         TH.record("model_output", max(reply.out_tokens, 1) / 500.0,
                   source=f"{route.provider}:{role}")

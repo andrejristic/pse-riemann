@@ -302,9 +302,9 @@ obzira šta sistem kaže.
 |---|---|
 | tekst veći / manji, **odmah** | `Ctrl` `+` / `Ctrl` `-` |
 | vrati tekst na podrazumijevano | `Ctrl` `0` |
-| cijeli interfejs veći/manji | `Ctrl+K` → „Prikaz — veličina interfejsa" (traži restart) |
+| cijeli interfejs veći/manji | `Ctrl+Shift+P` → „Prikaz — veličina interfejsa" (traži restart) |
 | isto iz terminala | `./run.sh --scale 1.25` |
-| resetuj raspored panela | `Ctrl+K` → „Prikaz — resetuj raspored panela" |
+| resetuj raspored panela | `Ctrl+Shift+P` → „Prikaz — resetuj raspored panela" |
 
 Ako ti je poslije ovoga sve **premalo** (panel je 1920×1080 na 235 mm, pa je
 visok DPI opravdan), digni: `./run.sh --scale 1.3`. Vrijednost se pamti.
@@ -322,7 +322,7 @@ Veličina prozora i svih panela se **pamti između pokretanja**.
 
 ## 14. Prečice
 
-`Ctrl+K` paleta komandi · `Ctrl+S` snimi u editoru · `Ctrl+1/2/3` Plan/Lab/Corpus
+`Ctrl+Shift+P` paleta komandi · `Ctrl+K` prekidač za online AI · `Ctrl+S` snimi u editoru · `Ctrl+1/2/3` Plan/Lab/Corpus
 · `Ctrl +/-/0` veličina teksta · `Enter` šalje u chatu, `Shift+Enter` novi red
 
 ---
@@ -332,8 +332,8 @@ Veličina prozora i svih panela se **pamti između pokretanja**.
 | simptom | šta uraditi |
 |---|---|
 | `ModuleNotFoundError: No module named 'PySide6'` | nisi pokrenuo `./setup.sh` |
-| `nema modela` u traci | Ctrl+K → „Provajderi — čarobnjak" |
-| `dnevni limit dostignut` | Ctrl+K → „Budžet", ili radi na besplatnim |
+| `nema modela` u traci | Ctrl+Shift+P → „Provajderi — čarobnjak" |
+| `dnevni limit dostignut` | Ctrl+Shift+P → „Budžet", ili radi na besplatnim |
 | `sertifikat NE odgovara` | **prekini rad na toj mreži.** Ako si siguran da je rotacija, obriši pin — ali sa mreže kojoj vjeruješ |
 | `host u karantinu` | Guardian tab → oslobodi, svjesno |
 | API host vratio HTML | captive portal — prijavi se na mrežu; ključ NIJE poslat |

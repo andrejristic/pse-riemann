@@ -32,6 +32,7 @@ def _logo() -> QLabel:
 
 class TopBar(QFrame):
     open_queue = Signal()
+    toggle_online = Signal()
 
     def __init__(self, font_pt: float, parent=None):
         super().__init__(parent)
@@ -52,6 +53,12 @@ class TopBar(QFrame):
             lb.setTextFormat(Qt.PlainText)
             self.pills[key] = lb
             h.addWidget(lb)
+        self.online_btn = QPushButton("")             # round 3, item 12 (also Ctrl+K)
+        self.online_btn.setToolTip("Prekidač za online AI (Ctrl+K): zatvara put prema "
+                                   "cloud modelima, prekida pozive u toku, sklanja ključeve "
+                                   "iz memorije. Uključuje ga samo operater.")
+        self.online_btn.clicked.connect(self.toggle_online.emit)
+        h.addWidget(self.online_btn)
         self.queue_btn = QPushButton("")
         self.queue_btn.setProperty("kind", "primary")
         self.queue_btn.clicked.connect(self.open_queue.emit)
@@ -114,6 +121,13 @@ class TopBar(QFrame):
                       "limiteri: model se oslobađa kad slobodna memorija padne ispod praga")
         except Exception:                                   # noqa: BLE001
             self._set("limits", "limiteri: ?", "plain")
+        from ..guardian import killswitch as KS
+        off = KS.closed()
+        self.online_btn.setText("ONLINE AI: ISKLJUČEN" if off else "⏻ Online AI: uključen")
+        self.online_btn.setStyleSheet(
+            ("QPushButton { background:#c62828; color:white; font-weight:700; "
+             "border:1px solid #ff8a80; border-radius:11px; padding:3px 12px; }")
+            if off else pill_style("ok", self.font_pt).replace("QLabel", "QPushButton"))
         n = len(store().open_items())
         self.queue_btn.setText(f"Čeka tvoju odluku: {n}")
         self.queue_btn.setProperty("kind", "primary" if n else "")

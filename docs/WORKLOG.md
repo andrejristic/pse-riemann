@@ -16,14 +16,16 @@
 | 2026-10-25 | 9 · provajderi | ✅ | pytest 144/144 | `llm/providers.py`: Claude (sada `claude-opus-5-5`, effort uvijek eksplicitno, server-side fallback „default“ pri odbijanju), OpenAI, Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Fireworks — svi na allowlisti sa svojim ključem; vlastita OpenAI-kompatibilna adresa = prijedlog deklaracije, otvara se tek kad operater potvrdi (kind `endpoints`); GGUF sa bilo kog mjesta po putanji (bez kopiranja, prijem po sha256); `list_models()` nudi prava imena modela sa servera. Uživo NIJE testirano — nema nijednog ključa (živi test = stavka 26) |
 | 2026-10-25 | 10 · strujanje kroz egress | ✅ | pravi socket: prekid → server dobija prekinutu vezu | `egress.stream_post`: iste kapije kao `request` (izdvojeno u `_gate`/`_connect`, TLS pinovi), čita red po red, `gen.close()`/otkaz/„→ ∞“/vrtnja/rok → `shutdown(SHUT_RDWR)`; `kill_streams()` prekida sve tokove odjednom (za stavku 12). Nađeno testom: `http.client` zaboravi socket posle odgovora → prekidač nije sjekao vezu; sada se socket čuva posebno |
 | 2026-10-25 | 11 · naplata | ✅ (UI u stavci 8) | testovi | po provajderu: prekid zaustavlja naplatu ili ne (nepoznato = najgori slučaj); za „ne“: max_tokens ≤ 1500, ulaz ≤ 60 000 znakova; budžet broji max_tokens kad prekinemo provajdera koji naplaćuje sve ili kad nema podatka o potrošnji; cijene Claude modela ažurirane, ostale upisuje operater (bez izmišljanja) |
+| 2026-10-25 | 13 · lokalni model samo prema ovom računaru (P8) | ✅ | testovi + živi DeepSeek (0 lažnih blokada) | `llm/local_only.py`: audit hook (socket.connect/getaddrinfo) za nit koja izvodi GGUF poziv; sve osim loopbacka odbijeno + prijetnja u dnevniku |
+| 2026-10-25 | 12 · prekidač za online AI | ✅ (meni ikone u traci: stavka 19) | pytest 152/152 | `guardian/killswitch.py`: zatvara put u egress-u (kapija), prekida tokove u toku, sklanja ključeve iz memorije (po izboru briše iz secrets.json), prelazi na GGUF ili „bez AI“, preživljava restart, uključuje samo operater; samo-okidanje na „→ ∞“ broja/veličine/troška poziva + stavka sa linkovima za opoziv ključeva. Dugme u gornjoj traci (crveno kad je isključeno) + **Ctrl+K**; paleta komandi prebačena na **Ctrl+Shift+P** (vodiči ažurirani) |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** stavka 8 (početno podešavanje; radi se posle 9–11 jer nudi ono što oni daju), pa 12–13.
+**Sljedeće:** stavka 8 (početno podešavanje).
 
-**Preostalo:** oko 75–122 h.
+**Preostalo:** oko 71–117 h.
 
 ---
 

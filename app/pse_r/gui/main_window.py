@@ -4,7 +4,7 @@ status bar that tells you the four things you need to know at a glance:
 the source/derivation balance, the spend, the network state, and whether the
 Guardian has anything to say.
 
-Ctrl+K is the command palette. On a laptop keyboard on a train, a palette beats
+Ctrl+Shift+P is the command palette (Ctrl+K is the online-AI kill switch). On a laptop keyboard on a train, a palette beats
 a menu bar.
 """
 from __future__ import annotations
@@ -110,6 +110,7 @@ class MainWindow(QMainWindow):
         from .topbar import TopBar
         self.topbar = TopBar(self.font_pt)
         self.topbar.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
+        self.topbar.toggle_online.connect(self.toggle_online_ai)
         central = QWidget()
         cv = QVBoxLayout(central)
         cv.setContentsMargins(0, 0, 0, 0)
@@ -152,7 +153,9 @@ class MainWindow(QMainWindow):
         self._timer.timeout.connect(self.refresh_status)
         self._timer.start(15000)
 
-        QShortcut(QKeySequence("Ctrl+K"), self, self.palette_)
+        # round 3: Ctrl+K is the online-AI kill switch; the palette moved
+        QShortcut(QKeySequence("Ctrl+K"), self, self.toggle_online_ai)
+        QShortcut(QKeySequence("Ctrl+Shift+P"), self, self.palette_)
         # live text zoom — no restart, changes only font size
         for seq in ("Ctrl+=", "Ctrl++"):
             QShortcut(QKeySequence(seq), self, lambda: self.zoom(+0.8))
@@ -167,8 +170,42 @@ class MainWindow(QMainWindow):
                   lambda: self.tabs.setCurrentIndex(2))
 
     # ------------------------------------------------------------------ #
+    def toggle_online_ai(self):
+        """Ctrl+K / top-bar button: close at once; reopen only after a question."""
+        from PySide6.QtWidgets import QMessageBox
+        from ..guardian import killswitch as KS
+        from ..shared_lib import operator as OP
+        if not KS.closed():
+            out = KS.close("operater (dugme / Ctrl+K)", actor=OP.current() or "operator")
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Warning)
+            box.setWindowTitle("Online AI isključen")
+            box.setText(f"Online AI je ISKLJUČEN. Prekinuto poziva u toku: {out['hung_up']}. "
+                        f"Ključevi su sklonjeni iz memorije. Sada radi: {out['fallback']}.")
+            box.setInformativeText("Da li da ključeve i TRAJNO zaboravim (obrišem iz "
+                                   "secrets.json)? Tada ih moraš ponovo upisati.")
+            forget = box.addButton("Zaboravi ključeve", QMessageBox.DestructiveRole)
+            box.addButton("Ne, samo isključi", QMessageBox.AcceptRole)
+            box.exec()
+            if box.clickedButton() is forget:
+                KS.close("operater: trajno zaboravi ključeve", actor=OP.current() or "operator",
+                         forget_keys=True)
+        else:
+            r = QMessageBox.question(
+                self, "Uključiti online AI?",
+                f"Online AI je isključen ({KS.state().get('reason', '')}).\n\n"
+                "Uključiti ponovo? Ključevi se vraćaju iz secrets.json (ako ih nisi "
+                "zaboravio), a glavni AI biraš u Modeli.")
+            if r == QMessageBox.Yes:
+                try:
+                    KS.reopen(OP.current() or "")
+                except Exception as e:                       # noqa: BLE001
+                    QMessageBox.warning(self, "Online AI", str(e))
+        self.refresh_status()
+
     def palette_(self):
         acts = {
+            "Online AI — isključi / uključi (Ctrl+K)": self.toggle_online_ai,
             "Lab — pokreni eksperiment": lambda: self.tabs.setCurrentIndex(1),
             "Corpus — pretraga": lambda: (self.tabs.setCurrentIndex(2),
                                           self.tab_corpus.q.setFocus()),

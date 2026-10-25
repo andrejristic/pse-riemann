@@ -252,6 +252,14 @@ class Egress:
                          f"host '{host}' nije na allowlisti — default deny. "
                          f"Dozvoljeni su samo izvori iz policy.py")
 
+        # 2b. kill switch: when online AI is off, no model host is reachable
+        if "llm" in (rule.tags or ()):
+            from . import killswitch as KS
+            if KS.closed():
+                raise EgressBlocked("online AI je ISKLJUČEN (prekidač) — nijedan poziv "
+                                    "prema cloud modelu ne izlazi. Uključuje ga samo "
+                                    "operater (dugme „Online AI“).")
+
         # 3. quarantine
         if g.is_quarantined(host):
             self._refuse(host, endpoint, 1,

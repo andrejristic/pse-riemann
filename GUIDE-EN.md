@@ -191,17 +191,17 @@ entirely** and applies only its own factor: `ui_scale = 1.0` looks like a plain
 100% desktop whatever the system says.
 
 `Ctrl +` / `Ctrl -` resize text live; `Ctrl 0` resets. For the whole UI:
-`Ctrl+K` → "Prikaz — veličina interfejsa" (restart), or `./run.sh --scale 1.25`.
+`Ctrl+Shift+P` → "Prikaz — veličina interfejsa" (restart), or `./run.sh --scale 1.25`.
 
 Every panel border is draggable (7 px, highlights on hover), horizontally and
 vertically, and window + splitter sizes persist across launches.
-`Ctrl+K` → "Prikaz — resetuj raspored panela" starts over.
+`Ctrl+Shift+P` → "Prikaz — resetuj raspored panela" starts over.
 
 ---
 
 ## 14. Shortcuts
 
-`Ctrl+K` command palette · `Ctrl+S` save · `Ctrl+1/2/3` Plan/Lab/Corpus ·
+`Ctrl+Shift+P` command palette · `Ctrl+K` online-AI kill switch · `Ctrl+S` save · `Ctrl+1/2/3` Plan/Lab/Corpus ·
 `Ctrl +/-/0` text size · `Enter` send, `Shift+Enter` newline.
 
 ---

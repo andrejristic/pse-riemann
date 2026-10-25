@@ -332,6 +332,8 @@ def main() -> int:
     except Exception as e:                              # noqa: BLE001
         print("index warn:", e)
 
+    from pse_r.guardian import killswitch as KS
+    KS.on_startup()                    # a closed switch stays closed across a restart
     if needed():
         Wizard().exec()
 

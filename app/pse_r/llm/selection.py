@@ -129,10 +129,18 @@ def default_skeptic(main: Optional[str]) -> Optional[str]:
 
 
 def get_main() -> Optional[str]:
-    return S.get(MAIN_KEY) or default_main()
+    m = S.get(MAIN_KEY)
+    if m == NO_AI:
+        return None
+    if m and not m.startswith("gguf:"):
+        from ..guardian import killswitch as KS
+        if KS.closed():
+            return None                 # a cloud main is unreachable while the switch is off
+    return m or default_main()
 
 
 NO_SKEPTIC = "none"           # operator chose "no skeptic" (e.g. offline with one GGUF)
+NO_AI = "none"                # main: "bez AI" (first-run choice, or the kill switch)
 
 
 def get_skeptic() -> Optional[str]:
