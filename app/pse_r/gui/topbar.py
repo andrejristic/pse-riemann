@@ -24,7 +24,7 @@ def _logo() -> QLabel:
         if p.exists():
             pm = QPixmap(str(p))
             if not pm.isNull():
-                lb.setPixmap(pm.scaled(28, 28, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                lb.setPixmap(pm.scaled(34, 34, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 break
     lb.setStyleSheet("background:transparent;")
     return lb

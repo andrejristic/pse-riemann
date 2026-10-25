@@ -85,10 +85,15 @@ class MainWindow(QMainWindow):
         self.tab_graph = GraphTab()
         self.tab_guard = GuardianTab()
         from .qrh_tabs import MissionsTab, QueueTab
+        from .overview import OverviewTab
+        self.tab_overview = OverviewTab()
         self.tab_missions = MissionsTab()
         self.tab_queue = QueueTab()
         self.tab_queue.decided.connect(self.tab_missions.refresh)
-        for w, name in ((self.tab_missions, "Misije"), (self.tab_queue, "Čeka tvoju odluku"),
+        self.tab_queue.decided.connect(self.tab_overview.refresh)
+        self.tab_overview.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
+        for w, name in ((self.tab_overview, "Pregled"),
+                        (self.tab_missions, "Misije"), (self.tab_queue, "Čeka tvoju odluku"),
                         (self.tab_plan, "Plan"), (self.tab_lab, "Lab"),
                         (self.tab_corpus, "Corpus"),
                         (self.tab_board, "Tabla"), (self.tab_editor, "Editor"),
@@ -101,7 +106,23 @@ class MainWindow(QMainWindow):
         split.setStretchFactor(0, 7)
         split.setStretchFactor(1, 3)
         split.setSizes([int(1420 * 0.7), int(1420 * 0.3)])
-        self.setCentralWidget(split)
+        # Svarog layout: top bar with status pills above everything
+        from .topbar import TopBar
+        self.topbar = TopBar(self.font_pt)
+        self.topbar.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
+        central = QWidget()
+        cv = QVBoxLayout(central)
+        cv.setContentsMargins(0, 0, 0, 0)
+        cv.setSpacing(0)
+        cv.addWidget(self.topbar)
+        body = QWidget()
+        bv = QVBoxLayout(body)
+        bv.setContentsMargins(10, 10, 10, 6)
+        bv.addWidget(split)
+        cv.addWidget(body, 1)
+        self.setCentralWidget(central)
+        self.chat.expand_toggled.connect(self.toggle_chat_expand)
+        QShortcut(QKeySequence("Escape"), self, self._unexpand_chat)
         self._restore_layout()
 
         # wiring
@@ -113,7 +134,7 @@ class MainWindow(QMainWindow):
                     self.tab_editor.card_written, self.tab_board.card_written):
             sig.connect(self.after_write)
 
-        # status bar
+        # status bar: messages only — the state lives in the top bar's pills
         sb = QStatusBar()
         self.setStatusBar(sb)
         self.lb_theta = QLabel("")
@@ -122,13 +143,11 @@ class MainWindow(QMainWindow):
         self.lb_guard = QLabel("")
         self.lb_vault = QLabel("")
         self.lb_ai = QLabel("")
-        from ..shared_lib import operator as OP
-        self.lb_op = QLabel(f"operater: {OP.current() or '—'}")
-        for lb in (self.lb_op, self.lb_theta, self.lb_vault, self.lb_budget, self.lb_net,
-                   self.lb_guard, self.lb_ai):
-            lb.setStyleSheet("padding:0 10px;")
-            sb.addWidget(lb)
+        self.lb_op = self.topbar.pills["op"]             # kept for callers/tests
+        # (legacy labels are still updated by refresh_status but not shown: the
+        # top bar replaced them; network/model state is in its pills)
         self.refresh_status()
+        self._start_runtime()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.refresh_status)
         self._timer.start(15000)
@@ -287,7 +306,75 @@ class MainWindow(QMainWindow):
         self.tab_plan.refresh()
         self.refresh_status()
 
+    # ---- SHARED_LIB heartbeat + connectivity (review fix 8) -------------- #
+    def _start_runtime(self):
+        from ..shared_lib import runtime as RT
+        from ..methods import door as DOOR
+        RT.install_hooks()
+        DOOR.install_hooks()
+        self._online = None
+        self._rt_timer = QTimer(self)
+        self._rt_timer.timeout.connect(self._tick)
+        self._rt_timer.start(60_000)
+        self._net_timer = QTimer(self)
+        self._net_timer.timeout.connect(self._check_net)
+        self._net_timer.start(10 * 60_000)
+        QTimer.singleShot(1500, self._tick)
+        QTimer.singleShot(3000, self._check_net)
+
+    def _tick(self):
+        from ..shared_lib import runtime as RT
+        try:
+            out = RT.tick(online=bool(self._online))
+            if out["keepers"]["tampered"]:
+                self.statusBar().showMessage(
+                    "⚠ čuvar: izmijenjen zapečaćen izvještaj — vraćen iz pečata", 15000)
+        except Exception as e:                          # noqa: BLE001
+            self.statusBar().showMessage(f"SHARED_LIB otkucaj: {e}", 8000)
+        self.tab_overview.refresh()
+        self.topbar.refresh()
+
+    def _check_net(self):
+        from PySide6.QtCore import QThread, QObject, Signal as _Sig
+
+        class _W(QObject):
+            done = _Sig(bool)
+
+            def run(self):
+                from ..llm import selection as SEL
+                self.done.emit(SEL.main_reachable())
+        if getattr(self, "_net_thread", None) is not None:
+            return
+        self._net_thread = QThread()
+        self._net_worker = _W()
+        self._net_worker.moveToThread(self._net_thread)
+        self._net_thread.started.connect(self._net_worker.run)
+        self._net_worker.done.connect(self._net_result)
+        self._net_thread.start()
+
+    def _net_result(self, online: bool):
+        self._net_thread.quit()
+        self._net_thread.wait(2000)
+        self._net_thread = None
+        changed = online != self._online
+        self._online = online
+        if changed:
+            from .offline import handle_connectivity
+            handle_connectivity(self, online)
+            self.topbar.refresh()
+
+    def toggle_chat_expand(self):
+        exp = not self.tabs.isHidden()
+        self.tabs.setVisible(not exp)
+        self.chat.b_expand.setText("⤡" if exp else "⤢")
+
+    def _unexpand_chat(self):
+        if self.tabs.isHidden():
+            self.toggle_chat_expand()
+
     def refresh_status(self):
+        if hasattr(self, "topbar"):
+            self.topbar.refresh()
         h = TH.meter().health()
         colour = {"healthy": "#7bc67b", "enmeshment": "#ffb74d",
                   "withdrawal": "#ffb74d", "schizoid": "#e07070"}[h["status"]]

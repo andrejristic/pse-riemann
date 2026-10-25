@@ -161,7 +161,7 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
                 in_table = True
             tag = "td"
             out_lines.append("<tr>" + "".join(
-                f'<{tag} style="border:1px solid #444">{c}</{tag}>'
+                f'<{tag} style="border:1px solid #262d3a">{c}</{tag}>'
                 for c in cells) + "</tr>")
             continue
         if in_table:
@@ -200,10 +200,18 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
         out_lines.append("</table>")
 
     html = "<br>\n".join(out_lines)
+    # no line breaks around block elements (lists, headings, tables, rules):
+    # a <br> there renders as an empty line and blows lists apart
+    _blk = r"(?:ul|/ul|li|div|/div|table|/table|tr|hr)"
+    html = re.sub(r"<br>\n(?=<" + _blk + r"\b)", "\n", html)
+    html = re.sub(r"(</?" + _blk + r"\b[^>]*>)<br>\n", r"\1\n", html)
+    html = re.sub(r"(</li>)<br>\n", r"\1\n", html)
+    html = re.sub(r"(?:<br>\s*){2,}", "<br>\n", html)
     html = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", html)
     html = re.sub(r"(?<!\w)\*([^*\n]+)\*(?!\w)", r"<i>\1</i>", html)
+    html = re.sub(r"(?<![\w/])_([^_\n]+)_(?![\w/])", r"<i>\1</i>", html)
     html = re.sub(r"`([^`\n]+)`",
-                  r'<code style="background:#262626;padding:1px 3px;'
+                  r'<code style="background:#12151b;padding:1px 3px;'
                   r'border-radius:3px">\1</code>', html)
     for k, v in placeholders.items():
         html = html.replace(k, v)
@@ -221,7 +229,7 @@ class MarkdownView(QTextBrowser):
         self.setOpenExternalLinks(False)
         self.on_card = on_card
         self.anchorClicked.connect(self._clicked)
-        self.setStyleSheet("QTextBrowser{background:#151515;border:none;}")
+        self.setStyleSheet("QTextBrowser{background:#1a1f2b;border:none;}")
         self._md = ""
 
     def set_markdown(self, md: str) -> None:
@@ -229,6 +237,7 @@ class MarkdownView(QTextBrowser):
         doc = self.document()
         doc.clear()
         self.setHtml(markdown_to_html(self._md, doc))
+        self.verticalScrollBar().setValue(0)     # open at the top, not the bottom
 
     def rerender(self) -> None:
         """Re-lay-out at the current base size — used by the live zoom."""

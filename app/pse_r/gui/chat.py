@@ -19,6 +19,9 @@ want to know exactly what was in front of it when it answered.
 """
 from __future__ import annotations
 
+import json
+import re
+
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtGui import QKeySequence, QShortcut, QTextOption
 from PySide6.QtWidgets import (QComboBox, QFrame, QHBoxLayout, QLabel,
@@ -52,6 +55,59 @@ class _Worker(QObject):
             self.done.emit(r, "")
         except (NoProvider, BudgetExceeded) as e:
             self.done.emit(None, str(e))
+        except Exception as e:                          # noqa: BLE001
+            self.done.emit(None, f"{type(e).__name__}: {e}")
+
+
+FACTS = "SHARED_LIB (činjenice)"
+
+
+class _VoiceWorker(QObject):
+    """SHARED_LIB's voice: words → ONE read-only SELECT → grounded, cited answer."""
+    done = Signal(object, str)
+
+    def __init__(self, question: str):
+        super().__init__()
+        self.question = question
+
+    def run(self):
+        from ..shared_lib import views as V
+        from ..shared_lib import voice as VO
+        q = self.question.strip()
+        try:
+            if q.lower().startswith(("select", "with")):
+                res = V.query(q)                        # operator typed SQL directly
+                self.done.emit({"sql": res["sql"], "columns": res["columns"],
+                                "rows": res["rows"], "answer": "", "unknown":
+                                not res["rows"], "warnings": []}, "")
+                return
+
+            def translate(question, schema):
+                from ..llm.router import router
+                cols = "\n".join(f"- {t}({', '.join(c)})" for t, c in schema.items())
+                prompt = ("Prevedi pitanje u JEDAN SQLite SELECT nad ovim pogledima. "
+                          "Vrati samo SQL, bez objašnjenja.\n" + cols +
+                          "\n\nPitanje: " + question)
+                txt = router().call(B.MATH, [B.Msg("user", prompt)], max_tokens=600).text
+                m = re.search(r"```(?:sql)?\s*(.*?)```", txt, re.S)
+                return (m.group(1) if m else txt).strip()
+
+            def compose(question, ctx):
+                from ..llm.router import router
+                prompt = ("Odgovori drugarski ali hladno, SAMO iz ovih redova; svaku "
+                          "tvrdnju veži za [id] iz citata; ne dodaj brojeve kojih "
+                          "nema u redovima.\n" + json.dumps(ctx, ensure_ascii=False,
+                                                            default=str)[:12000] +
+                          "\n\nPitanje: " + question)
+                return router().call(B.CHAT, [B.Msg("user", prompt)], max_tokens=900).text
+
+            try:
+                ans = VO.ask(q, translate=translate, compose=compose)
+            except (NoProvider, BudgetExceeded):
+                ans = VO.ask(q)                         # no model: canned questions only
+            self.done.emit({"sql": ans.sql, "columns": ans.columns, "rows": ans.rows,
+                            "answer": ans.answer, "unknown": ans.unknown,
+                            "warnings": ans.warnings, "citations": ans.citations}, "")
         except Exception as e:                          # noqa: BLE001
             self.done.emit(None, f"{type(e).__name__}: {e}")
 
@@ -173,6 +229,7 @@ class ProposalWidget(QFrame):
 
 # --------------------------------------------------------------------------- #
 class ChatPanel(QWidget):
+    expand_toggled = Signal()
     card_written = Signal()
     open_card = Signal(str)
 
@@ -189,10 +246,14 @@ class ChatPanel(QWidget):
         head = QHBoxLayout()
         head.addWidget(QLabel("<b>Chat</b>"))
         self.role_box = QComboBox()
-        self.role_box.addItems([B.MATH, B.CHAT, B.SUMMARIZE])
-        self.role_box.setToolTip("uloga → koji model odgovara")
+        self.role_box.addItems([FACTS, B.MATH, B.CHAT, B.SUMMARIZE])
+        self.role_box.setToolTip("SHARED_LIB (činjenice): odgovor samo iz biblioteke, "
+                                 "sa SQL-om i citatima · ostalo: razgovor sa glavnim AI")
         head.addWidget(self.role_box)
         head.addStretch(1)
+        self.b_expand = button("⤢", lambda: self.expand_toggled.emit())
+        self.b_expand.setToolTip("raširi chat preko cijelog prozora (Esc vraća)")
+        head.addWidget(self.b_expand)
         self.cost = small("")
         head.addWidget(self.cost)
         root.addLayout(head)
@@ -311,6 +372,21 @@ class ChatPanel(QWidget):
 
         role = self.role_box.currentText()
         self._thread = QThread()
+        if role == FACTS:
+            self._worker = _VoiceWorker(text)
+            self._worker.moveToThread(self._thread)
+            self._thread.started.connect(self._worker.run)
+            self._worker.done.connect(self._facts_reply)
+            self._thread.start()
+            return
+        from ..shared_lib import runtime as RT
+        if RT.is_contained("chat"):
+            self._thread = None
+            self.b_send.setEnabled(True)
+            self.state.setText("")
+            self._say("error", "Chat agent je u karantinu (tri zla) — pogledaj "
+                               "„Čeka tvoju odluku“ i pusti ga kad pregledaš.")
+            return
         self._worker = _Worker(role, list(self.history[-12:]),
                                self._context_text())
         self._worker.moveToThread(self._thread)
@@ -328,6 +404,13 @@ class ChatPanel(QWidget):
         if err:
             self._say("error", err)
             return
+        from ..shared_lib import runtime as RT
+        findings = RT.check_output("chat", reply.text,
+                                   data_in_context=self._context_text())
+        if findings:
+            self._say("error", "⚠ Odgovor nosi znak zla (" +
+                      ", ".join(f.sign for f in findings) + ") — agent je zadržan; "
+                      "odluka je u „Čeka tvoju odluku“.")
         props = psel.extract_card_proposals(reply.text)
         prose = psel.strip_card_blocks(reply.text) or "_(samo prijedlog kartice)_"
         self.history.append(B.Msg("assistant", reply.text))
@@ -336,3 +419,36 @@ class ChatPanel(QWidget):
         self.cost.setText(f"{reply.provider}/{reply.model.split('-')[-1]} · "
                           f"{reply.in_tokens}→{reply.out_tokens} tok · "
                           f"{budget().status_line()}")
+
+    # ------------------------------------------------------------------ #
+    def _facts_reply(self, ans, err):
+        if self._thread:
+            self._thread.quit()
+            self._thread.wait(3000)
+            self._thread = None
+        self.b_send.setEnabled(True)
+        self.state.setText("")
+        if err:
+            self._say("error", err)
+            return
+        md = []
+        if ans.get("unknown"):
+            md.append("**Nema u biblioteci (UNKNOWN).**")
+        elif ans.get("answer"):
+            md.append(ans["answer"])
+        md += ["", "SQL (jedino što je izvršeno):", "```sql", ans["sql"], "```"]
+        cols, rows = ans.get("columns", []), ans.get("rows", [])
+        if cols and rows:
+            md.append("| " + " | ".join(map(str, cols)) + " |")
+            md.append("|" + "---|" * len(cols))
+            for r in rows[:15]:
+                md.append("| " + " | ".join(str(v)[:60].replace("|", "/") for v in r) + " |")
+            if len(rows) > 15:
+                md.append(f"_… još {len(rows) - 15} redova_")
+        for w in ans.get("warnings", []):
+            md.append(f"> ⚠ {w}")
+        from ..shared_lib import runtime as RT
+        RT.check_output("voice", ans.get("answer", ""), final=True,
+                        sources=[c for c in ans.get("citations", []) if ":" in str(c)])
+        self._say("assistant", "\n".join(md))
+

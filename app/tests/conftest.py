@@ -7,6 +7,8 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="pse-riemann-test-"))
 os.environ["PSE_RIEMANN_VAULT"] = str(_TMP / "vault")
 os.environ["XDG_CONFIG_HOME"] = str(_TMP / "config")
+# never let a test see (or load) the operator's real GGUF models
+os.environ["PSE_RIEMANN_MODELS"] = str(_TMP / "models")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 

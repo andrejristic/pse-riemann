@@ -74,23 +74,24 @@ class Router:
         return [p for p, cls in B.BACKENDS.items() if s.has(cls.key_name)]
 
     def resolve(self, role: str, avoid: str = "") -> Route:
-        forced = self.overrides.get(role)
-        chain = [forced] if forced else list(ROUTES.get(role, ROUTES[B.CHAT]))
-        if avoid:
-            chain = [p for p in chain if p != avoid] + [p for p in chain if p == avoid]
-        have = self.available()
-        for p in chain:
-            if p in have:
-                cls = B.BACKENDS[p]
-                return Route(p, self.models.get(p, cls.default_model), role)
-        if not have:
+        """
+        Plan v2 (decided 2026-10-25): ONE main AI does every role; the skeptic
+        role goes to the skeptic, which is always a DIFFERENT model. The old
+        per-role provider table (ROUTES) is no longer consulted. `avoid` is kept
+        for API compatibility and ignored: independence comes from the skeptic.
+        """
+        from . import selection as SEL
+        mid = SEL.get_skeptic() if role == B.SKEPTIC else SEL.get_main()
+        if not mid:
+            if role == B.SKEPTIC:
+                raise NoProvider("skeptik nedostupan — samo determinističke provjere")
             raise NoProvider(
-                "nijedan provajder nije podešen — otvori čarobnjaka (Ctrl+K → "
-                "'provajderi') i unesi bar jedan ključ. Groq, Gemini i Mistral "
-                "imaju besplatan tier.")
-        raise NoProvider(
-            f"za ulogu '{role}' nema podesnog provajdera. Podešeni su: "
-            f"{', '.join(have)}. Za sliku (transkripcija table) treba Claude ili Gemini.")
+                "nijedan model nije izabran ni dostupan — unesi ključ u čarobnjaku "
+                "ili stavi GGUF u folder models/, pa izaberi glavni AI")
+        if mid.startswith("gguf:"):
+            return Route("gguf", mid, role)
+        cls = B.BACKENDS[mid]
+        return Route(mid, self.models.get(mid, cls.default_model), role)
 
     # ------------------------------------------------------------------ #
     def call(self, role: str, messages: list[B.Msg], *, system_extra: str = "",
@@ -102,16 +103,24 @@ class Router:
         """
         route = self.resolve(role, avoid=avoid)
         tune = ROLE_TUNING.get(role, ROLE_TUNING[B.CHAT])
-        bk = B.make(route.provider, route.model)
-        budget().check(route.provider)
+        if route.provider == "gguf":
+            from . import selection as SEL
+            if role == B.VISION:
+                raise NoProvider("lokalni GGUF ne čita slike — za tablu izaberi "
+                                 "Claude ili Gemini kao glavni AI")
+            bk = SEL.backend_for(route.model)
+        else:
+            bk = B.make(route.provider, route.model)
+            budget().check(route.provider)
 
         system = psel.system_prompt(role, system_extra)
         reply = bk.chat(messages, system=system,
                         max_tokens=max_tokens or tune["max_tokens"],
                         effort=tune["effort"])
 
-        budget().record(route.provider, reply.model, role,
-                        reply.in_tokens, reply.out_tokens)
+        if route.provider != "gguf":                  # a local model costs nothing
+            budget().record(route.provider, reply.model, role,
+                            reply.in_tokens, reply.out_tokens)
         # model output is other-directed work: it moves theta toward "other"
         TH.record("model_output", max(reply.out_tokens, 1) / 500.0,
                   source=f"{route.provider}:{role}")
@@ -135,7 +144,7 @@ class Router:
         never silently mark good cards as suspect.
         """
         import json as _json
-        avoid = self._last_provider.get(B.MATH, "")
+        avoid = ""                      # v2: the skeptic role IS the other model
         prompt = f"TVRDNJA:\n{claim}\n"
         if context:
             prompt += f"\nKONTEKST:\n{context[:4000]}\n"

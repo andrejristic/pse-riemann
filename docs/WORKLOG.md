@@ -1,21 +1,31 @@
 # WORKLOG — PSE Riemann v2
 
-**STATUS: RADI** (popravke 1–3 i 6 gotove; u toku 4, 5, 7, 8, 9 — procjena preostalog ~9–12 h) — nadzirana provjera (2026-10-25 ~11:50) potvrdila 75/75 testova, selftest i test prihvatanja; push je SADA URAĐEN (problem 1 riješen). Pronađena odstupanja od plana se popravljaju (vidi „Nadzirana provjera“ ispod). Merge u `main` i dalje čeka Andrejevo odobrenje.
+**STATUS: RADI** (popravke 1–3, 5–8 gotove; ostaje 4/9: ponovni build i provjera paketa — ~1–2 h) — nadzirana provjera (2026-10-25 ~11:50) potvrdila 75/75 testova, selftest i test prihvatanja; push je SADA URAĐEN (problem 1 riješen). Pronađena odstupanja od plana se popravljaju (vidi „Nadzirana provjera“ ispod). Merge u `main` i dalje čeka Andrejevo odobrenje.
 
 ### Nadzirana provjera — nalazi (popravlja se redom)
 1. ✅ **POPRAVLJENO** (92/92). **Vrata za metode nisu otvorena za stvarno nove radove:** paket bira jednu od 3 ugrađene familije (`liu`/`xs`/`line`) umjesto da nosi E kao podatak. → paket mora nositi sistem eksponenata (E, R, zidovi, prava, licenca) kao siguran izraz; ugrađene familije ostaju samo kao kontrola.
 2. ✅ **POPRAVLJENO.** Xu–Sang paket: `claimed_B` je naš optimum, ne objavljeni broj 0.8748867. → claimed = broj iz rada; naš optimum se bilježi zasebno.
 3. ✅ **POPRAVLJENO.** `exact_poly` se ne provjerava. → kapija provjerava da je computed_B korijen polinoma.
 4. Paket C nije dodatak nego treća puna verzija; sva tri se zovu `pse-riemann`. → C = `pse-riemann-research`, zavisi od `pse-riemann`, nosi samo dodatke.
-5. Svarog izgled GUI-ja nije verifikovan. → provjeriti/uraditi QSS temu, gornju traku, Pregled.
-7. **Rad bez interneta nije bio napravljen** (aplikacija je trebala pitati koji GGUF). → logika urađena i testirana (`selection.offline_options/go_offline/restore_online`); GUI dijalog u toku.
-8. **Funkcije postoje kao biblioteka + testovi, ali NISU povezane u aplikaciji koja radi:** glas SHARED_LIB-a (chat ga ne koristi), čuvari (niko ne poziva seal/patrol), liječenje i tri zla (samo selftest), arXiv praćenje (nikad se ne pokreće; izvlačenje glavnim AI-jem ne postoji). → povezivanje u toku.
+5. ✅ **POPRAVLJENO** (snimci u `docs/screenshots/`). Svarog izgled GUI-ja nije verifikovan. → provjeriti/uraditi QSS temu, gornju traku, Pregled.
+7. ✅ **POPRAVLJENO.** **Rad bez interneta nije bio napravljen** (aplikacija je trebala pitati koji GGUF). → logika urađena i testirana (`selection.offline_options/go_offline/restore_online`); GUI dijalog u toku.
+8. ✅ **POPRAVLJENO** (102/102). **Funkcije postoje kao biblioteka + testovi, ali NISU povezane u aplikaciji koja radi:** glas SHARED_LIB-a (chat ga ne koristi), čuvari (niko ne poziva seal/patrol), liječenje i tri zla (samo selftest), arXiv praćenje (nikad se ne pokreće; izvlačenje glavnim AI-jem ne postoji). → povezivanje u toku.
 9. Paket B (full) nije imao llama-cpp (lokalni DeepSeek ne bi radio iz paketa); u instaliranoj verziji modeli su traženi u `/opt/.../models` (nepisivo). → popravljeno u skripti/konfiguraciji, build u toku.
 6. ✅ **POPRAVLJENO.** Lokalni sha256 = objavljeni (huggingface.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF, `044519a2…1140e`, 5 851 113 984 B). Prijem po §8: deklaracija → inače objavljeni hash → inače odbijeno. (Bilo: sha256 DeepSeek-a nije upoređen sa objavljenim (master §8). → uporediti sa HuggingFace.) Za druge GGUF-ove (npr. Qwen2.5-7B kao offline skeptik) treba dugme „Deklariši“ u GUI-ju → ide uz popravku 5.
 
 **Usput nađeno i popravljeno:** (a) `install_hooks()` je registrovao istu funkciju više puta → jedna odluka operatera se izvršavala više puta (dupli koraci misije/kartice). Sada idempotentno + test. (b) Tekst stanja misije je navodio lošiji B kao front kad nova metoda ispadne „dalje“ (sam broj fronta je bio ispravan). (c) Istraživački sweep za w=0.2 je bio grub: konvergirano 0.8715502525 (ne 0.87155365) — ispravljeno u REPORT-u.
 
 **Nova vrata — kako rade:** paket nosi `system` (definicije, grane E sa opsegom δ, `x_grid`, prava, licenca, zidovi) kao tekst; `methods/expr.py` dozvoljava samo aritmetiku (AST bijela lista prije kompajliranja); `methods/system.py` sam traži B* uz zidove i fiksnu tačku licence. Liu i Xu–Sang kao podatak se slažu sa ugrađenim kodom na 1e-14; hipotetički nov sistem (w=0.2) ulazi bez ijedne linije koda.
+
+**Povezivanje (nalaz 8) — šta sada radi u aplikaciji:**
+- `shared_lib/runtime.py` — otkucaj SHARED_LIB-a svakih 60 s: novi izvještaji u `vault/reports` se odmah pečate; čuvari dodijeljeni srazmjerno resursima patroliraju; slomljen pečat → vraćanje iz pečata + prijetnja u dnevnik + slučaj kod Fizičara.
+- Svaki odgovor modela u chatu prolazi kroz tri zla; zaraženi agent ide u karantin i ostaje tamo dok operater u redu ne odobri „Pusti agenta“ (tier-2 liječenje takođe ide u red).
+- Chat ima mod **„SHARED_LIB (činjenice)“** (podrazumijevani): riječi → jedan read-only SELECT → odgovor sa citatima, uz prikazan SQL i redove; bez modela radi za poznata pitanja ili direktan SQL.
+- **Router**: sve uloge idu glavnom AI-ju, uloga skeptika skeptiku (stara tabela po provajderima se više ne koristi); GGUF podržan kroz router, bez troška u budžetu; slika (tabla) traži Claude/Gemini.
+- **arXiv**: jednom dnevno (ako ima mreže) i dugmetom „Provjeri arXiv sada“ → novi QRH rad postaje stavka „izvući metodu?“ → odobreno → glavni AI izvlači paket (`methods/extract.py`, u pozadini) → vrata (test reprodukcije) → red → potvrda → misija.
+- **Bez interneta**: provjera dostupnosti glavnog kroz Guardian egress svakih 10 min → dijalog pita koji GGUF (2+ → glavni + skeptik, 1 → skeptik nedostupan, 0 → AI miruje); po povratku mreže pita da li vratiti cloud.
+- GUI: tema i gornja traka po Svarogu, tab **Pregled** (sve brojke su SELECT-i), širenje chata (⤢ / Esc), „Deklariši GGUF…“, „Izvezi izvještaj misije“ (zapečaćen). Popravljen Markdown prikaz (razmaci oko lista, `_kurziv_`).
+- Testovi: izolacija modela (`PSE_RIEMANN_MODELS`) — ranije je jedan test mogao učitati pravi DeepSeek (5.8 GB).
 
 ---
 

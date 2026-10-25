@@ -16,6 +16,8 @@ The visual styling is the shared dark QSS; nothing here needs its own look.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QLabel,
                                QMessageBox, QVBoxLayout, QWidget)
@@ -38,12 +40,38 @@ class MissionsTab(QWidget):
         top = QHBoxLayout()
         top.addWidget(QLabel("<b>Misije</b>"))
         top.addStretch(1)
+        top.addWidget(button("Provjeri arXiv sada", self._arxiv_now))
+        top.addWidget(button("Izvezi izvještaj misije", self._export_report))
         top.addWidget(button("Osvježi", self.refresh))
         v.addLayout(top)
         v.addWidget(hline())
         self.view = MarkdownView()
         v.addWidget(self.view, 1)
         self.refresh()
+
+    def _arxiv_now(self):
+        from ..shared_lib import runtime as RT
+        r = RT.arxiv_round(force=True)
+        if r.get("found", 0) == 0 and not r.get("new"):
+            QMessageBox.information(self, "arXiv", "Nema novih QRH radova (ili nema mreže).")
+        else:
+            QMessageBox.information(
+                self, "arXiv",
+                f"Pronađeno {r.get('found', 0)}, novih {len(r.get('new', []))}. Novi radovi "
+                f"čekaju u „Čeka tvoju odluku“: odobri izvlačenje metode.")
+
+    def _export_report(self):
+        from ..shared_lib import runtime as RT
+        if not OP.current():
+            QMessageBox.warning(self, "Operater", "Prvo se prijavi kao operater.")
+            return
+        p = RT.write_final_report(f"misije-{MIS.FIRST_ID}", self._markdown())
+        QMessageBox.information(self, "Izvještaj",
+                                f"Zapisan i zapečaćen:\n{p}\n\nČuvari ga od sada čuvaju.")
+
+    def _markdown(self) -> str:
+        self.refresh()
+        return self._last_md
 
     def refresh(self):
         md = ["# Misije", ""]
@@ -62,7 +90,8 @@ class MissionsTab(QWidget):
             for s in steps:
                 md.append(f"- {s['action']} → **{s['outcome']}**")
             md.append("")
-        self.view.set_markdown("\n".join(md))
+        self._last_md = "\n".join(md)
+        self.view.set_markdown(self._last_md)
 
 
 class QueueTab(QWidget):
@@ -83,6 +112,7 @@ class QueueTab(QWidget):
         row.addWidget(self.cb_skeptic)
         row.addWidget(button("Primijeni", self._apply_models))
         row.addStretch(1)
+        row.addWidget(button("Deklariši GGUF…", self._declare_gguf))
         row.addWidget(button("Uvezi metodu…", self._import_method, primary=True))
         v.addLayout(row)
         self.lb_models = small("")
@@ -95,8 +125,8 @@ class QueueTab(QWidget):
         rowb = QHBoxLayout()
         self.cb_item = QComboBox()
         rowb.addWidget(self.cb_item, 1)
-        rowb.addWidget(button("Odobri", lambda: self._decide(True), primary=True))
-        rowb.addWidget(button("Ne odobri", lambda: self._decide(False)))
+        rowb.addWidget(button("Odobri", lambda: self._decide(True), kind="go"))
+        rowb.addWidget(button("Ne odobri", lambda: self._decide(False), kind="no"))
         v.addLayout(rowb)
 
         self._load_models()
@@ -128,6 +158,28 @@ class QueueTab(QWidget):
         except ValueError as e:
             QMessageBox.warning(self, "Izbor modela", str(e))
         self._show_models()
+
+    # -- declare a local model (master §8: the operator confirms the hash) -- #
+    def _declare_gguf(self):
+        from .. import config
+        from ..llm import gguf as G
+        path, _ = QFileDialog.getOpenFileName(self, "Deklariši lokalni model",
+                                              str(config.DIR_MODELS), "GGUF (*.gguf)")
+        if not path:
+            return
+        pub = G.PUBLISHED.get(Path(path).name)
+        self.lb_models.setText("računam sha256…")
+        sha = G.sha256_of(Path(path))
+        note = ("odgovara objavljenom hash-u (" + pub["source"] + ")"
+                if pub and pub["sha256"] == sha else
+                "NEMA objavljenog hash-a za ovaj fajl — deklarišeš ga na svoju odgovornost")
+        pid = G.propose_declaration(path, sha, note)
+        QMessageBox.information(
+            self, "Deklaracija modela",
+            f"sha256: {sha}\n{note}\n\n" +
+            ("Prijedlog je u redu — potvrdi ga dolje (Odobri)." if pid else
+             "Prijedlog za ovaj fajl već čeka u redu."))
+        self.refresh()
 
     # -- import a method pack through the door -------------------------- #
     def _import_method(self):
@@ -167,8 +219,20 @@ class QueueTab(QWidget):
             md.append("_Red je prazan._")
         for it in items:
             self.cb_item.addItem(f"[{it['kind']}] {it['title']}", it["id"])
-            md.append(f"- **[{it['kind']}]** {it['title']}  \n"
-                      f"  _predložio: {it['proposer']}_")
+            md.append(f"- **[{it['kind']}]** {it['title']} — _predložio: {it['proposer']}_")
+            pl = it.get("payload") or {}
+            res = pl.get("result") or {}
+            if res.get("computed_B") is not None:
+                md.append(f"  - reprodukcija: naš B*={res['computed_B']:.12f}, rad "
+                          f"{res.get('claimed_B')}, razlika {res.get('error', 0):.1e}; "
+                          f"polinom: {res.get('poly_ok')}; narušeni zidovi: "
+                          f"{res.get('broken_walls') or 'nijedan'}")
+            if pl.get("harms"):
+                md.append(f"  - znaci zla: {', '.join(pl['harms'])}")
+            if pl.get("evidence"):
+                md.append(f"  - dokaz: {pl['evidence'][0][:160]}")
+            if pl.get("abstract"):
+                md.append(f"  - apstrakt: {pl['abstract'][:240]}…")
         self.view.set_markdown("\n".join(md))
         self._show_models()
 
