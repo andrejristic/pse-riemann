@@ -19,7 +19,7 @@
 
 **Sljedeće:** stavka 7 (ograničena retencija + sidra arhive, S8 + P3).
 
-**Preostalo:** oko 80–122 h.
+**Preostalo:** oko 86–135 h (plan proširen: stavka 36 + polja uz 32).
 
 ---
 

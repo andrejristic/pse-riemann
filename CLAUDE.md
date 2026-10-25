@@ -2,6 +2,8 @@
 
 Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Claude treba znati o projektu stoji **u ovom repou** (ovaj fajl, `docs/PLAN.md`, `docs/WORKLOG.md`, `docs/SLJEDECA-VERZIJA.md`), a ne u memoriji van repoa.
 
+**Plan u Wordu:** `PSE Riemann — PLAN.docx` u korijenu repoa — Andrej plan kontroliše odatle. Izvor istine je `docs/PLAN.md`; posle SVAKE izmjene plana ili WORKLOG-a pokreni `node tools/plan-docx/make_plan_docx.js` i commituj docx zajedno sa izmjenom.
+
 ## Gdje se piše (strogo)
 - Fajlovi se pišu **samo** u `~/Desktop/PSE Riemann` i na GitHub `andrejristic/pse-riemann`. Ništa drugdje.
 - Privremeni fajlovi idu u `scratch/` u repou (gitignored), ne u `/tmp` ni u druge foldere.
