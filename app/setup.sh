@@ -34,7 +34,7 @@ echo "→ podižem pip…"
 "$VPY" -m pip install --upgrade pip --quiet
 
 echo "→ instaliram numpy, mpmath, matplotlib…"
-"$VPY" -m pip install --quiet numpy mpmath matplotlib
+"$VPY" -m pip install --quiet numpy mpmath matplotlib sympy scipy pytest
 
 echo "→ instaliram PySide6 (prvo Essentials, ~4× manji od punog)…"
 if ! "$VPY" -m pip install --quiet PySide6-Essentials; then

@@ -82,6 +82,10 @@ INDEX_DB = DIR_STATE / "index.db"
 BASELINE_DB = DIR_STATE / "guardian_baselines.json"
 PIN_STORE = DIR_STATE / "tls_pins.json"
 BUDGET_STORE = DIR_STATE / "budget.json"
+SHARED_LIB_DB = DIR_STATE / "shared_lib.db"   # mutable SHARED_LIB state (queue, declarations, methods, missions, reports)
+DIR_REPORTS = VAULT / "reports"                # final reports (guarded by keeper units)
+DIR_METHODS = VAULT / "methods"                # accepted method packs
+VAULT_DIRS += [DIR_REPORTS, DIR_METHODS]
 
 # Secrets NEVER live in the vault (the vault is meant to be syncable / shareable).
 if sys.platform == "win32":

@@ -59,6 +59,14 @@ LAB = "lab"                   # numerical experiment run
 MODEL = "model"               # llm call (provider, role, tokens, cost)
 INGEST = "ingest"             # source fetched / promoted / dropped
 SYSTEM = "system"             # startup, wizard, config change
+# v2 (SHARED_LIB layer)
+DECISION = "decision"         # human queue: proposed / approved / rejected / withdrawn
+METHOD = "method"             # method packs: imported, reproduced, refused
+MISSION = "mission"           # mission state changes
+REPORT = "report"             # final reports: issued, sealed, attacked, restored
+UNIT = "unit"                 # PSE units: spawned, assigned, replaced, terminated
+HEAL = "heal"                 # infection detection, containment, treatment
+VOICE = "voice"               # SHARED_LIB voice: question, SQL, answer, refusals
 
 
 class Journal:
@@ -174,4 +182,12 @@ def journal() -> Journal:
 
 
 def log(kind: str, actor: str, payload: dict, subject: str = "", verdict: str = "") -> int:
+    """Append an event; the registered operator (if any) is bound to every event."""
+    try:
+        from ..shared_lib.operator import current
+        op = current()
+    except Exception:                                   # noqa: BLE001
+        op = None
+    if op and isinstance(payload, dict) and "operator" not in payload:
+        payload = {**payload, "operator": op}
     return journal().append(kind, actor, payload, subject, verdict)

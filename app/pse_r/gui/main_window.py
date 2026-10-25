@@ -116,7 +116,9 @@ class MainWindow(QMainWindow):
         self.lb_net = QLabel("")
         self.lb_guard = QLabel("")
         self.lb_vault = QLabel("")
-        for lb in (self.lb_theta, self.lb_vault, self.lb_budget, self.lb_net,
+        from ..shared_lib import operator as OP
+        self.lb_op = QLabel(f"operater: {OP.current() or '—'}")
+        for lb in (self.lb_op, self.lb_theta, self.lb_vault, self.lb_budget, self.lb_net,
                    self.lb_guard):
             lb.setStyleSheet("padding:0 10px;")
             sb.addWidget(lb)

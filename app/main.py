@@ -28,6 +28,8 @@ from pse_r.core import journal as J           # noqa: E402
 
 def _boot() -> None:
     config.ensure_vault()
+    from pse_r.shared_lib import declarations as DECL
+    DECL.install_hooks()
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,
                             "profile": config.PROFILE})
 
@@ -74,6 +76,16 @@ def selftest() -> int:
     good, bad = J.journal().verify_chain()
     check("hash-lanac neprekinut", good, f"prekid na {bad}" if bad else
           f"{J.journal().count()} događaja")
+
+    print("\nSHARED_LIB:")
+    from pse_r.shared_lib import views as V
+    try:
+        V.query("DELETE FROM events")
+        check("upit koji piše se odbija", False)
+    except V.QueryRefused:
+        check("upit koji piše se odbija", True)
+    r = V.query("SELECT COUNT(*) FROM events")
+    check("činjenični sloj čita dnevnik", r["rows"][0][0] >= 1, f"{r['rows'][0][0]} događaja")
 
     print("\nGuardian:")
     from pse_r.guardian import policy, content
@@ -211,6 +223,22 @@ def main() -> int:
 
     if needed():
         Wizard().exec()
+
+    # The operator: whoever uses the app types a name (no password). SHARED_LIB's
+    # voice speaks only to a registered operator; every event carries the name.
+    from PySide6.QtWidgets import QInputDialog, QLineEdit
+    from pse_r.shared_lib import operator as OP
+    while not OP.current():
+        name, ok = QInputDialog.getText(None, "PSE Riemann — operater",
+                                        "Tvoje ime (operater):", QLineEdit.Normal,
+                                        OP.last_used())
+        if not ok:
+            return 0
+        try:
+            OP.set_operator(name)
+        except ValueError as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(None, "Ime operatera", str(e))
 
     w = MainWindow()
     w.show()
