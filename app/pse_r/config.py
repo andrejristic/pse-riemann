@@ -89,6 +89,7 @@ DIR_MODELS = _env_path("PSE_RIEMANN_MODELS", PROJECT_ROOT / "models")
 DIR_REPORTS = VAULT / "reports"                # final reports (guarded by keeper units)
 DIR_METHODS = VAULT / "methods"                # accepted method packs
 VAULT_DIRS += [DIR_REPORTS, DIR_METHODS]
+DIR_SEALS = DIR_STATE / "seals"                # sealed copies of final reports (keepers)
 
 # Secrets NEVER live in the vault (the vault is meant to be syncable / shareable).
 if sys.platform == "win32":

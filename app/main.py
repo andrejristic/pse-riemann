@@ -124,6 +124,18 @@ def selftest() -> int:
     check("GGUF: llama-cpp i lokalni modeli vidljivi",
           True, f"llama-cpp {'da' if GG.have_llama() else 'ne'}, GGUF fajlova: {_n}")
 
+    print("\nČuvari i tri zla:")
+    from pse_r.guardian import harms as HRM, healing as HEAL
+    _h = HRM.to_human("Dokazao sam Riemannovu hipotezu i granica je 0.874886647.",
+                      sources=[])
+    check("tri zla: dokaz + broj bez izvora se hvataju",
+          any(x.sign == "tvrdnja-o-dokazu" for x in _h)
+          and any(x.sign == "broj-bez-izvora" for x in _h))
+    _hz = HEAL.Healer()
+    _case = _hz.detect("unit:selftest", HRM.to_file("x.md", via_gate=False))
+    check("liječenje: zlo → zadržavanje (povratno)",
+          _case is not None and _case.stage == HEAL.CONTAIN and _case.quarantined)
+
     print("\nMisije:")
     from pse_r.shared_lib import missions as MIS
     mid = MIS.seed_first()
