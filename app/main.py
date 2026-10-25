@@ -334,8 +334,12 @@ def main() -> int:
 
     from pse_r.guardian import killswitch as KS
     KS.on_startup()                    # a closed switch stays closed across a restart
-    if needed():
-        Wizard().exec()
+    from pse_r import setup_flow as SF
+    if SF.needed():
+        # round 3, item 8: operator · main AI · skeptic · declarations · guardian
+        from pse_r.gui.setup import SetupDialog
+        if SetupDialog().exec() != SetupDialog.Accepted:
+            return 0
 
     # The operator: whoever uses the app types a name (no password). SHARED_LIB's
     # voice speaks only to a registered operator; every event carries the name.

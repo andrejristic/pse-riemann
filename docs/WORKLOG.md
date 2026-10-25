@@ -18,14 +18,17 @@
 | 2026-10-25 | 11 · naplata | ✅ (UI u stavci 8) | testovi | po provajderu: prekid zaustavlja naplatu ili ne (nepoznato = najgori slučaj); za „ne“: max_tokens ≤ 1500, ulaz ≤ 60 000 znakova; budžet broji max_tokens kad prekinemo provajdera koji naplaćuje sve ili kad nema podatka o potrošnji; cijene Claude modela ažurirane, ostale upisuje operater (bez izmišljanja) |
 | 2026-10-25 | 13 · lokalni model samo prema ovom računaru (P8) | ✅ | testovi + živi DeepSeek (0 lažnih blokada) | `llm/local_only.py`: audit hook (socket.connect/getaddrinfo) za nit koja izvodi GGUF poziv; sve osim loopbacka odbijeno + prijetnja u dnevniku |
 | 2026-10-25 | 12 · prekidač za online AI | ✅ (meni ikone u traci: stavka 19) | pytest 152/152 | `guardian/killswitch.py`: zatvara put u egress-u (kapija), prekida tokove u toku, sklanja ključeve iz memorije (po izboru briše iz secrets.json), prelazi na GGUF ili „bez AI“, preživljava restart, uključuje samo operater; samo-okidanje na „→ ∞“ broja/veličine/troška poziva + stavka sa linkovima za opoziv ključeva. Dugme u gornjoj traci (crveno kad je isključeno) + **Ctrl+K**; paleta komandi prebačena na **Ctrl+Shift+P** (vodiči ažurirani) |
+| 2026-10-25 | 8 · početno podešavanje | ✅ | pytest 157/157 (exit 0), snimci `docs/screenshots/r3_setup_*` | `setup_flow.py` (logika, testirana) + `gui/setup.py` (prozor): 1 ime operatera · 2 glavni AI (10 provajdera sa ✓/✗ i savjetom o naplati, „Učitaj prave modele“, „Testiraj“, vlastita adresa, GGUF sa bilo kog mjesta, „bez AI“ sa spiskom šta radi/ne radi) · 3 skeptik (drugi model ili bez) · 4 deklaracije (GGUF hash vs objavljeni, adresa = prijedlog koji potvrđuješ) · 5 čuvar pri prijavi + email; kasnije iz palete „Podešavanje“. Nađeno snimcima/testom: polja su se brisala pri prelasku između opcija (pad prozora) — popravljeno; lista odsječena — popravljeno |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 
+**Otvoreni problemi:** pri izlasku iz aplikacije nit za provjeru mreže (QThread) može još raditi → „QThread: Destroyed while thread is still running“ (viđeno u testovima kad zaostali tajmeri prozora okinu). Rješava se u stavci 20 (gašenje).
+
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** stavka 8 (početno podešavanje).
+**Sljedeće:** Faza 4 — stavka 14 (SSH čuvar).
 
-**Preostalo:** oko 71–117 h.
+**Preostalo:** oko 66–111 h.
 
 ---
 

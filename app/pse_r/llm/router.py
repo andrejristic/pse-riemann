@@ -65,7 +65,7 @@ class Route:
 class Router:
     def __init__(self):
         self.overrides: dict[str, str] = {}      # role -> forced provider
-        self.models: dict[str, str] = {}         # provider -> model override
+        self.models = _ModelOverrides()          # provider -> model override (settings)
         self._last_provider: dict[str, str] = {}  # role -> provider last used
 
     # ------------------------------------------------------------------ #
@@ -188,6 +188,14 @@ class Router:
             return True, (r.text or "").strip()[:40] or "(prazan odgovor)"
         except Exception as e:                       # noqa: BLE001 — surfaced to UI
             return False, str(e)[:300]
+
+
+class _ModelOverrides(dict):
+    """provider → model chosen by the operator (settings "models"), live."""
+
+    def get(self, k, default=None):
+        from .. import settings as S
+        return (S.get("models") or {}).get(k) or dict.get(self, k) or default
 
 
 _R: Optional[Router] = None

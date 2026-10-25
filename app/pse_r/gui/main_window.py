@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
     def palette_(self):
         acts = {
             "Online AI — isključi / uključi (Ctrl+K)": self.toggle_online_ai,
+            "Podešavanje — operater, glavni AI, skeptik, čuvar": self.open_setup,
             "Lab — pokreni eksperiment": lambda: self.tabs.setCurrentIndex(1),
             "Corpus — pretraga": lambda: (self.tabs.setCurrentIndex(2),
                                           self.tab_corpus.q.setFocus()),
@@ -321,6 +322,11 @@ class MainWindow(QMainWindow):
     def _save_active(self):
         if self.tabs.currentWidget() is self.tab_editor:
             self.tab_editor._save()
+
+    def open_setup(self):
+        from .setup import SetupDialog
+        SetupDialog(self, first_run=False).exec()
+        self.refresh_status()
 
     def open_wizard(self):
         from .wizard import Wizard
