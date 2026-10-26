@@ -460,3 +460,27 @@ def context_line() -> str:
     return (f"AKTIVNA MISIJA (operater radi na njoj): {m['title']} — cilj "
             f"{int(m.get('goal') or 1)} ({GOALS.get(int(m.get('goal') or 1), '')}); front B = {best}; "
             f"stanje: {m['state'][:400]}")
+
+
+# --------------------------------------------------------------------------- #
+# mission 3 — the complex version (round 3, item 32)
+# --------------------------------------------------------------------------- #
+THIRD_ID = "misija-kompleksna"
+
+
+def seed_third() -> str:
+    """Mission 3. Idempotent. Same goal menu; the app only proposes."""
+    _ensure()
+    if get(THIRD_ID) is not None:
+        return THIRD_ID
+    from ..methods import complexver as CV
+    create(THIRD_ID, "Kompleksna verzija: savija li se granica?",
+           "(a) Zavisi li granica od visine γ — postaje li prava Re s = B kriva σ*(γ) i savija li se "
+           "igdje prema 1/2? (b) Šta su funkcije eksponenata sa kompleksnim argumentom i gdje se "
+           "signal i niska strana „sijeku“ u kompleksnom smislu?",
+           state="Otvoreno pitanje. (a) U okviru Liu/Xu–Sang E ne sadrži γ → σ*(γ) ≡ B (čitanje, "
+                 "NAŠE-NERECENZIRANO). (b) Brojilac E(δ) je kvadratni u δ: granica = nula "
+                 "diskriminante; vidi lab „QRH: kompleksna verzija“.")
+    step(THIRD_ID, "(a) σ*(γ): pročitan formalizam metode", "σ*(γ) ≡ B u okviru metode — NAŠE-NERECENZIRANO",
+         "(a) zatvoreno u okviru metode; van nje otvoreno", ref="methods/complexver.py")
+    return THIRD_ID

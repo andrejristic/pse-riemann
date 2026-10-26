@@ -832,6 +832,50 @@ def _run_qrh_adversary(family: int, eps_exp: int) -> Result:
     return r
 
 
+def _run_qrh_complex(family: int, n: int) -> Result:
+    """Item 32 (b): E with a complex δ — the boundary as the zero of a discriminant."""
+    from ..methods import complexver as CV
+    fam = "liu" if int(family) == 0 else "xs"
+    r0 = CV.margin_curve(fam, n=int(n))
+    r = Result()
+    r.numbers = {"metoda": fam, "ℓ* (optimum)": r0["l_star"], "ℓ (diskriminanta = 0)": r0["l_disc"],
+                 "razlika": r0["agree"], "δ* (dvostruki korijen)": r0["delta_star"],
+                 "c u |Im δ| ≈ c·√(ℓ* − ℓ)": r0["c"], "b*": r0["b_star"]}
+    r.series = {"|Im δ|": [(l, im) for l, im, *_ in r0["rows"]],
+                "Re δ₁": [(l, a) for l, _im, a, _b, _d in r0["rows"]],
+                "Re δ₂": [(l, b) for l, _im, _a, b, _d in r0["rows"]]}
+    r.plots = [{"kind": "two_lines", "series": ["|Im δ|", "Re δ₁", "Re δ₂"],
+                "labels": ["|Im δ| (metoda prolazi kad je > 0)", "Re δ₁", "Re δ₂"],
+                "title": f"{fam}: korijeni E(δ) = 0 po ℓ (kompleksni par → dvostruki → dva realna)",
+                "xlabel": "ℓ", "ylabel": "δ", "zeroline": True}]
+    r.reading = (
+        f"Brojilac E(δ) pri x = 1/2 je **kvadratni polinom u δ** (tačno, sympy). Za ℓ < ℓ* korijeni su "
+        f"konjugovani par (metoda prolazi), u ℓ* se stapaju u dvostruki korijen δ* = {r0['delta_star']:.10f}, "
+        f"a za ℓ > ℓ* su dva realna (E > 0 između njih — metoda pada). Nula diskriminante daje "
+        f"ℓ = {r0['l_disc']:.15f}, a optimum ℓ* = {r0['l_star']:.15f} (razlika {r0['agree']:.1e}). "
+        f"Udaljenost od granice: |Im δ| ≈ {r0['c']:.4f}·√(ℓ* − ℓ).\n\n"
+        "**Kompleksna verzija ne daje novo B** — daje algebarsku karakterizaciju granice (nula "
+        "diskriminante) i mjeru margine. I to je rezultat. NAŠE-NERECENZIRANO.\n\n"
+        "(a) " + CV.GAMMA_NOTE)
+    try:                                        # the mission records what was computed
+        from ..shared_lib import missions as MIS
+        if MIS.get(MIS.THIRD_ID) is not None:
+            MIS.step(MIS.THIRD_ID, f"(b) lab: korijeni E(δ) u ℂ za {fam}",
+                     f"granica = nula diskriminante (Δℓ = {r0['agree']:.1e}); c = {r0['c']:.4f}; "
+                     "novo B: ne — NAŠE-NERECENZIRANO", MIS.get(MIS.THIRD_ID)["state"], ref=f"lab:qrh_complex:{fam}")
+    except Exception:                           # noqa: BLE001
+        pass
+    return r
+
+
+CATALOG.append(Experiment(
+    "qrh_complex", "QRH: kompleksna verzija (misija 3)",
+    "Šta je E sa kompleksnim δ, i gdje se signal i niska strana sijeku u ℂ?",
+    "Granica metode je nula diskriminante kvadratnog brojioca E(δ); |Im δ| mjeri marginu.",
+    [Param("family", "int", 0, 0, 1, "0=Liu, 1=Xu–Sang"),
+     Param("n", "int", 41, 11, 201, "broj tačaka po ℓ")],
+    _run_qrh_complex, "brz"))
+
 CATALOG.append(Experiment(
     "qrh_adversary", "QRH: adversarijalni mod",
     "Da li je tvrđeno B zaista optimum metode, šta treba prekršiti za bolje, i da li je prostor iznad B* prazan?",
@@ -852,7 +896,7 @@ BRANCH_OF = {
     "gue": "rmt",
     "robin": "equivalences", "mertens": "equivalences",
     "qrh_line": "quasi-rh", "qrh_poly": "quasi-rh", "qrh_transform": "quasi-rh",
-    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh", "qrh_adversary": "quasi-rh",
+    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh", "qrh_adversary": "quasi-rh", "qrh_complex": "quasi-rh",
 }
 
 

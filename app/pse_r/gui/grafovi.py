@@ -587,9 +587,14 @@ class GraphCanvas(FigureCanvasQTAgg):
                 self.ax.contour(X, Y, W.imag, levels=[0], colors=["#111111"], linewidths=0.8)
             except Exception:                           # noqa: BLE001
                 pass
-        self._regions(self.ax, xl, yl, fs, "zeta" in f.expr)
-        self.ax.set_xlabel("Re s = σ", color=MUTED, fontsize=fs * 0.9)
-        self.ax.set_ylabel("Im s = t", color=MUTED, fontsize=fs * 0.9)
+        if f.kind == "builtin":                         # the δ-plane of mission 3, not the s-plane
+            self.ax.axhline(0, color=TXT, linewidth=0.8, linestyle="--")
+            self.ax.set_xlabel("Re δ", color=MUTED, fontsize=fs * 0.9)
+            self.ax.set_ylabel("Im δ", color=MUTED, fontsize=fs * 0.9)
+        else:
+            self._regions(self.ax, xl, yl, fs, "zeta" in f.expr)
+            self.ax.set_xlabel("Re s = σ", color=MUTED, fontsize=fs * 0.9)
+            self.ax.set_ylabel("Im s = t", color=MUTED, fontsize=fs * 0.9)
         self.ax.set_title(tr("boja = arg f, svjetlina = |f|; bijelo: Re f = 0, crno: Im f = 0 (nule su presjeci)"),
                           color=MUTED, fontsize=fs * 0.85, loc="left")
         levels.add(f.level)
@@ -817,6 +822,10 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.mode = mode
         self.ax.set_aspect("auto")
         self.home_view = self.HOMES.get(mode, self.home_view)
+        if mode == "complex":
+            f = self._cfunc()
+            if f is not None and f.kind == "builtin":
+                self.home_view = ((f.domain[0], f.domain[1]), (-0.2, 0.2))
         if mode == "field":
             f = next((g for g in self.funcs if g.visible and F.shape(g) == "surface"), None)
             if f is not None and len(f.domain) == 4:

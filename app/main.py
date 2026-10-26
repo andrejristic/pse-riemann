@@ -44,6 +44,7 @@ def _boot() -> None:
     except Exception as e:                              # noqa: BLE001
         print("langlands seed:", e)
     MIS.seed_second()                 # mission 2: higher degree (round 3, item 27)
+    MIS.seed_third()                  # mission 3: the complex version (round 3, item 32)
     from pse_r.shared_lib import ideas as IDEAS
     IDEAS.seed_geometric_langlands()  # geometric Langlands only as INSPIRACIJA (item 28)
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,

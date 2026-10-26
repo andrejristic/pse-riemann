@@ -156,6 +156,14 @@ def _vmax_lk(x, y, p):
         np.asarray(x, float), np.asarray(y, float))
 
 
+def _e_delta_complex(s, p):
+    """E_Liu with a complex δ = s, at b from the slider and κ = 2B(ℓ) − 1 (ℓ slider)."""
+    from ..methods import core as C
+    l = float(p.get("l", 1 / 6))
+    k = 2 * (11 / 12 - l / 4) - 1
+    return C.E_liu(float(p.get("b", 0.1234)), l, k, np.asarray(s, complex), 0.5)
+
+
 BUILTINS: dict = {
     "B_line": dict(label="B(ℓ) = 11/12 − ℓ/4", level=RAD, card="izvor-openai-7-8",
                    fn=_b_line, domain=[0.0, 0.3], cost=1e-6,
@@ -193,6 +201,9 @@ BUILTINS: dict = {
                       fn=lambda x, y, p: 11 / 12 - np.asarray(x, float) / 4 + 0 * np.asarray(y, float),
                       domain=[0.0, 0.3, 0.80, 0.95], cost=1e-7,
                       meaning="granica B(ℓ) kao površ nad (ℓ, σ)"),
+    "E_delta_c": dict(label="E_Liu(δ) za kompleksno δ (misija 3)", level=OURS, card="izvor-liu-2610-12234",
+                      fn=_e_delta_complex, domain=[0.1, 0.8], cost=2e-6, shape="complex",
+                      meaning="nule u δ: dva realna (metoda pada) → dvostruka u ℓ* → konjugovani par (prolazi); pomjeri klizač ℓ"),
     "vmax_lk": dict(label="max_δ E_Liu nad (ℓ, κ)", level=OURS, card="izvor-liu-2610-12234",
                     fn=_vmax_lk, domain=[0.10, 0.22, 0.60, 0.90], cost=1e-4, shape="surface",
                     meaning="najgori eksponent u tački (ℓ, κ) za b sa klizača; ≤ 0 = metoda prolazi; nula = granica ℓ*(κ)"),
@@ -228,6 +239,8 @@ def numeric(f: Function, params: Optional[dict] = None) -> Callable:
     p = _params(params)
     if f.kind == "builtin":
         fn = BUILTINS[f.builtin]["fn"]
+        if BUILTINS[f.builtin].get("shape") == "complex":
+            return lambda s: fn(s, p)
         if BUILTINS[f.builtin].get("shape") == "surface":
             return lambda x, y: fn(x, y, p)
         return lambda x: fn(x, p)
@@ -264,6 +277,8 @@ def precise(f: Function, params: Optional[dict] = None) -> Callable:
     p = _params(params)
     if f.kind == "builtin":
         fn = BUILTINS[f.builtin]["fn"]
+        if BUILTINS[f.builtin].get("shape") == "complex":
+            return lambda s: complex(np.asarray(fn(np.array([complex(s)]), p))[0])
         return lambda x: float(np.asarray(fn(np.array([float(x)]), p))[0])
     names = var_names(f.kind)
     allp = list(PARAMS)
