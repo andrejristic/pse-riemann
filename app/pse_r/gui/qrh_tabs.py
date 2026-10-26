@@ -44,6 +44,7 @@ class MissionsTab(QWidget):
                              button(tr("Provjeri arXiv sada"), self._arxiv_now),
                              button(tr("Izvezi izvještaj misije"), self._export_report),
                              button(tr("Adversarijalni mod…"), self._adversary),
+                             button(tr("Radni tekst (misije 2 i 3)…"), self._paper),
                              button(tr("Osvježi"), self.refresh)))
         # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
         self.cb_mission = QComboBox()
@@ -148,6 +149,45 @@ class MissionsTab(QWidget):
         except Exception as e:                       # noqa: BLE001 — shown, nothing changed
             QMessageBox.warning(self, tr("Cilj misije"), str(e))
             return
+        self.refresh()
+
+    def _paper(self):
+        """Item 33: assemble the working paper in the background, then show it."""
+        import threading
+        from PySide6.QtCore import QObject, Signal as _Sig
+
+        class _B(QObject):
+            done = _Sig(object, str)
+        if getattr(self, "_paper_bridge", None) is None:
+            self._paper_bridge = _B()
+            self._paper_bridge.done.connect(self._paper_done)
+        br = self._paper_bridge
+
+        def work():
+            from ..shared_lib import paper as PAP
+            try:
+                br.done.emit(PAP.build(), "")
+            except Exception as e:                       # noqa: BLE001 — PaperRefused included
+                br.done.emit(None, str(e))
+        threading.Thread(target=work, name="paper", daemon=True).start()
+        QMessageBox.information(self, tr("Radni tekst"),
+                                tr("Sastavljam u pozadini (lab run-ovi koji fale, kapija, izvori, skeptik). Tekst se otvori kad bude gotov."))
+
+    def _paper_done(self, res, err: str):
+        if err:
+            QMessageBox.warning(self, tr("Radni tekst"), tr("Nije zapisano: {0}").format(err))
+            return
+        from PySide6.QtWidgets import QDialog, QVBoxLayout as _V, QLabel as _L
+        d = QDialog(self)
+        d.setWindowTitle(tr("Radni tekst (misije 2 i 3) — NAŠE-NERECENZIRANO"))
+        lay = _V(d)
+        lay.addWidget(_L(tr("Zapečaćeno: {0} · čeka te u „Čeka tvoju odluku“").format(res["path"])))
+        mv = MarkdownView()
+        mv.set_markdown(res["markdown"])
+        lay.addWidget(mv, 1)
+        from .. import screen as SCR
+        SCR.fit(d, 1100, 900)
+        d.exec()
         self.refresh()
 
     def _adversary(self):

@@ -1,11 +1,11 @@
-# Primopredaja runde 3 (za novi chat), stanje 2026-10-25, commit bb1e202
+# Primopredaja runde 3 (za novi chat), stanje 2026-10-26
 
 **Prvo pročitaj:** `CLAUDE.md` (pravila), `docs/PLAN.md` §6 (stavke 1–38), `docs/WORKLOG.md` (tabela napretka i šta je nađeno). Plan za Andreja: `PSE Riemann — PLAN.docx` (regeneriši ga posle svake izmjene plana: `node tools/plan-docx/make_plan_docx.js`).
 
 ## Gdje smo
 - Grana `feature/runda3`, lokalno i na GitHubu (`andrejristic/pse-riemann`). `main` = kraj runde 2 (`6f428b4`).
 - Testovi prolaze, 210/210 (`cd app && .venv/bin/python -m pytest -q`, oko 3 min). Selftest: `app/.venv/bin/python app/main.py --selftest`.
-- **Gotovo:** stavke 1–27, sve provjereno testovima, a gdje se moglo i živo:
+- **Gotovo:** stavke 1–33 + 28a (misije u krug), 29b (snimak F12), prilagođavanje ekranu, ⤢ na panelima — detalji u WORKLOG. Ranije: stavke 1–27, sve provjereno testovima, a gdje se moglo i živo:
   - DeepSeek GGUF: strujanje, rok i lokalni model zatvoren za mrežu;
   - SSH čuvar na pravom journalu;
   - proces čuvara sa SIGTERM.
@@ -58,3 +58,9 @@
 - Prefill u llama-cpp se ne može prekinuti usred.
 - Prevod: sadržaj (dnevnik, kartice, odgovori modela, promptovi) ostaje na izvornom jeziku, namjerno.
 - Preostalo: oko 46–90 h.
+
+
+## Dopuna 2026-10-26
+- Stavke 28–33 gotove (Ideje, Grafovi 6 koraka, graf znanja, adversarijalni mod, misija 3, radni tekst). Testovi 281/281, selftest ✅.
+- Ostaje samo izdanje 34–38. Andrej: kompletni SR/EN vodiči za cijelu aplikaciju pišu se POSLE izgradnje .deb/.exe (pa se paketi grade još jednom). Paket mora nositi i `docs/VODIC-GRAFOVI-*.md`, `research/misija3-2026-10/REPORT.md`.
+- Andrej: radi bez pitanja („ma samo radi“); izvještaj posle svake stavke.

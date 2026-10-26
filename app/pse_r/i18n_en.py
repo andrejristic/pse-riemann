@@ -690,5 +690,11 @@ EN = {
 "Koju tvrdnju da napadnem brojevima? (~5–15 s u pozadini; rezultat ide u „Čeka tvoju odluku“, na Grafove i u Lab)": "Which claim shall I attack with numbers? (~5–15 s in the background; the result goes to “Awaiting your decision”, to Graphs and to the Lab)",
 "Nema metode sa funkcijom eksponenta.": "No method with an exponent function.",
 "Pokrenuto za „{0}“. Nalaz stiže u „Čeka tvoju odluku“.": "Started for “{0}”. The finding arrives in “Awaiting your decision”.",
-"graf se pojavi posle pokretanja eksperimenta": "the plot appears after the experiment runs"
+"graf se pojavi posle pokretanja eksperimenta": "the plot appears after the experiment runs",
+"Radni tekst (misije 2 i 3)…": "Working paper (missions 2 and 3)…",
+"Radni tekst": "Working paper",
+"Sastavljam u pozadini (lab run-ovi koji fale, kapija, izvori, skeptik). Tekst se otvori kad bude gotov.": "Assembling in the background (missing lab runs, gate, sources, skeptic). The text opens when it is ready.",
+"Nije zapisano: {0}": "Not written: {0}",
+"Radni tekst (misije 2 i 3) — NAŠE-NERECENZIRANO": "Working paper (missions 2 and 3) — OURS-UNREVIEWED",
+"Zapečaćeno: {0} · čeka te u „Čeka tvoju odluku“": "Sealed: {0} · waiting for you in “Awaiting your decision”"
 }
