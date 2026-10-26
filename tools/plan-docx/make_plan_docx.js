@@ -114,6 +114,7 @@ function convert(md) {
       i--;
       const rows = parseTable(block);
       const w = rows[0].length === 2 ? [1, 3] : rows[0].length === 3 ? [0.5, 1.6, 5]
+              : rows[0].length === 4 ? [0.6, 1.4, 6, 0.9]
               : rows[0].length === 5 ? [1.1, 1.6, 0.9, 1.3, 4] : undefined;
       out.push(table(rows, w));
       out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));

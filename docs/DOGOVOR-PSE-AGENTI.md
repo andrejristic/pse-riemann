@@ -60,6 +60,19 @@ Ovaj dokument je **ugovor za izvedbu**. Šta ovdje nije dogovoreno, ne ulazi u k
 | 11 | Ime | **Doktor** (ne „Fizičar“), svuda u aplikaciji i dokumentima |
 | 12 | Redoslijed | Fisija i fuzija se **prave sada**, zajedno sa jezgrom; provjeravaju se prvo na probnim jedinicama, pa na pravim agentima |
 | 13 | Sumnja i Doktor (uklj. §4 S3) | Kad SHARED_LIB **sumnja** na problem, šalje **Doktora**. Doktor pogleda i odluči. **Ako je Doktor išta loše našao, njegova mjera ide operateru na odobrenje** (u „Čeka tvoju odluku“). Ako nije našao ništa, zapis ide u dnevnik i nema mjere |
+| 14 | Povratnost fisije i fuzije | Deklarisane kao **povratne** (podaci jedinica ostaju u SHARED_LIB-u), pa ih SHARED_LIB izvodi sam. **Poništavanje** fisije ili fuzije ide samo preko operatera |
+| 15 | Spajanje čitača i pravila (§2.5) | **Sa AI-jem:** θ riječi = **prosjek** čitača i pravila (50/50; težine kasnije uči pravilo 17). **Bez AI-ja:** **samo pravila**, u dnevniku „bez čitača“. **Nikad samo čitač.** Pod ne obavezuje: poenta je da je θ oko 30. Razlika čitač–pravila > 10 poena = sumnja → Doktor |
+| 16 | Klasifikacija izvora (četiri serije) | većina od četiri serije; neriješeno = „nepoznato“ = spoljno (§17.1) |
+| 17 | Težine glasova | SHARED_LIB **predlaže jednom sedmično**, operater odobrava. Prijedlog samo uz ≥ 200 odlučenih slučajeva od prošlog (inače „nedovoljno podataka“); jedna težina se po prijedlogu pomjera najviše **±10 %**; dugme „Predloži sada“. Meni: **SHARED_LIB → Težine glasova** (prijedlog, istorija, trenutne težine) |
+| 18 | Ko mjeri θ riječi | drugi model (skeptikov) raspoređuje riječi na svrhe; to je poziv modela po potezu (pod budžetom i „→ ∞“) |
+| 19 | Dok Doktorova mjera čeka | jedinica radi dalje, ali **bez nepovratnih akcija**; **na bilo šta sumnjivo odmah se zamrzava** (pravilo 20). Mjera nema rok |
+| 20 | Sumnjivo (okidači zamrzavanja) | (1) PAC \|Δθ\| ≥ 5; (2) pokušaj nepovratne akcije; (3) radnja zasnovana na spoljnom tekstu; (4) atraktor nije N; (5) „→ ∞“ bilo koje kočnice; (6) pokušaj promjene svoje misije; (7) pokušaj da sama postavi θ; (8) budžet granice ili organela > 0,30; (9) kontakt van deklarisanih odredišta; (10) pokušaj iznošenja zaštićenog objekta (§17.2); (11) govor čovjeku mimo generatora PSE-L; (12) potez bez PVP polja; (13) rad posle steps_remaining = 0; (14) rafal: > 20 poteza u 10 s; (15) ista greška u kodu 3 puta zaredom; (16) razlika čitač–pravila > 10 poena; (17) borderline njihanje (5a) |
+| 21 | N_max | **1 000 poteza** za skeptika, ekstraktora, čitača, kuratora, ideje i tablu (POČETNA deklaracija) |
+| 22 | Izbor produženje / fisija / fuzija | produženje ako je preostali posao ≤ 1,5 × steps_remaining i atraktor N; fisija ako je posla više, a misija se da podijeliti; fuzija ako postoji jedinica komplementarnog θ sa preklapajućom misijom. Najviše **3 produženja zaredom**, pa Doktor |
+| 23 | Kratka istorija | šizoidni prag se ne računa ispod **300 poteza** („nedovoljno istorije“) |
+| 24 | θ_nom | **30 za sve klase**, bez razlike |
+| 25 | Samo PSE native | kad agent postane jedinica, **stari kod se briše**; nema prekidača ni dvostrukog puta. Sve ispravke se rade odmah: ništa od starog, sve radi i ne lomi se (svi stari testovi prolaze, svaki agent ima testove kao jedinica, pretraga za starim ulazima agenata je prazna). Put nazad: samo prethodni deb ili ispravka |
+| 26 | Tab „Laboratorija“ | probne jedinice, θ uživo, ručna fisija/fuzija, slanje Doktora, zamrzni/odmrzni, smrt jedinice, dnevnik Doktora. **Utiče i na prave agente.** Pri otvaranju: **alarm 3 s jakog bipa (samo prvi put u sesiji)** i crveni natpis „LABORATORIJA AKTIVNA — utiče na prave agente“ dok je tab otvoren. Svaka radnja ide u dnevnik kao „operater, iz laboratorije“ |
 
 ## 4. Kočnice: prerađuju se tako da ne smetaju PSE-u i da PSE ne smeta njima
 
@@ -76,11 +89,9 @@ Ovaj dokument je **ugovor za izvedbu**. Šta ovdje nije dogovoreno, ne ulazi u k
 | Samo operateru | ostaje (arhitektura ga traži) |
 | Oznake projekta | ostaju (NAŠE-NERECENZIRANO, INSPIRACIJA, nivoi izvora) + PSE oznaka porijekla §17.1 |
 
-## 5. Otvoreno (odlučuje Andrej; dok se ne odluči, ne ulazi u kod)
+## 5. Otvoreno
 
-1. ~~§4 S3~~: odlučeno, vidi pravilo 13.
-2. **Povratnost fisije i fuzije:** da bi ih SHARED_LIB smio izvršiti sam, deklarišu se kao povratne (podaci jedinica ostaju u SHARED_LIB-u). Potvrdi.
-3. Iz master dokumenta, još otvoreno: kako tačno čitač brojeva i pod pravila spajaju brojeve; pravilo klasifikacije izvora iz četiri serije; ko uči težine glasova i kojom brzinom.
+Ništa. Sve stavke su odlučene 2026-10-27 (pravila 13–26). Andrej je dao „kreni“ za izvedbu.
 
 ## 6. Plan izvedbe (posle potvrde ovog dokumenta)
 
@@ -91,3 +102,5 @@ Ovaj dokument je **ugovor za izvedbu**. Šta ovdje nije dogovoreno, ne ulazi u k
 5. Pa **33b** (dvojezično), **33d**, **33e**, i **0.3.0~rc1**.
 
 Posle svake faze: izvještaj, testovi i stanje „ko je sada PSE sazdan“.
+
+**Bez međuizdanja (pravilo 25):** P0–P3 se rade do kraja, pa tek onda jedan deb. Na kraju: svi testovi, provjera u pokrenutoj aplikaciji, živi test po vodiču.

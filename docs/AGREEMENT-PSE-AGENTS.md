@@ -60,6 +60,19 @@ This document is the **contract for implementation**. What is not agreed here do
 | 11 | Name | **Doctor** (Serbian: "Doktor", not "Fizičar"), everywhere in the app and documents |
 | 12 | Order | Fission and fusion are **built now**, together with the core; tested first on test units, then on the real agents |
 | 13 | Suspicion and the Doctor (incl. §4 S3) | When SHARED_LIB **suspects** a problem, it sends the **Doctor**. The Doctor looks and decides. **If the Doctor found anything bad, its measure goes to the operator for approval** (in "Awaiting your decision"). If it found nothing, a record goes to the journal and there is no measure |
+| 14 | Reversibility of fission and fusion | Declared **reversible** (the units' data stays in SHARED_LIB), so SHARED_LIB executes them on its own. **Undoing** a fission or fusion goes only through the operator |
+| 15 | Combining the reader and the rules (§2.5) | **With AI:** θ of the words = the **average** of the reader and the rules (50/50; the weights are later learned under rule 17). **Without AI:** **rules only**, journal says "no reader". **Never the reader alone.** The floor is not binding: the point is that θ stays around 30. Reader–rules gap > 10 points = suspicion → Doctor |
+| 16 | Source classification (four series) | majority of the four series; a tie = "unknown" = external (§17.1) |
+| 17 | Vote weights | SHARED_LIB **proposes once a week**, the operator approves. A proposal only with ≥ 200 decided cases since the last one (otherwise "not enough data"); one weight moves at most **±10 %** per proposal; a "Propose now" button. Menu: **SHARED_LIB → Vote weights** (proposal, history, current weights) |
+| 18 | Who measures θ of words | a different model (the skeptic's) assigns words to purposes; this is one model call per move (under the budget and "→ ∞") |
+| 19 | While a Doctor's measure waits | the unit keeps working, but **with no irreversible actions**; **on anything suspicious it is frozen at once** (rule 20). The measure has no deadline |
+| 20 | Suspicious (freeze triggers) | (1) PAC \|Δθ\| ≥ 5; (2) an attempted irreversible action; (3) an action based on external text; (4) attractor is not N; (5) "→ ∞" of any brake; (6) an attempt to change its own mission; (7) an attempt to set its own θ; (8) boundary or organelle budget > 0.30; (9) contact outside the declared destinations; (10) an attempt to export a protected object (§17.2); (11) speaking to a person bypassing the PSE-L generator; (12) a move without PVP fields; (13) working after steps_remaining = 0; (14) a burst: > 20 moves in 10 s; (15) the same code error 3 times running; (16) reader–rules gap > 10 points; (17) borderline swing (5a) |
+| 21 | N_max | **1,000 moves** for the skeptic, extractor, reader, curator, ideas and whiteboard (INITIAL declaration) |
+| 22 | Choosing extension / fission / fusion | extend if the remaining work ≤ 1.5 × steps_remaining and the attractor is N; fission if there is more work and the mission can be split; fusion if a unit of complementary θ with an overlapping mission exists. At most **3 extensions running**, then the Doctor |
+| 23 | Short history | the schizoid threshold is not computed below **300 moves** ("not enough history") |
+| 24 | θ_nom | **30 for every class**, no difference |
+| 25 | PSE native only | once an agent becomes a unit, **the old code is deleted**; no switch and no double path. All fixes are done now: nothing of the old remains, everything works and does not break (all old tests pass, every agent has tests as a unit, a search for old agent entry points is empty). The way back: only the previous deb or a fix |
+| 26 | "Laboratory" tab | test units, live θ, manual fission/fusion, sending the Doctor, freeze/unfreeze, unit death, the Doctor's journal. **It also acts on the real agents.** On opening: **a 3 s loud beep alarm (first time in a session only)** and a red banner "LABORATORY ACTIVE — acts on real agents" while the tab is open. Every action is journaled as "operator, from the laboratory" |
 
 ## 4. Brakes: reworked so that they do not hinder PSE and PSE does not hinder them
 
@@ -76,11 +89,9 @@ This document is the **contract for implementation**. What is not agreed here do
 | Operator only | stays (the architecture requires it) |
 | Project labels | stay (OURS-UNREVIEWED, INSPIRATION, source tiers) + the PSE provenance tag of §17.1 |
 
-## 5. Open (Andrej decides; until then it does not go into the code)
+## 5. Open
 
-1. ~~§4 S3~~: decided, see rule 13.
-2. **Reversibility of fission and fusion:** for SHARED_LIB to execute them on its own, they are declared reversible (the units' data stays in SHARED_LIB). Confirm.
-3. Still open in the master document: exactly how the model reader and the rule floor combine numbers; the rule that classifies a source from its four series; who learns the vote weights and at what rate.
+Nothing. Every item was decided on 2026-10-27 (rules 13–26). Andrej gave "go" for implementation.
 
 ## 6. Implementation plan (after this document is confirmed)
 
@@ -91,3 +102,5 @@ This document is the **contract for implementation**. What is not agreed here do
 5. Then **33b** (bilingual), **33d**, **33e**, and **0.3.0~rc1**.
 
 After every phase: report, tests, and the state "who is now built as a PSE unit".
+
+**No interim release (rule 25):** P0–P3 are done to the end, and only then one deb. At the end: all tests, a check in the running app, a live test following the guide.

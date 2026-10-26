@@ -240,7 +240,7 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     **Redoslijed:** 33c → 33b (prvo sloj za prevođenje, da 33d–33f nastanu dvojezično) → 33d → 33e → 33f → rc3.
 
 ### Faza 6d · SVI AGENTI SU PSE JEDINICE (Andrej, 2026-10-27 — prije svega ostalog)
-Ugovor za izvedbu: [`DOGOVOR-PSE-AGENTI.md`](DOGOVOR-PSE-AGENTI.md) / [`AGREEMENT-PSE-AGENTS.md`](AGREEMENT-PSE-AGENTS.md) (+ docx). Stanje 2026-10-27: 15 agenata, **0 PSE sazdano**, 3 djelimično. P0 jezgro u SHARED_LIB-u (PSEUnit, profili, registracija/PVP, θ po potezu iz rada i riječi, atraktori, vijek/smrt/predaja SHARED_LIB-u, Doktor, fisija i fuzija, deklaracije, DL1 + oznaka porijekla, prerada kočnica) → P1 AI agenti → P2 agenti bez modela → P3 agent misije (33f) → 33b → 33d → 33e → 0.3.0~rc1. „Fizičar“ se svuda zove **Doktor**. Otvoreno (odlučuje Andrej): povratnost fisije/fuzije; spajanje brojeva čitača i poda pravila; klasifikacija izvora; učenje težina glasova.
+Ugovor za izvedbu: [`DOGOVOR-PSE-AGENTI.md`](DOGOVOR-PSE-AGENTI.md) / [`AGREEMENT-PSE-AGENTS.md`](AGREEMENT-PSE-AGENTS.md) (+ docx), pravila 1–26, **sve odlučeno** 2026-10-27. Detaljan plan: [`PLAN-PSE-AGENTI.md`](PLAN-PSE-AGENTI.md) / [`PLAN-PSE-AGENTS.md`](PLAN-PSE-AGENTS.md) (+ docx). Stanje 2026-10-27: 15 agenata, **0 PSE sazdano**, 3 djelimično. P0 jezgro u SHARED_LIB-u → P1 AI agenti → P2 agenti bez modela → P3 agent misije (33f) → 33b → 33d → 33e → 0.3.0~rc1. **Samo PSE native:** stari kod agenata se briše, bez prekidača. **Bez međuizdanja**; commitovi lokalno, push na kraju (Andrej). „Fizičar“ se svuda zove **Doktor**. Šta čeka Andreja: [`ZA-ANDREJA.md`](ZA-ANDREJA.md).
 
 ### Faza 7 · Dokumentacija i izdanje
 34. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
