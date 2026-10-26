@@ -33,6 +33,8 @@ from .whiteboard import WhiteboardTab
 from .widgets import MarkdownView, dark_qss, set_base_pt, small
 
 
+_LIVE_THREADS: set = set()            # background QThreads still running (see _check_net)
+
 class Palette(QDialog):
     def __init__(self, actions: dict, parent=None):
         super().__init__(parent)
@@ -131,6 +133,7 @@ class MainWindow(QMainWindow):
         self.topbar.open_queue.connect(lambda: self.tabs.setCurrentWidget(self._tab(self.tab_queue)))
         self.topbar.toggle_online.connect(self.toggle_online_ai)
         self.topbar.toggle_lang.connect(self.toggle_language)
+        self.topbar.snapshot.connect(lambda: self.snapshot("main"))
         central = QWidget()
         cv = QVBoxLayout(central)
         cv.setContentsMargins(0, 0, 0, 0)
@@ -176,6 +179,11 @@ class MainWindow(QMainWindow):
 
         # round 3: Ctrl+K is the online-AI kill switch; the palette moved
         QShortcut(QKeySequence("Ctrl+K"), self, self.toggle_online_ai)
+        # item 29b: a screenshot from anywhere, dialogs included (application-wide)
+        for seq, fn in (("F12", lambda: self.snapshot("window")),
+                        ("Shift+F12", lambda: self.snapshot("tab"))):
+            sc = QShortcut(QKeySequence(seq), self, fn)
+            sc.setContext(Qt.ApplicationShortcut)
         QShortcut(QKeySequence("Ctrl+Shift+P"), self, self.palette_)
         # live text zoom — no restart, changes only font size
         for seq in ("Ctrl+=", "Ctrl++"):
@@ -242,23 +250,23 @@ class MainWindow(QMainWindow):
         acts = {
             "Online AI — isključi / uključi (Ctrl+K)": self.toggle_online_ai,
             "Podešavanje — operater, glavni AI, skeptik, čuvar": self.open_setup,
-            "Lab — pokreni eksperiment": lambda: self.tabs.setCurrentIndex(1),
-            "Corpus — pretraga": lambda: (self.tabs.setCurrentIndex(2),
+            "Lab — pokreni eksperiment": lambda: self.tabs.setCurrentWidget(self._tab(self.tab_lab)),
+            "Corpus — pretraga": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_corpus)),
                                           self.tab_corpus.q.setFocus()),
             "Corpus — skupi sa interneta": self.tab_corpus.harvest,
             "Corpus — trijaža": self.tab_corpus.triage,
-            "Tabla — crtaj": lambda: self.tabs.setCurrentIndex(3),
-            "Editor — dnevnik danas": lambda: (self.tabs.setCurrentIndex(4),
+            "Tabla — crtaj": lambda: self.tabs.setCurrentWidget(self._tab(self.tab_board)),
+            "Editor — dnevnik danas": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_editor)),
                                                self.tab_editor._daily()),
-            "Graf — osvježi": lambda: (self.tabs.setCurrentIndex(5),
+            "Graf — osvježi": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_graph)),
                                        self.tab_graph.refresh()),
-            "Guardian — provjeri host": lambda: (self.tabs.setCurrentIndex(6),
+            "Guardian — provjeri host": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_guard)),
                                                  self.tab_guard.refresh_host()),
-            "Guardian — test mreže": lambda: (self.tabs.setCurrentIndex(6),
+            "Guardian — test mreže": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_guard)),
                                               self.tab_guard.preflight()),
-            "Plan — briefing": lambda: (self.tabs.setCurrentIndex(0),
+            "Plan — briefing": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_plan)),
                                         self.tab_plan.refresh()),
-            "Plan — sedmični izvještaj": lambda: (self.tabs.setCurrentIndex(0),
+            "Plan — sedmični izvještaj": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_plan)),
                                                   self.tab_plan.report()),
             "Vault — reindeksiraj": self.tab_corpus.reindex,
             "Vault — zasij teme (seed)": self._seed,
@@ -266,6 +274,8 @@ class MainWindow(QMainWindow):
             "Budžet — postavi dnevni limit": self._set_cap,
             "Chat — očisti kontekst": self.chat.clear_context,
             "Prikaz — veličina interfejsa (restart)": self.set_ui_scale,
+            "Snimak ekrana — sada (F12)": lambda: self.snapshot("main"),
+            "Snimak ekrana — folder…": self._choose_shot_folder,
             "Prikaz — tekst veći (Ctrl +)": lambda: self.zoom(+0.8),
             "Prikaz — tekst manji (Ctrl -)": lambda: self.zoom(-0.8),
             "Prikaz — vrati podrazumijevano (Ctrl 0)": lambda: self.zoom(0),
@@ -426,6 +436,47 @@ class MainWindow(QMainWindow):
         self.topbar.refresh()
         self._ideas_badge()
 
+    def snapshot(self, what: str = "window"):
+        """F12: the active window (a dialog if one is in front); Shift+F12: the active
+        tab; 📷: the main window. The path goes to the status bar — never a pop-up."""
+        from . import snapshot as SNAP
+        if what == "tab":
+            w, label = self.tabs.currentWidget(), self.tabs.tabText(self.tabs.currentIndex())
+        elif what == "window":
+            w = QApplication.activeWindow() or self
+            label = "" if w is self else (w.windowTitle() or "dijalog")
+        else:
+            w, label = self, ""
+        try:
+            p = SNAP.take(w, label)
+        except Exception as e:                          # noqa: BLE001
+            self.statusBar().showMessage(tr("Snimak nije uspio: {0}").format(e), 10000)
+            return None
+        self._shot_path = p
+        self.statusBar().showMessage(tr("📷 Snimak: {0}").format(p), 15000)
+        if getattr(self, "_shot_open", None) is None:
+            from PySide6.QtWidgets import QPushButton
+            self._shot_open = QPushButton(tr("Otvori folder"))
+            self._shot_open.clicked.connect(self._open_shot_folder)
+            self.statusBar().addPermanentWidget(self._shot_open)
+        self._shot_open.show()
+        QTimer.singleShot(15000, self._shot_open.hide)
+        return p
+
+    def _open_shot_folder(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        from . import snapshot as SNAP
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(SNAP.folder())))
+
+    def _choose_shot_folder(self):
+        from PySide6.QtWidgets import QFileDialog
+        from . import snapshot as SNAP
+        d = QFileDialog.getExistingDirectory(self, tr("Folder za snimke ekrana"), str(SNAP.folder()))
+        if d:
+            SNAP.set_folder(d)
+            self.statusBar().showMessage(tr("Snimci ekrana idu u: {0}").format(d), 8000)
+
     def _tab(self, w):
         """The tab page as the QTabWidget holds it (wrapped in a scroll area)."""
         return self._wraps.get(w, w)
@@ -448,7 +499,10 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 from ..llm import selection as SEL
-                self.done.emit(SEL.main_reachable())
+                try:
+                    self.done.emit(SEL.main_reachable())
+                finally:
+                    QThread.currentThread().quit()      # ends even if the window is gone
         if getattr(self, "_net_thread", None) is not None:
             return
         self._net_thread = QThread()
@@ -456,11 +510,17 @@ class MainWindow(QMainWindow):
         self._net_worker.moveToThread(self._net_thread)
         self._net_thread.started.connect(self._net_worker.run)
         self._net_worker.done.connect(self._net_result)
+        # a running thread is kept alive by the module, not by the window: a window
+        # destroyed mid-check must not destroy a running QThread (that aborts Qt)
+        th, wk = self._net_thread, self._net_worker
+        _LIVE_THREADS.add((th, wk))
+        th.finished.connect(lambda: _LIVE_THREADS.discard((th, wk)))
         self._net_thread.start()
 
     def _net_result(self, online: bool):
-        self._net_thread.quit()
-        self._net_thread.wait(2000)
+        if self._net_thread is not None:
+            self._net_thread.quit()
+            self._net_thread.wait(2000)
         self._net_thread = None
         changed = online != self._online
         self._online = online

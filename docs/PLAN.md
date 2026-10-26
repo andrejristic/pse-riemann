@@ -232,6 +232,7 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
 
 ### Faza 7 · Dokumentacija i izdanje
 34. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
+    **Redoslijed (Andrej, 2026-10-26):** kompletni SR/EN vodiči za **cijelu aplikaciju** pišu se tek **kad se naprave .deb i .exe**, da opisuju tačno ono što je u paketima (snimci iz instaliranog paketa); posle toga paketi se još jednom grade sa vodičima unutra. Vodiči za pojedine dijelove (npr. `docs/VODIC-GRAFOVI-*`) nastaju usput i ulaze u kompletne.
 35. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
 36. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
 37. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.

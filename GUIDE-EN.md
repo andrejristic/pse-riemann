@@ -201,8 +201,15 @@ vertically, and window + splitter sizes persist across launches.
 
 ## 14. Shortcuts
 
-`Ctrl+Shift+P` command palette · `Ctrl+K` online-AI kill switch · `Ctrl+S` save · `Ctrl+1/2/3` Plan/Lab/Corpus ·
-`Ctrl +/-/0` text size · `Enter` send, `Shift+Enter` newline.
+`Ctrl+Shift+P` command palette · `Ctrl+K` online-AI kill switch · `Ctrl+S` save · `Ctrl+1/2/3` Overview/Missions/Awaiting your decision ·
+`Ctrl +/-/0` text size · `Enter` send, `Shift+Enter` newline · **`F12` screenshot** (active window) · `Shift+F12` screenshot of the active tab only.
+
+**A screenshot at any moment.** There are three ways:
+- **F12** captures the window in front (the main window or an open dialog);
+- **Shift+F12** captures only the active tab;
+- the **📷** button in the top bar captures the whole main window.
+
+The picture (PNG, named with the date and time, e.g. `pse-riemann_2026-10-26_14-05-31_Grafovi.png`) goes to `~/Pictures/PSE-Riemann/`. You pick another folder in the palette: `Ctrl+Shift+P` → "Snimak ekrana — folder…". The status bar shows the path and an "Otvori folder" (open folder) button, with no pop-up. The journal records only the file name, not the picture.
 
 ---
 

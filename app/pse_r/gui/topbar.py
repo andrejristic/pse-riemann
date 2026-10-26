@@ -36,6 +36,7 @@ class TopBar(QFrame):
     open_queue = Signal()
     toggle_online = Signal()
     toggle_lang = Signal()
+    snapshot = Signal()
 
     def __init__(self, font_pt: float, parent=None):
         super().__init__(parent)
@@ -77,6 +78,10 @@ class TopBar(QFrame):
         self.lang_btn.setToolTip("Jezik interfejsa / interface language (SR/EN)")
         self.lang_btn.clicked.connect(self.toggle_lang.emit)
         h.addWidget(self.lang_btn)
+        self.shot_btn = QPushButton("📷")                # round 3, item 29b (also F12)
+        self.shot_btn.setToolTip(tr("Snimak ekrana (F12 = aktivni prozor, Shift+F12 = samo aktivni tab)"))
+        self.shot_btn.clicked.connect(self.snapshot.emit)
+        h.addWidget(self.shot_btn)
         self.queue_btn = QPushButton("")
         self.queue_btn.setProperty("kind", "primary")
         self.queue_btn.clicked.connect(self.open_queue.emit)

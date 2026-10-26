@@ -643,5 +643,13 @@ EN = {
 "σ* = {0:.4f} ≥ 1: oblast bez nula je nestala": "σ* = {0:.4f} ≥ 1: the zero-free region is gone",
 "kompleksni izvod f′(s)": "complex derivative f′(s)",
 "broj nula u vidljivom pravougaoniku (princip argumenta)": "number of zeros in the visible rectangle (argument principle)",
-"rezidua u tački (kružni integral)": "residue at the point (circle integral)"
+"rezidua u tački (kružni integral)": "residue at the point (circle integral)",
+"Folder za snimke ekrana": "Folder for screenshots",
+"Otvori folder": "Open folder",
+"Snimak ekrana (F12 = aktivni prozor, Shift+F12 = samo aktivni tab)": "Screenshot (F12 = active window, Shift+F12 = active tab only)",
+"Snimak ekrana — folder…": "Screenshot — folder…",
+"Snimak ekrana — sada (F12)": "Screenshot — now (F12)",
+"Snimak nije uspio: {0}": "Screenshot failed: {0}",
+"Snimci ekrana idu u: {0}": "Screenshots go to: {0}",
+"📷 Snimak: {0}": "📷 Screenshot: {0}"
 }

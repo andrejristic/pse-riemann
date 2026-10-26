@@ -166,6 +166,7 @@ STRINGS = [
 "Editor",
 "Editor — dnevnik danas",
 "Fireworks AI",
+"Folder za snimke ekrana",
 "Funkcija",
 "GGUF {0}{1}",
 "GGUF: hash se poredi sa objavljenim i upisuje kao deklaracija. Vlastita adresa: postaje deklarisana tek kad je potvrdiš. Cloud preset: ključ ide samo njegovom hostu (allowlista).",
@@ -254,6 +255,7 @@ STRINGS = [
 "Ostavi za kasnije…",
 "Ostavljeno: {0}",
 "Osvježi",
+"Otvori folder",
 "Otvori red odluka",
 "Ova mašina: {0} · niti {1} · kontekst {2} · rok {3:.0f} s{4}",
 "Ovdje stiže transkripcija. Možeš i sam pisati — snima se i bez modela.\nNepročitani simboli dolaze kao \\text{???} umjesto pogađanja.",
@@ -332,6 +334,11 @@ STRINGS = [
 "Skeptik mora biti drugi model od glavnog.",
 "Skeptik:",
 "Sljedeća misija ⟳",
+"Snimak ekrana (F12 = aktivni prozor, Shift+F12 = samo aktivni tab)",
+"Snimak ekrana — folder…",
+"Snimak ekrana — sada (F12)",
+"Snimak nije uspio: {0}",
+"Snimci ekrana idu u: {0}",
 "Spreman. Pitaj o ζ, ili traži da napravim karticu.\n\nZapamti: nikad neću tvrditi dokaz RH, i svaka tvrdnja iz literature mora nositi izvor.",
 "Stavke koje čekaju tvoju odluku:",
 "Tabla",
@@ -610,5 +617,6 @@ STRINGS = [
 "⬇ Skupi",
 "💾 Sačuvaj",
 "💾 Snimi u bilješku",
-"📖 Pročitaj rad"
+"📖 Pročitaj rad",
+"📷 Snimak: {0}"
 ]

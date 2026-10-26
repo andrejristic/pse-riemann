@@ -322,8 +322,15 @@ Veličina prozora i svih panela se **pamti između pokretanja**.
 
 ## 14. Prečice
 
-`Ctrl+Shift+P` paleta komandi · `Ctrl+K` prekidač za online AI · `Ctrl+S` snimi u editoru · `Ctrl+1/2/3` Plan/Lab/Corpus
-· `Ctrl +/-/0` veličina teksta · `Enter` šalje u chatu, `Shift+Enter` novi red
+`Ctrl+Shift+P` paleta komandi · `Ctrl+K` prekidač za online AI · `Ctrl+S` snimi u editoru · `Ctrl+1/2/3` Pregled/Misije/Čeka tvoju odluku
+· `Ctrl +/-/0` veličina teksta · `Enter` šalje u chatu, `Shift+Enter` novi red · **`F12` snimak ekrana** (aktivni prozor) · `Shift+F12` snimak samo aktivnog taba
+
+**Snimak ekrana u bilo kom trenutku.** Imaš tri načina:
+- **F12** snima prozor koji je trenutno ispred (glavni prozor ili otvoreni dijalog);
+- **Shift+F12** snima samo aktivni tab;
+- dugme **📷** u gornjoj traci snima cijeli glavni prozor.
+
+Slika (PNG, ime sa datumom i vremenom, npr. `pse-riemann_2026-10-26_14-05-31_Grafovi.png`) ide u `~/Pictures/PSE-Riemann/`. Drugi folder biraš u paleti: `Ctrl+Shift+P` → „Snimak ekrana — folder…“. U statusnoj traci se pojavi putanja i dugme „Otvori folder“, bez iskačućeg prozora. U dnevnik se upisuje samo ime fajla, ne i slika.
 
 ---
 
