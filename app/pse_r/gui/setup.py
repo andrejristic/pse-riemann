@@ -84,6 +84,7 @@ class ModelPicker(QWidget):
         h.addWidget(sc, 1)
 
         self.key = QLineEdit(); self.key.setEchoMode(QLineEdit.Password)
+        self.key.editingFinished.connect(self._key_entered)      # key typed → real model list
         self.model = QComboBox(); self.model.setEditable(True)
         self.c_name = QLineEdit(); self.c_url = QLineEdit(); self.c_url.setPlaceholderText(
             "https://moj-server.example/v1")
@@ -130,8 +131,15 @@ class ModelPicker(QWidget):
             self.key.setText(SEC.store().get(pr.key_name))
             self.key.setPlaceholderText(pr.key_name)
             f.addRow(tr("ključ:"), self.key)
-            self.model.clear(); self.model.addItem(pr.default_model)
-            self.model.setCurrentText(pr.default_model)
+            # live test: the menu offered ONE model — now the saved choice first, and the
+            # server's real list loads by itself as soon as there is a key
+            from .. import settings as _S
+            saved = (_S.get("models") or {}).get(k) or pr.default_model
+            self.model.clear()
+            self.model.addItems(list(dict.fromkeys([saved, pr.default_model])))
+            self.model.setCurrentText(saved)
+            if self.key.text().strip():
+                self._load_models(quiet=True)
             f.addRow(tr("model:"), self.model)
             w = QWidget(); w.setLayout(f); d.addWidget(w)
             row = QHBoxLayout()
@@ -198,19 +206,30 @@ class ModelPicker(QWidget):
             SEC.store().set(pr.key_name, self.key.text().strip())
         return pr
 
-    def _load_models(self):
+    def _key_entered(self):
+        if self.current() in P.PRESETS and self.key.text().strip():
+            self._load_models(quiet=True)
+
+    def _load_models(self, quiet: bool = False):
         pr = self._with_key()
-        self.status.setText(tr("… pitam server za spisak modela"))
+        if not quiet:
+            self.status.setText(tr("… pitam server za spisak modela"))
         from ..llm import backend as B
+        from ..llm.router import chat_models
 
         def done(res):
             if isinstance(res, Exception):
-                self.status.setText(f"⛔ {str(res)[:240]}")
+                if not quiet:
+                    self.status.setText(f"⛔ {str(res)[:240]}")
+                return
+            names = chat_models(res)
+            if not names:
                 return
             cur = self.model.currentText()
-            self.model.clear(); self.model.addItems(res or [pr.default_model])
-            self.model.setCurrentText(cur if cur in res else pr.default_model)
-            self.status.setText(tr("✅ {0} modela").format(len(res)))
+            self.model.clear()
+            self.model.addItems(names)
+            self.model.setCurrentText(cur if cur in names else (pr.default_model if pr.default_model in names else names[0]))
+            self.status.setText(tr("✅ {0} modela sa servera — izaberi pa „Testiraj“").format(len(names)))
         _run_bg(self, lambda: B.list_models(pr.provider), done)
 
     def _test(self):
@@ -218,10 +237,18 @@ class ModelPicker(QWidget):
         self.status.setText(tr("… jedan pravi poziv"))
         from ..llm.router import router
 
+        model = self.model.currentText().strip()
+
         def done(res):
             ok, msg = (False, str(res)) if isinstance(res, Exception) else res
             self.status.setText((tr("✅ radi · ") if ok else "⛔ ") + msg[:240])
-        _run_bg(self, lambda: router().ping(pr.provider), done)
+            from .. import settings as _S                # a recovered model shows in the menu
+            got = (_S.get("models") or {}).get(pr.provider)
+            if ok and got and got != self.model.currentText():
+                if self.model.findText(got) < 0:
+                    self.model.addItem(got)
+                self.model.setCurrentText(got)
+        _run_bg(self, lambda: router().ping(pr.provider, model), done)
 
     def _pick_gguf(self):
         p, _ = QFileDialog.getOpenFileName(self, tr("Izaberi GGUF"), str(Path.home()),

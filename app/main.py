@@ -47,6 +47,8 @@ def _boot() -> None:
     MIS.seed_third()                  # mission 3: the complex version (round 3, item 32)
     from pse_r.shared_lib import ideas as IDEAS
     IDEAS.seed_geometric_langlands()  # geometric Langlands only as INSPIRACIJA (item 28)
+    if config.MIGRATED:                   # the vault moved to the visible results folder
+        J.log(J.SYSTEM, "app", {"event": "vault_moved", "moves": config.MIGRATED})
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,
                             "profile": config.PROFILE})
 

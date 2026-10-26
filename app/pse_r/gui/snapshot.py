@@ -19,6 +19,9 @@ KEY = "screenshot_dir"
 
 
 def default_dir() -> Path:
+    from .. import config
+    if config.is_packaged() and config.RESULTS_DIR != config.VAULT:
+        return config.RESULTS_DIR / "snimci ekrana"          # beside the results (Andrej)
     pics = None
     try:
         out = subprocess.run(["xdg-user-dir", "PICTURES"], capture_output=True, text=True,

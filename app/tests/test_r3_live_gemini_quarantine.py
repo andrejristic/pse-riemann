@@ -59,3 +59,48 @@ def test_keyed_call_answered_with_html_200_is_quarantined_and_asks_operator(clea
         EG.egress().request("GET", f"https://{HOST}/")         # the message says where to go
     store().decide(items[0]["id"], True)
     assert not clean.is_quarantined(HOST)
+
+
+# ---- finding 4: Groq answered 404 — a retired default model --------------------- #
+def test_ping_recovers_from_a_retired_model(monkeypatch):
+    from pse_r.llm import router as R
+    from pse_r import settings as S
+    tried = []
+
+    def fake_once(self, provider, model):
+        tried.append(model)
+        if model == "llama-3.3-70b-versatile":
+            raise EG.EgressBlocked("api.groq.com: HTTP 404: model_not_found")
+        return type("Rep", (), {"text": "OK"})()
+    monkeypatch.setattr(R.Router, "_ping_once", fake_once)
+    monkeypatch.setattr(R.B, "list_models", lambda p: ["whisper-large-v3", "llama-guard-4-12b",
+                                                       "llama-4-maverick-17b", "llama-3.3-70b-versatile-2",
+                                                       "gemma2-9b-it"])
+    monkeypatch.setattr(R.Router, "models", {"groq": "llama-3.3-70b-versatile"}, raising=False)
+    ok, msg = R.Router.ping(R.Router.__new__(R.Router), "groq")
+    assert ok and "povučen" in msg and tried[-1] == "llama-3.3-70b-versatile-2"
+    assert (S.get("models") or {}).get("groq") == "llama-3.3-70b-versatile-2"
+
+
+def test_pick_model_never_speech_or_guard():
+    from pse_r.llm.router import pick_model
+    assert pick_model(["whisper-large-v3", "llama-guard-4", "models/gemini-2.5-pro"], "gemini-2.5-flash") == "gemini-2.5-pro"
+    assert pick_model(["whisper-1"], "x") == ""
+
+
+# ---- finding 5: one model offered; "Testiraj" ignored the chosen model ------------ #
+def test_ping_tests_the_chosen_model_and_remembers_it(monkeypatch):
+    from pse_r.llm import router as R
+    from pse_r import settings as S
+    seen = []
+    monkeypatch.setattr(R.Router, "_ping_once",
+                        lambda self, p, m: seen.append(m) or type("Rep", (), {"text": "OK"})())
+    ok, _ = R.Router.ping(R.Router.__new__(R.Router), "openrouter", "deepseek/deepseek-v4.1")
+    assert ok and seen == ["deepseek/deepseek-v4.1"]
+    assert (S.get("models") or {}).get("openrouter") == "deepseek/deepseek-v4.1"
+
+
+def test_chat_models_filters_and_unprefixes():
+    from pse_r.llm.router import chat_models
+    assert chat_models(["models/gemini-2.5-pro", "models/text-embedding-004", "whisper-large-v3",
+                        "llama-3.3-70b", "llama-3.3-70b"]) == ["gemini-2.5-pro", "llama-3.3-70b"]

@@ -1,6 +1,6 @@
 [project]
 name = "pse-riemann"
-version = "0.2.0rc1"
+version = "0.2.0rc2"
 description = "PSE Riemann: a PSE-governed workbench around the Riemann zeta function."
 license = "GPL-3.0-or-later"
 authors = [{ name = "Andrej Ristic" }]

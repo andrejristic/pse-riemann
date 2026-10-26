@@ -134,6 +134,7 @@ class MainWindow(QMainWindow):
         self.topbar.toggle_online.connect(self.toggle_online_ai)
         self.topbar.toggle_lang.connect(self.toggle_language)
         self.topbar.snapshot.connect(lambda: self.snapshot("main"))
+        self.topbar.open_results.connect(self.open_results)
         central = QWidget()
         cv = QVBoxLayout(central)
         cv.setContentsMargins(0, 0, 0, 0)
@@ -290,6 +291,7 @@ class MainWindow(QMainWindow):
             "Chat — očisti kontekst": self.chat.clear_context,
             "Prikaz — veličina interfejsa (restart)": self.set_ui_scale,
             "Snimak ekrana — sada (F12)": lambda: self.snapshot("main"),
+            "Rezultati — otvori folder": self.open_results,
             "Snimak ekrana — folder…": self._choose_shot_folder,
             "Prikaz — tekst veći (Ctrl +)": lambda: self.zoom(+0.8),
             "Prikaz — tekst manji (Ctrl -)": lambda: self.zoom(-0.8),
@@ -479,6 +481,15 @@ class MainWindow(QMainWindow):
         self._shot_open.show()
         QTimer.singleShot(15000, self._shot_open.hide)
         return p
+
+    def open_results(self):
+        """📂: the folder with everything the app produced (Andrej, live test)."""
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        from .. import config
+        config.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(config.RESULTS_DIR)))
+        self.statusBar().showMessage(tr("Rezultati: {0}").format(config.RESULTS_DIR), 10000)
 
     def _open_shot_folder(self):
         from PySide6.QtCore import QUrl

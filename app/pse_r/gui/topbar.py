@@ -37,6 +37,7 @@ class TopBar(QFrame):
     toggle_online = Signal()
     toggle_lang = Signal()
     snapshot = Signal()
+    open_results = Signal()
 
     def __init__(self, font_pt: float, parent=None):
         super().__init__(parent)
@@ -82,6 +83,10 @@ class TopBar(QFrame):
         self.shot_btn.setToolTip(tr("Snimak ekrana (F12 = aktivni prozor, Shift+F12 = samo aktivni tab)"))
         self.shot_btn.clicked.connect(self.snapshot.emit)
         h.addWidget(self.shot_btn)
+        self.results_btn = QPushButton("📂")
+        self.results_btn.setToolTip(tr("Otvori folder sa rezultatima"))
+        self.results_btn.clicked.connect(self.open_results.emit)
+        h.addWidget(self.results_btn)
         self.queue_btn = QPushButton("")
         self.queue_btn.setProperty("kind", "primary")
         self.queue_btn.clicked.connect(self.open_queue.emit)

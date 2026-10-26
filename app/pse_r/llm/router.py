@@ -177,17 +177,67 @@ class Router:
         return {"survives": True, "severity": "low",
                 "attack": f"(neparsabilan odgovor skeptika: {txt[:120]})", "ran": False}
 
-    def ping(self, provider: str) -> tuple[bool, str]:
-        """Wizard connectivity test: one tiny real call."""
+    def _ping_once(self, provider: str, model: str):
+        bk = B.make(provider, model)
+        r = bk.chat([B.Msg("user", "Odgovori samo sa: OK")],
+                    system="Odgovaraj jednom riječju.", max_tokens=16, effort="low")
+        budget().record(provider, r.model, "ping", r.in_tokens, r.out_tokens)
+        return r
+
+    def ping(self, provider: str, model: str = "") -> tuple[bool, str]:
+        """Wizard connectivity test: one tiny real call. If the provider answers 404
+        (the model was retired — live test: Groq), ask the server for its real models,
+        pick one, try once more, and remember it (settings "models")."""
+        model = model or self.models.get(provider, "")
         try:
-            bk = B.make(provider, self.models.get(provider, ""))
-            r = bk.chat([B.Msg("user", "Odgovori samo sa: OK")],
-                        system="Odgovaraj jednom riječju.", max_tokens=16,
-                        effort="low")
-            budget().record(provider, r.model, "ping", r.in_tokens, r.out_tokens)
+            r = self._ping_once(provider, model)
+            if model:                                    # the model that answered is remembered
+                from .. import settings as S
+                S.set_("models", {**(S.get("models") or {}), provider: model})
             return True, (r.text or "").strip()[:40] or "(prazan odgovor)"
         except Exception as e:                       # noqa: BLE001 — surfaced to UI
-            return False, str(e)[:300]
+            first = str(e)
+            if "HTTP 404" not in first:
+                return False, first[:300]
+        try:
+            names = B.list_models(provider)
+        except Exception as e:                       # noqa: BLE001
+            return False, (f"{first[:200]} — a lista modela nije dostupna: {e}")[:300]
+        pick = pick_model(names, model or (B.P.get(provider).model if B.P.get(provider) else ""))
+        if not pick:
+            return False, f"{first[:200]} — server ne nudi odgovarajući model"[:300]
+        try:
+            r = self._ping_once(provider, pick)
+        except Exception as e:                       # noqa: BLE001
+            return False, f"model „{model}“ ne postoji; probao „{pick}“: {str(e)[:150]}"
+        from .. import settings as S
+        S.set_("models", {**(S.get("models") or {}), provider: pick})
+        return True, f"OK — model „{model}“ je povučen, izabran „{pick}“ (zapamćeno)"
+
+
+_SKIP = ("whisper", "guard", "tts", "embed", "moderation", "audio", "vision-preview", "distil")
+
+
+def chat_models(names: list) -> list:
+    """Only the models one can chat with (no speech, guard, embedding …), sorted."""
+    out = [n.split("/", 1)[1] if n.startswith("models/") else n for n in names]
+    return sorted({n for n in out if n and not any(k in n.lower() for k in _SKIP)})
+
+
+def pick_model(names: list, wanted: str = "") -> str:
+    """The closest chat model the server really offers: same family as `wanted`,
+    preferring larger / "versatile" ones; never speech, guard or embedding models."""
+    cand = [n.split("/", 1)[1] if n.startswith("models/") else n for n in names]
+    cand = [n for n in cand if n and not any(k in n.lower() for k in _SKIP)]
+    if not cand:
+        return ""
+    stem = (wanted or "").lower().split("-")[0]
+
+    def score(n):
+        low = n.lower()
+        return ((stem and low.startswith(stem)) * 4 + ("versatile" in low) * 2 +
+                ("70b" in low or "large" in low or "pro" in low) * 2 + ("instant" in low) * -1)
+    return sorted(cand, key=lambda n: (-score(n), n))[0]
 
 
 class _ModelOverrides(dict):

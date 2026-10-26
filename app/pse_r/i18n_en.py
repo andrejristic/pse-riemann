@@ -696,5 +696,9 @@ EN = {
 "Sastavljam u pozadini (lab run-ovi koji fale, kapija, izvori, skeptik). Tekst se otvori kad bude gotov.": "Assembling in the background (missing lab runs, gate, sources, skeptic). The text opens when it is ready.",
 "Nije zapisano: {0}": "Not written: {0}",
 "Radni tekst (misije 2 i 3) — NAŠE-NERECENZIRANO": "Working paper (missions 2 and 3) — OURS-UNREVIEWED",
-"Zapečaćeno: {0} · čeka te u „Čeka tvoju odluku“": "Sealed: {0} · waiting for you in “Awaiting your decision”"
+"Zapečaćeno: {0} · čeka te u „Čeka tvoju odluku“": "Sealed: {0} · waiting for you in “Awaiting your decision”",
+"Otvori folder sa rezultatima": "Open the results folder",
+"Rezultati — otvori folder": "Results — open folder",
+"Rezultati: {0}": "Results: {0}",
+"✅ {0} modela sa servera — izaberi pa „Testiraj“": "✅ {0} models from the server — pick one, then “Test”"
 }
