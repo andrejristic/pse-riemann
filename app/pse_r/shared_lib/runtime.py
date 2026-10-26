@@ -75,7 +75,7 @@ def keepers_round() -> dict:
         findings = HRM.to_file(ev["path"], via_gate=False,
                                expected_hash=(rec or {}).get("sha256", "x"),
                                actual_hash="", sealed=True)
-        _infect(f"nepoznat-pisac:{Path(ev['path']).name}", findings, release=False)
+        _judge(f"nepoznat-pisac:{Path(ev['path']).name}", findings, release=False)
     return {"reports": n, "keepers": keepers, "sealed_now": newly,
             "tampered": [e["path"] for e in events]}
 
@@ -101,6 +101,32 @@ def write_final_report(name: str, text: str, actor: Optional[str] = None) -> Pat
 # --------------------------------------------------------------------------- #
 # the three harms → healing
 # --------------------------------------------------------------------------- #
+def _judge(agent: str, findings: list, release: bool = True):
+    """Item 21: every output is observed; only 3-of-3 (posterior + CUSUM +
+    a hard sign) is an infection; posterior + CUSUM alone is a reversible hold."""
+    from ..guardian import diagnosis as DG
+    v = DG.diagnoser().observe(agent, findings)
+    if v.level != "clean":
+        J.log(J.HEAL, "physician", {"event": "diagnosis", "agent": agent, "level": v.level,
+                                    "p_sick": v.p_sick, "confidence": v.confidence,
+                                    "form": v.form, "cusum": v.cusum,
+                                    "confirmed": v.confirmed, "reasons": v.reasons,
+                                    "signs": [f.sign for f in findings]},
+              subject=agent, verdict=v.level)
+    if v.level == "infected":
+        _infect(agent, findings, release)
+    elif v.level == "hold" and agent not in _contained:
+        from ..guardian.healing import healer
+        case = healer().hold(agent, findings)
+        _contained[agent] = case.signature
+        if release:
+            store().propose(RELEASE_KIND, f"Pusti agenta [{agent}] iz zadržavanja",
+                            {"agent": agent, "harms": [f.sign for f in findings],
+                             "evidence": [f.evidence[:200] for f in findings]},
+                            proposer="physician")
+    return v
+
+
 def _infect(agent: str, findings: list, release: bool = True):
     if not findings:
         return None
@@ -128,6 +154,8 @@ def _on_release(item: dict, approved: bool) -> None:
         healer().recover(case)
         healer().immunize(case)
     _contained.pop(agent, None)
+    from ..guardian import diagnosis as DG
+    DG.diagnoser().reset(agent)
 
 
 def is_contained(agent: str) -> bool:
@@ -152,8 +180,7 @@ def check_output(agent: str, text: str, *, sources: Optional[list] = None,
         if claims:
             findings.append(HRM.Finding(HRM.HUMAN, "tvrdnja-o-dokazu", sentence[:200],
                                         HRM.HIGH))
-    if findings:
-        _infect(agent, findings)
+    _judge(agent, findings)
     return findings
 
 

@@ -19,6 +19,7 @@
 | 2026-10-25 | 13 · lokalni model samo prema ovom računaru (P8) | ✅ | testovi + živi DeepSeek (0 lažnih blokada) | `llm/local_only.py`: audit hook (socket.connect/getaddrinfo) za nit koja izvodi GGUF poziv; sve osim loopbacka odbijeno + prijetnja u dnevniku |
 | 2026-10-25 | 12 · prekidač za online AI | ✅ (meni ikone u traci: stavka 19) | pytest 152/152 | `guardian/killswitch.py`: zatvara put u egress-u (kapija), prekida tokove u toku, sklanja ključeve iz memorije (po izboru briše iz secrets.json), prelazi na GGUF ili „bez AI“, preživljava restart, uključuje samo operater; samo-okidanje na „→ ∞“ broja/veličine/troška poziva + stavka sa linkovima za opoziv ključeva. Dugme u gornjoj traci (crveno kad je isključeno) + **Ctrl+K**; paleta komandi prebačena na **Ctrl+Shift+P** (vodiči ažurirani) |
 | 2026-10-25 | 8 · početno podešavanje | ✅ | pytest 157/157 (exit 0), snimci `docs/screenshots/r3_setup_*` | `setup_flow.py` (logika, testirana) + `gui/setup.py` (prozor): 1 ime operatera · 2 glavni AI (10 provajdera sa ✓/✗ i savjetom o naplati, „Učitaj prave modele“, „Testiraj“, vlastita adresa, GGUF sa bilo kog mjesta, „bez AI“ sa spiskom šta radi/ne radi) · 3 skeptik (drugi model ili bez) · 4 deklaracije (GGUF hash vs objavljeni, adresa = prijedlog koji potvrđuješ) · 5 čuvar pri prijavi + email; kasnije iz palete „Podešavanje“. Nađeno snimcima/testom: polja su se brisala pri prelasku između opcija (pad prozora) — popravljeno; lista odsječena — popravljeno |
+| 2026-10-25 | 21 · statistički jača dijagnoza (S5) | ✅ | pytest 194/194 | `guardian/diagnosis.py`: posterior nad oblicima H/N/B/C/S (+ zaboravljanje), CUSUM, potvrda tvrdim znakom; zaraza = 3-od-3 → Fizičar; posterior+CUSUM bez potvrde = povratno zadržavanje (`Healer.hold`); inače samo zapis. Svaki izlaz se posmatra (i čisti). Test: zdrav model sa povremenim „broj bez izvora“ u 60 izlaza → 0 zaraza (ranije: svaki takav izlaz = zaraza); injekcija/izmijenjen pečat/procureo ključ/tvrdnja o dokazu RH → zaraza odmah |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 | 2026-10-25 | 14 · SSH čuvar | ✅ | pytest 184/184; živo na ovom računaru | `guardian/ssh/`: čita journal (grupa adm, bez root-a) ili auth.log otporno na rotaciju i skraćivanje (nađeno testom: skraćen pa dopunjen fajl iste dužine gubio liniju — popravljeno provjerom početka fajla); tri ključa iz master §10.6 (identitet = IP, klaster = ime koje pokušaj nosi, cilj = napadnuti nalog ili sshd), svaki pod „→ ∞“; nivo 1 = zapis + pojačano praćenje, nivo 2 (sva tri) = prekid sesije + blokada 24 h; zapis po izvoru u SHARED_LIB; theta mjerena (ne podešavana), zdrava ~30, ravna dok saobraćaj teče → zamjena jedinice. Živo: 3 lažne prijave prema 127.0.0.1 → 6 događaja pročitano iz journala, sva tri ključa „→ ∞“, loopback ispravno odbijen kao zaštićen |
@@ -30,9 +31,9 @@
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** Faza 5 — stavka 21 (statistički jača dijagnoza: CUSUM, posterior, 3-od-3).
+**Sljedeće:** stavka 22 (budžeti otkrivanja + takmičenje hipoteza, P7).
 
-**Preostalo:** oko 55–97 h.
+**Preostalo:** oko 52–93 h.
 
 ---
 

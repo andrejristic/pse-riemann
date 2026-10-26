@@ -91,6 +91,15 @@ class Healer:
         self._contain(case)
         return case
 
+    def hold(self, agent: str, findings: list) -> Case:
+        """Reversible containment only (item 21: posterior + CUSUM, NOT confirmed
+        by a hard sign) — no treatment ladder, released by the operator."""
+        case = Case(agent=agent, findings=list(findings), signature=_signature(findings))
+        self.cases[agent] = case
+        self._contain(case)
+        self._log(case, "held", {"why": "posterior+CUSUM bez potvrde tvrdim znakom"})
+        return case
+
     def _contain(self, case: Case) -> None:
         A.require_auto("contain")
         case.stage = CONTAIN
