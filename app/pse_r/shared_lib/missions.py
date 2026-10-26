@@ -48,12 +48,26 @@ _SCHEMA = [
     "CREATE INDEX IF NOT EXISTS idx_steps_mission ON mission_steps(mission_id)",
 ]
 
+# Round 3, items 26–27: every mission has a GOAL the operator chooses (always in the
+# Missions menu). The app may only PROPOSE a change (human queue), never make it.
+GOALS = {1: "mapa prenosivosti (podrazumijevano)", 2: "E_d i T_d uslovno (pod pretpostavkom)",
+         3: "samo praćenje (kartice i ideje)"}
+GOAL_KIND = "mission-goal"
+SECOND_ID = "misija-visi-stepen"
+
+
+def _migrate() -> None:
+    cols = {r["name"] for r in store().rows("PRAGMA table_info(missions)")}
+    if "goal" not in cols:
+        store().execute("ALTER TABLE missions ADD COLUMN goal INTEGER NOT NULL DEFAULT 1")
+
 FIRST_ID = "misija-kontinualna-transformacija"
 TARGETS = (0.87, 5 / 6, 3 / 4, 1 / 2)
 
 
 def _ensure() -> None:
     store().ensure(_SCHEMA)
+    _migrate()
 
 
 def create(mid: str, title: str, question: str, state: str,
@@ -149,3 +163,73 @@ def seed_first() -> str:
                "kontinualna; proširenja se približavaju do zidova (~0.870 / 5/6), "
                "ne prema 1/2. Svaki novi rad kroz vrata dodaje tačku."),
         best_B=None)
+
+
+# --------------------------------------------------------------------------- #
+# goals (round 3, items 26–27)
+# --------------------------------------------------------------------------- #
+def set_goal(mid: str, goal: int, reason: str = "") -> None:
+    """Only the operator changes a mission's goal; journalled with the name."""
+    _ensure()
+    who = OP.require_operator()
+    if goal not in GOALS:
+        raise ValueError(f"cilj mora biti 1, 2 ili 3 (ne {goal})")
+    m = get(mid)
+    if m is None:
+        raise KeyError(mid)
+    store().execute("UPDATE missions SET goal=?, updated=? WHERE id=?", (goal, time.time(), mid))
+    J.log(J.MISSION, who, {"event": "goal_changed", "id": mid, "from": m.get("goal", 1),
+                           "to": goal, "reason": reason[:300]}, subject=mid, verdict="goal")
+
+
+def propose_goal(mid: str, goal: int, why: str, proposer: str = "system") -> str:
+    """The app's only way to change a goal: ask the operator."""
+    if goal not in GOALS:
+        raise ValueError("cilj mora biti 1, 2 ili 3")
+    for it in store().open_items(GOAL_KIND):
+        if it["payload"].get("mission") == mid and it["payload"].get("goal") == goal:
+            return it["id"]
+    return store().propose(GOAL_KIND, f"Prijedlog: cilj misije „{mid}“ → {goal} ({GOALS[goal]})",
+                           {"mission": mid, "goal": goal, "why": why[:1000]}, proposer)
+
+
+def _on_goal_decision(item: dict, approved: bool) -> None:
+    if approved:
+        set_goal(item["payload"]["mission"], int(item["payload"]["goal"]),
+                 "odobren prijedlog: " + item["payload"].get("why", "")[:200])
+
+
+def install_hooks() -> None:
+    store().on_decision(GOAL_KIND, _on_goal_decision)
+
+
+# The transfer map of mission 2 (goal 1): every step of the 7/8 proof and whether
+# it carries over to higher degree. First draft from research/langlands-2026-10
+# (§4) — our reading, unreviewed; each later decision is a mission step.
+TRANSFER_MAP = [
+    ("Möbiusove sume nad karakterima", "vjerovatno se prenosi (koeficijenti 1/L)",
+     "izvor-large-sieve-gln-2508-14888"),
+    ("Gaussove sume → kubna theta (Kubota/Patterson)", "nema poznatog analoga — glavna prepreka",
+     "tema-visi-stepen"),
+    ("kvadratni large sieve", "GL_n large sieve postoji — prenosi se uz gubitak (utiče na eksponent)",
+     "izvor-large-sieve-gln-2508-14888"),
+    ("funkcionalna jednačina / analitičko produženje",
+     "Sym^n: Newton–Thorne (recenzirano); Artin: pretpostavka", "izvor-newton-thorne-i"),
+]
+
+
+def seed_second() -> str:
+    """Mission 2 (round 3, item 27). Idempotent."""
+    _ensure()
+    if get(SECOND_ID) is not None:
+        return SECOND_ID
+    create(SECOND_ID, "Viši stepen: prenosi li se 7/8?",
+           "Prenosi li se metoda 7/8 (Liu, Xu–Sang) na L-funkcije višeg stepena (GL(2), Artin)? "
+           "Ako da, kako se eksponent mijenja sa stepenom d i postoji li T_d između porodica? "
+           "Vrsta rezultata: poluravan bez nula (ne miješati sa udjelom na pravoj).",
+           state="Otvoreno pitanje. Prvi nacrt mape prenosivosti (NAŠE-NERECENZIRANO): "
+                 "glavna prepreka je korak Gaussove sume → kubna theta.")
+    for step_name, verdict, ref in TRANSFER_MAP:
+        step(SECOND_ID, f"korak dokaza: {step_name}", verdict,
+             "mapa prenosivosti u izradi (cilj 1)", ref=ref)
+    return SECOND_ID

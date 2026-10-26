@@ -46,9 +46,39 @@ class MissionsTab(QWidget):
         top.addWidget(button(tr("Izvezi izvještaj misije"), self._export_report))
         top.addWidget(button(tr("Osvježi"), self.refresh))
         v.addLayout(top)
+        # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
+        goal = QHBoxLayout()
+        goal.addWidget(QLabel(tr("Cilj misije:")))
+        self.cb_mission = QComboBox()
+        self.cb_goal = QComboBox()
+        for g, txt in MIS.GOALS.items():
+            self.cb_goal.addItem(f"{g} · {tr(txt)}", g)
+        self.cb_mission.currentIndexChanged.connect(self._show_goal)
+        goal.addWidget(self.cb_mission, 1)
+        goal.addWidget(self.cb_goal, 1)
+        goal.addWidget(button(tr("Primijeni cilj"), self._apply_goal))
+        v.addLayout(goal)
         v.addWidget(hline())
         self.view = MarkdownView()
         v.addWidget(self.view, 1)
+        self.refresh()
+
+    def _show_goal(self):
+        mid = self.cb_mission.currentData()
+        m = MIS.get(mid) if mid else None
+        if m:
+            i = self.cb_goal.findData(int(m.get("goal") or 1))
+            self.cb_goal.setCurrentIndex(max(0, i))
+
+    def _apply_goal(self):
+        mid, g = self.cb_mission.currentData(), self.cb_goal.currentData()
+        if not mid:
+            return
+        try:
+            MIS.set_goal(mid, int(g), "izbor operatera u meniju misije")
+        except Exception as e:                       # noqa: BLE001 — shown, nothing changed
+            QMessageBox.warning(self, tr("Cilj misije"), str(e))
+            return
         self.refresh()
 
     def _arxiv_now(self):
@@ -77,12 +107,22 @@ class MissionsTab(QWidget):
     def refresh(self):
         md = [tr("# Misije"), ""]
         missions = MIS.all_missions()
+        if hasattr(self, "cb_mission"):
+            cur = self.cb_mission.currentData()
+            self.cb_mission.blockSignals(True)
+            self.cb_mission.clear()
+            for m in missions:
+                self.cb_mission.addItem(m["title"], m["id"])
+            self.cb_mission.setCurrentIndex(max(0, self.cb_mission.findData(cur)))
+            self.cb_mission.blockSignals(False)
+            self._show_goal()
         if not missions:
             md.append(tr("_Nema misija._"))
         for m in missions:
             best = "—" if m["best_B"] is None else f"{m['best_B']:.12f}"
             md += [f"## {m['title']}", "", tr("**Pitanje.** {0}").format(m['question']), "",
                    tr("**Front (najniže B).** {0}").format(best), "",
+                   tr("**Cilj.** {0}").format(tr(MIS.GOALS.get(int(m.get("goal") or 1), ""))), "",
                    tr("**Stanje.** {0}").format(m['state']), "", tr("**Koraci.**")]
             full = MIS.get(m["id"])
             steps = full["steps"] if full else []

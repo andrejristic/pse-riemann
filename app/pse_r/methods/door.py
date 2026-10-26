@@ -91,6 +91,13 @@ def _on_decision(item: dict, approved: bool) -> None:
     who = item.get("decided_by", "operator")
     _write_method_card(pack, item["payload"].get("result", {}), who)
     mission_id = item["payload"].get("mission_id")
+    if mission_id and pack.result_kind != "poluravan":
+        # a proportion on the line or a density bound is NOT a point of the
+        # zero-free-half-plane front — never compared or drawn together (item 27)
+        J.log(METHOD_KIND, who, {"event": "not_on_front", "name": pack.name,
+                                 "result_kind": pack.result_kind}, subject=pack.name,
+              verdict="other_kind")
+        mission_id = None
     if mission_id:
         from ..shared_lib import missions as MIS
         res = item["payload"].get("result", {})

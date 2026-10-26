@@ -480,5 +480,12 @@ EN = {
 "Ova mašina: {0} · niti {1} · kontekst {2} · rok {3:.0f} s{4}": "This machine: {0} · threads {1} · context {2} · time limit {3:.0f} s{4}",
 "Dell OptiPlex · i5-6600 · 4 jezgra / 16 GB": "Dell OptiPlex · i5-6600 · 4 cores / 16 GB",
 "Acer · i3 · 2 jezgra / 4 niti / 16 GB": "Acer · i3 · 2 cores / 4 threads / 16 GB",
-"DeepSeek-R1-8B je na Aceru spor (procjena ~1 s po tokenu, dug <think>) — za brz rad izaberi cloud glavni AI, a DeepSeek ostavi kao skeptika.": "DeepSeek-R1-8B is slow on the Acer (estimate ~1 s per token, long <think>) — for fast work choose a cloud main AI and keep DeepSeek as the skeptic."
+"DeepSeek-R1-8B je na Aceru spor (procjena ~1 s po tokenu, dug <think>) — za brz rad izaberi cloud glavni AI, a DeepSeek ostavi kao skeptika.": "DeepSeek-R1-8B is slow on the Acer (estimate ~1 s per token, long <think>) — for fast work choose a cloud main AI and keep DeepSeek as the skeptic.",
+"Cilj misije:": "Mission goal:",
+"Primijeni cilj": "Apply goal",
+"Cilj misije": "Mission goal",
+"**Cilj.** {0}": "**Goal.** {0}",
+"mapa prenosivosti (podrazumijevano)": "transfer map (default)",
+"E_d i T_d uslovno (pod pretpostavkom)": "E_d and T_d conditionally (under an assumption)",
+"samo praćenje (kartice i ideje)": "tracking only (cards and ideas)"
 }

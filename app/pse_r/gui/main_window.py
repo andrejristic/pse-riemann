@@ -367,6 +367,8 @@ class MainWindow(QMainWindow):
         from ..methods import door as DOOR
         RT.install_hooks()
         DOOR.install_hooks()
+        from ..shared_lib import missions as _MIS
+        _MIS.install_hooks()
         self._online = None
         self._rt_timer = QTimer(self)
         self._rt_timer.timeout.connect(self._tick)

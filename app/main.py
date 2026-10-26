@@ -34,6 +34,14 @@ def _boot() -> None:
     DECL.install_hooks()
     M.install_hooks()                 # method-pack door: approval → register + card
     MIS.seed_first()                  # the standing QRH mission
+    MIS.install_hooks()               # goal proposals → operator (round 3, item 27)
+    try:
+        from pse_r.vault import langlands_seed as _LS
+        if not _LS.is_seeded():
+            _LS.seed()
+    except Exception as e:                              # noqa: BLE001
+        print("langlands seed:", e)
+    MIS.seed_second()                 # mission 2: higher degree (round 3, item 27)
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,
                             "profile": config.PROFILE})
 
