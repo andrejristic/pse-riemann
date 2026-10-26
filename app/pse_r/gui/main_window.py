@@ -37,7 +37,8 @@ class Palette(QDialog):
     def __init__(self, actions: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("Komande"))
-        self.resize(520, 400)
+        from .. import screen as SCR
+        SCR.fit(self, 520, 400, grow=False)
         self.actions_ = actions
         v = QVBoxLayout(self)
         self.q = QLineEdit()
@@ -102,7 +103,9 @@ class MainWindow(QMainWindow):
         self.tab_ideas.changed.connect(self.tab_missions.refresh)
         self.tab_ideas.changed.connect(self._ideas_badge)
         self.tab_queue.decided.connect(lambda: self.topbar.refresh())
-        self.tab_overview.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
+        self.tab_overview.open_queue.connect(lambda: self.tabs.setCurrentWidget(self._tab(self.tab_queue)))
+        from .widgets import scroll_wrap
+        self._wraps: dict = {}
         for w, name in ((self.tab_overview, tr("Pregled")),
                         (self.tab_missions, tr("Misije")), (self.tab_queue, tr("Čeka tvoju odluku")),
                         (self.tab_ideas, tr("Ideje")),
@@ -110,7 +113,8 @@ class MainWindow(QMainWindow):
                         (self.tab_corpus, tr("Corpus")),
                         (self.tab_board, tr("Tabla")), (self.tab_editor, tr("Editor")),
                         (self.tab_graph, tr("Graf")), (self.tab_guard, tr("Guardian"))):
-            self.tabs.addTab(w, tr(name))
+            self._wraps[w] = scroll_wrap(w)              # a narrow screen scrolls the page
+            self.tabs.addTab(self._wraps[w], tr(name))
         split.addWidget(self.tabs)
 
         self.chat = ChatPanel()
@@ -121,7 +125,7 @@ class MainWindow(QMainWindow):
         # Svarog layout: top bar with status pills above everything
         from .topbar import TopBar
         self.topbar = TopBar(self.font_pt)
-        self.topbar.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
+        self.topbar.open_queue.connect(lambda: self.tabs.setCurrentWidget(self._tab(self.tab_queue)))
         self.topbar.toggle_online.connect(self.toggle_online_ai)
         self.topbar.toggle_lang.connect(self.toggle_language)
         central = QWidget()
@@ -323,9 +327,9 @@ class MainWindow(QMainWindow):
                 pass
         # the remembered window must still fit THIS screen (laptop ↔ monitor)
         from .. import screen as SCR
-        scr = self.screen() or QApplication.primaryScreen()
-        if scr is not None:
-            av = scr.availableGeometry()
+        from PySide6.QtCore import QRect
+        av = QRect(*SCR.available())                     # the measured area (same as fit())
+        if True:
             fg = self.frameGeometry()
             if not restored or not SCR.fits(fg.width(), fg.height(), fg.x(), fg.y(), av):
                 if self.isMaximized():
@@ -358,7 +362,7 @@ class MainWindow(QMainWindow):
             self.refresh_status()
 
     def _save_active(self):
-        if self.tabs.currentWidget() is self.tab_editor:
+        if self.tabs.currentWidget() is self._tab(self.tab_editor):
             self.tab_editor._save()
 
     def open_setup(self):
@@ -378,7 +382,7 @@ class MainWindow(QMainWindow):
         if p is None:
             self.statusBar().showMessage(tr("nema kartice '{0}'").format(card_id), 4000)
             return
-        self.tabs.setCurrentWidget(self.tab_editor)
+        self.tabs.setCurrentWidget(self._tab(self.tab_editor))
         self.tab_editor.refresh()
         self.tab_editor.open_path(p)
 
@@ -418,6 +422,10 @@ class MainWindow(QMainWindow):
         self.topbar.refresh()
         self._ideas_badge()
 
+    def _tab(self, w):
+        """The tab page as the QTabWidget holds it (wrapped in a scroll area)."""
+        return self._wraps.get(w, w)
+
     def _ideas_badge(self):
         """Item 28: a small badge on the tab instead of pop-ups."""
         try:
@@ -425,7 +433,7 @@ class MainWindow(QMainWindow):
             n = IDEAS.badge()
         except Exception:                               # noqa: BLE001
             n = 0
-        i = self.tabs.indexOf(self.tab_ideas)
+        i = self.tabs.indexOf(self._tab(self.tab_ideas))
         self.tabs.setTabText(i, tr("Ideje") + (f" ({n})" if n else ""))
 
     def _check_net(self):

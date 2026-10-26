@@ -30,7 +30,7 @@ from ..shared_lib.store import store
 from ..methods import door as DOOR
 from ..methods import pack as PK
 from ..llm import selection as SEL
-from .widgets import MarkdownView, button, hline, small
+from .widgets import MarkdownView, button, flow_row, hline, short_combo, small
 
 
 class MissionsTab(QWidget):
@@ -40,39 +40,33 @@ class MissionsTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         v = QVBoxLayout(self)
-        top = QHBoxLayout()
-        top.addWidget(QLabel(tr("<b>Misije</b>")))
-        top.addStretch(1)
-        top.addWidget(button(tr("Provjeri arXiv sada"), self._arxiv_now))
-        top.addWidget(button(tr("Izvezi izvještaj misije"), self._export_report))
-        top.addWidget(button(tr("Osvježi"), self.refresh))
-        v.addLayout(top)
+        v.addWidget(flow_row(QLabel(tr("<b>Misije</b>")),
+                             button(tr("Provjeri arXiv sada"), self._arxiv_now),
+                             button(tr("Izvezi izvještaj misije"), self._export_report),
+                             button(tr("Osvježi"), self.refresh)))
         # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
-        goal = QHBoxLayout()
-        goal.addWidget(QLabel(tr("Cilj misije:")))
         self.cb_mission = QComboBox()
         self.cb_goal = QComboBox()
+        short_combo(self.cb_mission, 22)
+        short_combo(self.cb_goal, 18)
         for g, txt in MIS.GOALS.items():
             self.cb_goal.addItem(f"{g} · {tr(txt)}", g)
         self.cb_mission.currentIndexChanged.connect(self._show_goal)
-        goal.addWidget(self.cb_mission, 1)
-        goal.addWidget(self.cb_goal, 1)
-        goal.addWidget(button(tr("Primijeni cilj"), self._apply_goal))
-        v.addLayout(goal)
+        v.addWidget(flow_row(QLabel(tr("Cilj misije:")), self.cb_mission, self.cb_goal,
+                             button(tr("Primijeni cilj"), self._apply_goal)))
         # round 3, item 28a: one active mission; park the others "for later"
-        turn = QHBoxLayout()
         self.lb_active = QLabel("")
-        turn.addWidget(self.lb_active, 1)
-        turn.addWidget(button(tr("Pređi na izabranu"), self._switch_selected))
-        turn.addWidget(button(tr("Sljedeća misija ⟳"), self._switch_next))
-        turn.addWidget(button(tr("Ostavi za kasnije…"), self._park_active))
-        turn.addWidget(QLabel(tr("Dok čeka:")))
+        self.lb_active.setWordWrap(True)
         self.cb_bg = QComboBox()
+        short_combo(self.cb_bg, 16)
         for k, txt in MIS.BACKGROUND.items():
             self.cb_bg.addItem(tr(txt), k)
         self.cb_bg.activated.connect(self._apply_bg)
-        turn.addWidget(self.cb_bg)
-        v.addLayout(turn)
+        v.addWidget(self.lb_active)
+        v.addWidget(flow_row(button(tr("Pređi na izabranu"), self._switch_selected),
+                             button(tr("Sljedeća misija ⟳"), self._switch_next),
+                             button(tr("Ostavi za kasnije…"), self._park_active),
+                             QLabel(tr("Dok čeka:")), self.cb_bg))
         self._card_md = ""
         v.addWidget(hline())
         self.view = MarkdownView()

@@ -75,10 +75,13 @@ class OverviewTab(QWidget):
                   ("metode", tr("potvrđene metode")), ("pečati", tr("zapečaćeni izvještaji")),
                   ("kartice", tr("kartice")), ("provjerene", tr("provjerene (CITED/COMPUTED)")),
                   ("lab", tr("lab run-ova")), ("događaji", tr("događaja u dnevniku"))]
+        self._tiles = []
         for i, (key, lab) in enumerate(labels):
             f, val = _metric(lab)
             self.vals[key] = val
+            self._tiles.append(f)
             grid.addWidget(f, i // 4, i % 4)
+        self._grid, self._cols = grid, 4
         v.addLayout(grid)
 
         row = QHBoxLayout()
@@ -91,6 +94,23 @@ class OverviewTab(QWidget):
         b = button(tr("Otvori red odluka"), self.open_queue.emit, kind="primary")
         v.addWidget(b, 0, Qt.AlignRight)
         self.refresh()
+
+    def resizeEvent(self, ev):
+        """Screen fitting: 4 tiles per row when there is room, else 2 (or 1)."""
+        super().resizeEvent(ev)
+        tile = max(t.minimumSizeHint().width() for t in self._tiles) + self._grid.spacing()
+        cols = 4 if self.width() >= 4 * tile + 28 else 2 if self.width() >= 2 * tile + 28 else 1
+        if cols != self._cols:
+            self._cols = cols
+            for t in self._tiles:
+                self._grid.removeWidget(t)
+            for i, t in enumerate(self._tiles):
+                self._grid.addWidget(t, i // cols, i % cols)
+
+    def minimumSizeHint(self):
+        from PySide6.QtCore import QSize
+        tile = max(t.minimumSizeHint().width() for t in self._tiles) + self._grid.spacing()
+        return QSize(tile + 28, super().minimumSizeHint().height())
 
     def refresh(self) -> None:
         from ..shared_lib import views as V

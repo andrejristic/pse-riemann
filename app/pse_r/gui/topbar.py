@@ -48,7 +48,17 @@ class TopBar(QFrame):
         t = QLabel(tr("PSE Riemann"))
         t.setObjectName("title")
         h.addWidget(t)
-        h.addStretch(1)
+        # screen fitting: pills and buttons wrap onto a second line on a narrow screen
+        from .widgets import FlowLayout
+        from PySide6.QtWidgets import QSizePolicy, QWidget
+        box = QWidget()
+        sp = box.sizePolicy()
+        sp.setHorizontalPolicy(QSizePolicy.Expanding)
+        sp.setHeightForWidth(True)
+        box.setSizePolicy(sp)
+        flow = FlowLayout(box, 8)
+        h.addWidget(box, 1)
+        h = flow                              # the rest goes into the wrapping row
         self.pills: dict[str, QLabel] = {}
         for key in ("mission", "op", "theta", "vault", "budget", "guard", "main", "skeptic",
                     "limits"):

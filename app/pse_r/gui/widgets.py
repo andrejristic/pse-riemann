@@ -21,7 +21,7 @@ from pathlib import Path
 from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QImage, QTextDocument
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
-                               QSizePolicy, QTextBrowser, QVBoxLayout, QWidget)
+                               QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget)
 
 from .. import config
 
@@ -325,3 +325,103 @@ def dark_qss(font_pt: float = 19.0) -> str:
 
 # kept for callers that don't care about size
 DARK_QSS = dark_qss()
+
+
+# --------------------------------------------------------------------------- #
+# screen fitting: rows that wrap instead of forcing the window wider than the screen
+# --------------------------------------------------------------------------- #
+from PySide6.QtCore import QPoint, QRect, QSize      # noqa: E402
+from PySide6.QtWidgets import QLayout, QSizePolicy as _SP, QWidgetItem  # noqa: E402,F401
+
+
+class FlowLayout(QLayout):
+    """Left-to-right row that wraps to the next line when it runs out of width."""
+
+    def __init__(self, parent=None, spacing: int = 6):
+        super().__init__(parent)
+        self._items = []
+        self.setSpacing(spacing)
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item):
+        self._items.append(item)
+
+    def count(self):
+        return len(self._items)
+
+    def itemAt(self, i):
+        return self._items[i] if 0 <= i < len(self._items) else None
+
+    def takeAt(self, i):
+        return self._items.pop(i) if 0 <= i < len(self._items) else None
+
+    def expandingDirections(self):
+        return Qt.Orientations(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, w):
+        return self._do(QRect(0, 0, w, 0), True)
+
+    def setGeometry(self, r):
+        super().setGeometry(r)
+        self._do(r, False)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        s = QSize()
+        for it in self._items:
+            s = s.expandedTo(it.minimumSize())
+        m = self.contentsMargins()
+        return s + QSize(m.left() + m.right(), m.top() + m.bottom())
+
+    def _do(self, r, test):
+        m = self.contentsMargins()
+        eff = r.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        x, y, line = eff.x(), eff.y(), 0
+        sp = self.spacing()
+        for it in self._items:
+            if it.widget() is not None and it.widget().isHidden():
+                continue
+            hint = it.sizeHint()
+            nx = x + hint.width() + sp
+            if nx - sp > eff.right() + 1 and line > 0:
+                x, y = eff.x(), y + line + sp
+                nx, line = x + hint.width() + sp, 0
+            if not test:
+                it.setGeometry(QRect(QPoint(x, y), hint))
+            x, line = nx, max(line, hint.height())
+        return y + line - r.y() + m.bottom()
+
+
+def flow_row(*widgets, spacing: int = 6) -> QWidget:
+    """A wrapping row of widgets (buttons, labels, combos)."""
+    w = QWidget()
+    lay = FlowLayout(w, spacing)
+    for x in widgets:
+        lay.addWidget(x)
+    sp = w.sizePolicy()
+    sp.setHeightForWidth(True)
+    w.setSizePolicy(sp)
+    return w
+
+
+def scroll_wrap(page: QWidget) -> QScrollArea:
+    """Put a tab page in a frameless scroll area: a narrow screen scrolls the page
+    instead of pushing the whole window wider than the screen."""
+    sa = QScrollArea()
+    sa.setFrameShape(QFrame.NoFrame)
+    sa.setWidgetResizable(True)
+    sa.setWidget(page)
+    sa.setMinimumWidth(1)
+    return sa
+
+
+def short_combo(cb, chars: int = 18) -> None:
+    """A combo whose width does not follow its longest entry (long mission titles)."""
+    from PySide6.QtWidgets import QComboBox
+    cb.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+    cb.setMinimumContentsLength(chars)

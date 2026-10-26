@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem
 
 from ..shared_lib import ideas as IDEAS
 from ..shared_lib import missions as MIS
-from .widgets import MarkdownView, button, hline
+from .widgets import MarkdownView, button, flow_row, hline
 
 
 def idea_md(r: dict) -> str:
@@ -41,18 +41,14 @@ class IdeasTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         v = QVBoxLayout(self)
-        top = QHBoxLayout()
-        top.addWidget(QLabel(tr("<b>Ideje</b> — INSPIRACIJE, ne tvrdnje")))
-        top.addStretch(1)
-        top.addWidget(QLabel(tr("Najviše sedmično:")))
         self.sp_cap = QSpinBox()
         self.sp_cap.setRange(0, 20)
-        top.addWidget(self.sp_cap)
-        top.addWidget(button(tr("Primijeni"), self._apply_cap))
-        top.addWidget(button(tr("Pročitaj izvore sada"), self._round_now))
-        top.addWidget(button(tr("Sedmični pregled"), self._review))
-        top.addWidget(button(tr("Osvježi"), self.refresh))
-        v.addLayout(top)
+        v.addWidget(flow_row(QLabel(tr("<b>Ideje</b> — INSPIRACIJE, ne tvrdnje")),
+                             QLabel(tr("Najviše sedmično:")), self.sp_cap,
+                             button(tr("Primijeni"), self._apply_cap),
+                             button(tr("Pročitaj izvore sada"), self._round_now),
+                             button(tr("Sedmični pregled"), self._review),
+                             button(tr("Osvježi"), self.refresh)))
         v.addWidget(hline())
         split = QSplitter(Qt.Horizontal)
         self.list = QListWidget()
@@ -63,15 +59,13 @@ class IdeasTab(QWidget):
         split.setStretchFactor(0, 1)
         split.setStretchFactor(1, 2)
         split.setSizes([380, 760])
+        self.list.setMinimumWidth(120)
         self.list.setWordWrap(True)
         v.addWidget(split, 1)
-        acts = QHBoxLayout()
-        for key, label in (("keep", tr("Zadrži")), ("drop", tr("Odbaci")),
-                           ("question", tr("Pretvori u otvoreno pitanje")),
-                           ("snooze", tr("Odgodi (sedmica)"))):
-            acts.addWidget(button(label, lambda _=False, k=key: self._decide(k)))
-        acts.addStretch(1)
-        v.addLayout(acts)
+        v.addWidget(flow_row(*[button(label, lambda _=False, k=key: self._decide(k))
+                               for key, label in (("keep", tr("Zadrži")), ("drop", tr("Odbaci")),
+                                                  ("question", tr("Pretvori u otvoreno pitanje")),
+                                                  ("snooze", tr("Odgodi (sedmica)")))]))
         self.refresh()
 
     def _apply_cap(self):

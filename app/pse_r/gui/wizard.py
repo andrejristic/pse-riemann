@@ -48,7 +48,8 @@ class Wizard(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("PSE Riemann — prvo pokretanje"))
-        self.resize(880, 660)
+        from .. import screen as SCR
+        SCR.fit(self, 880, 660)                         # fits the measured screen
         self._threads: dict = {}
         self.key_edits: dict = {}
         self.status_labels: dict = {}
@@ -57,7 +58,8 @@ class Wizard(QDialog):
         self.stack = QStackedWidget()
         self.stack.addWidget(self._page_providers())
         self.stack.addWidget(self._page_sources())
-        root.addWidget(self.stack, 1)
+        from .widgets import scroll_wrap
+        root.addWidget(scroll_wrap(self.stack), 1)    # taller than the screen → scrolls
 
         nav = QHBoxLayout()
         self.b_back = button(tr("← Nazad"), lambda: self.stack.setCurrentIndex(0))

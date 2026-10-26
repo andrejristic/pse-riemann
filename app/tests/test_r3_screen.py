@@ -39,3 +39,33 @@ def test_operator_font_wins(monkeypatch):
     assert ST.base_font_pt() == 18.0
     monkeypatch.setattr(ST, "get", lambda k, d=None: 0 if k == "font_pt" else d)
     assert ST.base_font_pt() == S.current().font_pt
+
+
+def test_every_window_fits_four_screens(monkeypatch):
+    """Main window (all tabs), wizard, setup, palette, danger, offline: never larger
+    than the available area on Surface / Dell / Acer / an unmeasured 1366 screen."""
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from pse_r import settings as ST
+    from pse_r.gui.widgets import set_base_pt
+    from pse_r.shared_lib import operator as OP
+    OP.set_operator("Test Operater")
+    for prof in ((1920, 1050, 235, 132, 1920), (1920, 1050, 480, 270, 1920),
+                 (1366, 738, 344, 194, 1366), (1366, 738, 0, 0, 1366)):
+        monkeypatch.setattr(S, "_CURRENT", S.compute(*prof[:4], 1.0, prof[4]))
+        set_base_pt(ST.base_font_pt())
+        _, _, aw, ah = S.available()
+        from pse_r.gui.main_window import MainWindow, Palette
+        from pse_r.gui.wizard import Wizard
+        from pse_r.gui.setup import SetupDialog
+        from pse_r.gui.offline import OfflineDialog
+        for w in (MainWindow(), Wizard(), SetupDialog(first_run=True), Palette({"a — b": lambda: None}),
+                  OfflineDialog({"main_was": "x", "ggufs": ["gguf:a"], "suggest_skeptic": None})):
+            w.show()
+            app.processEvents()
+            ms = w.minimumSizeHint()
+            assert w.width() <= aw and w.height() <= ah, (type(w).__name__, prof, w.size())
+            assert ms.width() <= aw and ms.height() <= ah, (type(w).__name__, prof, ms)
+            w.hide()
+            w.deleteLater()
+        app.processEvents()

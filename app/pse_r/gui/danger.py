@@ -38,10 +38,9 @@ class DangerDialog(QDialog):
         self.alarm = alarm
         self.setWindowTitle(tr("PSE Riemann — OPASNOST"))
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        scr = QGuiApplication.primaryScreen()
-        if scr is not None:
-            g = scr.availableGeometry()
-            self.resize(int(g.width() * 0.8), int(g.height() * 0.7))
+        from .. import screen as SCR
+        _x, _y, aw, ah = SCR.available()
+        SCR.fit(self, aw * 0.8 / SCR.k(), ah * 0.7 / SCR.k())
         self.setStyleSheet("QDialog { background:#1a0b0d; }")
         v = QVBoxLayout(self)
         pill = QLabel(tr("  ⛔  OPASNOST  "))

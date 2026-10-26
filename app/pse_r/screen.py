@@ -36,6 +36,9 @@ class Profile:
     win_w: int               # logical pixels (what Qt's resize() takes)
     win_h: int
     measured: bool
+    avail_x: int = 0         # logical position of the available area (multi-monitor)
+    avail_y: int = 0
+    name: str = ""
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -74,13 +77,16 @@ def detect(app=None) -> Optional[Profile]:
     try:
         from PySide6.QtGui import QGuiApplication
         from . import settings as S
-        scr = QGuiApplication.primaryScreen()
+        from PySide6.QtGui import QCursor
+        # the screen the operator works on = the one under the mouse (two monitors here)
+        scr = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
         if scr is None:
             return None
         s = float(S.get("ui_scale", 1.0) or 1.0)
         av, full, mm = scr.availableGeometry(), scr.geometry(), scr.physicalSize()
         _CURRENT = compute(int(av.width() * s), int(av.height() * s), mm.width(), mm.height(),
                            s, int(full.width() * s))
+        _CURRENT.avail_x, _CURRENT.avail_y, _CURRENT.name = av.x(), av.y(), scr.name()
     except Exception:                                   # noqa: BLE001 — headless, odd platform
         _CURRENT = None
     return _CURRENT
@@ -95,3 +101,43 @@ def fits(geom_w: int, geom_h: int, x: int, y: int, avail) -> bool:
     return (geom_w <= avail.width() + 8 and geom_h <= avail.height() + 8
             and avail.x() - 50 <= x <= avail.x() + avail.width() - 200
             and avail.y() - 50 <= y <= avail.y() + avail.height() - 100)
+
+
+DESIGN_PT = 26.0          # the dialogs' fixed sizes were drawn at this text size
+
+
+def k() -> float:
+    """How much smaller/larger than the design text this screen's text is."""
+    from . import settings as S
+    return max(0.55, min(1.25, S.base_font_pt() / DESIGN_PT))
+
+
+def available():
+    """Available area in logical pixels: (x, y, w, h). From the measurement if any."""
+    from . import settings as S
+    s = float(S.get("ui_scale", 1.0) or 1.0)
+    if _CURRENT is not None:
+        return (_CURRENT.avail_x, _CURRENT.avail_y,
+                int(_CURRENT.width_px / s), int(_CURRENT.height_px / s))
+    try:
+        from PySide6.QtGui import QGuiApplication
+        g = QGuiApplication.primaryScreen().availableGeometry()
+        return g.x(), g.y(), g.width(), g.height()
+    except Exception:                                   # noqa: BLE001
+        return 0, 0, 1366, 738
+
+
+def fit(widget, want_w: int, want_h: int, min_w: int = 0, min_h: int = 0,
+        frac_w: float = 0.92, frac_h: float = 0.90, grow: bool = True) -> tuple:
+    """Size a window from its design size, scaled to this screen's text and capped
+    to the available area; minimum size capped too; centred. Returns (w, h)."""
+    x, y, aw, ah = available()
+    f = k()
+    gw, gh = (aw * 0.5, ah * 0.6) if grow else (0, 0)  # a dialog never shrinks to a stamp
+    w = int(min(max(want_w * f, gw), aw * frac_w))
+    h = int(min(max(want_h * f, gh), ah * frac_h))
+    if min_w or min_h:
+        widget.setMinimumSize(int(min(min_w * f, aw * frac_w)), int(min(min_h * f, ah * frac_h)))
+    widget.resize(w, h)
+    widget.move(x + (aw - w) // 2, y + (ah - h) // 2)
+    return w, h

@@ -63,7 +63,8 @@ class ModelPicker(QWidget):
         self.gguf_info: dict = {}
         h = QHBoxLayout(self)
         self.lst = QListWidget()
-        self.lst.setFixedWidth(340)
+        from .. import screen as SCR
+        self.lst.setFixedWidth(int(340 * SCR.k()))
         if skeptic:
             self._add(NO_SKEPTIC, tr("Bez skeptika"), tr("samo determinističke provjere"))
         for pid, pr in P.PRESETS.items():
@@ -273,8 +274,8 @@ class SetupDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(tr("PSE Riemann — prvo podešavanje") if first_run
                             else tr("PSE Riemann — podešavanje"))
-        self.resize(1180, 760)
-        self.setMinimumSize(1000, 640)
+        from .. import screen as SCR
+        SCR.fit(self, 1180, 760, 1000, 640)           # fits the measured screen
         root = QVBoxLayout(self)
         self.title = QLabel("")
         root.addWidget(self.title)
