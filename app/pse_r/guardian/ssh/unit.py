@@ -103,7 +103,7 @@ class SSHGuardian:
         if not ev.hostile:
             return r
         self.stats["events"] += 1
-        res = self.keys.observe(ev.ip, ev.user, now)
+        res = self.keys.observe(ev.ip, ev.user, now, shape=f"{ev.kind}:{ev.method or '-'}")
         rec["keys"] = {k: v["count"] for k, v in res.items()}
         k = K.ThreeKeys.violated(res)
         try:

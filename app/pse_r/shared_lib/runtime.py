@@ -175,6 +175,7 @@ def check_output(agent: str, text: str, *, sources: Optional[list] = None,
     if final:
         findings += HRM.to_human(text, sources=sources or [])
     else:
+        findings += HRM.chat_human(text)
         from ..vault.gate import _claims_proof
         claims, sentence = _claims_proof(text or "")
         if claims:

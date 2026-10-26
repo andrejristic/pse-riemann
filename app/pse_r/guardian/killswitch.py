@@ -138,16 +138,25 @@ def on_startup() -> None:
 # automatic trip: "→ ∞" of number, size and cost of cloud calls
 # --------------------------------------------------------------------------- #
 _WATCH: dict = {}
-DEFAULT_L = {"calls_per_10min": 60, "tokens_per_call": 40_000, "usd_per_hour": 3.0}
+DEFAULT_L = {"calls_per_10min": 60, "tokens_per_call": 40_000, "usd_per_hour": None}
+# usd_per_hour defaults to the whole DAILY cap: spending a day's budget within one
+# hour is a runaway (round 3 benchmark: a fixed $3/h tripped on normal heavy use)
 _calls: list = []                  # (t, tokens, usd)
 
 
 def _limits() -> dict:
     try:
         from .. import settings as S
-        return {**DEFAULT_L, **(S.load().get("killswitch_L") or {})}
+        L = {**DEFAULT_L, **(S.load().get("killswitch_L") or {})}
     except Exception:                                   # noqa: BLE001
-        return dict(DEFAULT_L)
+        L = dict(DEFAULT_L)
+    if L.get("usd_per_hour") is None:
+        try:
+            from ..llm.budget import budget
+            L["usd_per_hour"] = float(budget().daily_cap)
+        except Exception:                               # noqa: BLE001
+            L["usd_per_hour"] = 5.0
+    return L
 
 
 def observe_cloud_call(provider: str, tokens: int, usd: float,
@@ -165,7 +174,10 @@ def observe_cloud_call(provider: str, tokens: int, usd: float,
     for name, val in metrics.items():
         w = _WATCH.get(name)
         if w is None or w.L != float(Ls[name]):
-            w = _WATCH[name] = Watchdog(name, float(Ls[name]))
+            # rolling sums rise by construction during their first window, so for
+            # them a climb counts only near the ceiling (round 3 benchmark, k-slow-ok)
+            floor = 0.9 if name in ("calls_per_10min", "usd_per_hour") else 0.5
+            w = _WATCH[name] = Watchdog(name, float(Ls[name]), floor=floor)
         if w.observe(val):
             reason = (f"„→ ∞“ {name} = {val:.4g} (L = {w.L:.4g}, provajder {provider})")
             close(reason, actor="guardian", auto=True)

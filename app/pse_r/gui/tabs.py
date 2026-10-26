@@ -687,6 +687,23 @@ class GuardianTab(QWidget, JobMixin):
               f"{', '.join(r.get('users', [])[:5])} |" for ip, r in top] or ["| — | | | |"]
         return L + [""]
 
+    def run_bench(self):
+        """Round 3, item 23: measured FP/FN in a throwaway vault; the numbers go
+        into a sealed final report in the real one."""
+        import subprocess
+        import sys
+        from .. import config
+
+        def work():
+            exe = [sys.executable, str(config.APP_ROOT / "main.py")] \
+                if (config.APP_ROOT / "main.py").exists() else [sys.argv[0]]
+            r = subprocess.run(exe + ["--bench", "--report"], capture_output=True,
+                               text=True, timeout=600)
+            return r.stdout[-6000:] or r.stderr[-2000:]
+        self.view.set_markdown(self._md("_Benchmark radi u zasebnom privremenom vaultu…_"))
+        self.start_job(work, lambda res, err: self.view.set_markdown(
+            self._md(f"⛔ {err}" if err else res)))
+
     def check_rights(self):
         from ..guardian import containment as C
         ok, detail = C.have_rights(refresh=True)
@@ -702,6 +719,7 @@ class GuardianTab(QWidget, JobMixin):
         bar.addWidget(button("Test mreže", self.preflight))
         bar.addWidget(button("Oslobodi host iz karantina", self.release))
         bar.addWidget(button("Provjeri prava čuvara", self.check_rights))
+        bar.addWidget(button("Benchmark → izvještaj", self.run_bench))
         bar.addStretch(1)
         root.addLayout(bar)
         self.view = MarkdownView()

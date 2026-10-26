@@ -2,8 +2,13 @@
 Counting by the three keys of master §10.6, each under "→ ∞" (§5).
 
   IDENTITY  who asks              — the source IP
-  CLUSTER   which family of text  — the user name the attempt carries (an attacker
-                                    rotating IPs with one word list accumulates here)
+  CLUSTER   which family of text  — the SHAPE of the attempt (kind + auth method,
+                                    e.g. "invalid_user:-" or "fail:password"), the
+                                    "family of similar messages" of master §10.2: an
+                                    attacker rotating user names, or IPs, still
+                                    accumulates here. (Round 3 benchmark: with the user
+                                    name as cluster a one-IP dictionary attack never
+                                    tripped all three keys and was never blocked.)
   TARGET    what on this host     — the real account attacked, or "sshd" itself
                                     (invalid users, protocol abuse). The strongest key.
 
@@ -19,7 +24,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional
 
-DEFAULT_L = {"identity": 10, "cluster": 25, "target": 20}
+DEFAULT_L = {"identity": 10, "cluster": 10, "target": 10}
 WINDOW_S = 300
 KEEP = 8
 
@@ -68,14 +73,16 @@ class ThreeKeys:
     def target_of(self, user: str) -> str:
         return user if user and user in self.accounts else "sshd"
 
-    def keys_of(self, ip: str, user: str) -> dict:
-        return {"identity": ip, "cluster": user or "(prazno)", "target": self.target_of(user)}
+    def keys_of(self, ip: str, user: str, shape: str = "") -> dict:
+        return {"identity": ip, "cluster": shape or "(nepoznat oblik)",
+                "target": self.target_of(user)}
 
-    def observe(self, ip: str, user: str, t: Optional[float] = None) -> dict:
+    def observe(self, ip: str, user: str, t: Optional[float] = None,
+                shape: str = "") -> dict:
         """Count one hostile event. Returns {key: {"value", "count", "diverging"}}."""
         t = t or time.time()
         out = {}
-        for key, val in self.keys_of(ip, user).items():
+        for key, val in self.keys_of(ip, user, shape).items():
             ser = self.s[key].setdefault(val, Series())
             ser.add(t)
             out[key] = {"value": val, "count": ser.current(),

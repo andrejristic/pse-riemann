@@ -56,6 +56,13 @@ _PROOF_CLAIM = re.compile(rf"(?i)\b{_PROOF_WORD}\b[^.\n]{{0,80}}\b{_PROBLEM}")
 _PROOF_CLAIM_2 = re.compile(rf"(?i)\b{_PROBLEM}[^.\n]{{0,40}}\b(je\s+|is\s+)?"
                             rf"({_PROOF_WORD}|true\b|ta[čc]n\w*|holds\b|istinit\w*)")
 
+# First person, no problem named (round 3 benchmark, case h7: "Riješio sam
+# problem: hipoteza je tačna, dokaz je kompletan" slipped through both patterns).
+_PROOF_CLAIM_3 = re.compile(
+    r"(?i)(\b(dokazao|dokazala|dokazali|rije[sš]io|rije[sš]ila|rije[sš]ili)\s+(sam|smo)\b|"
+    r"\b(i|we)\s+(have\s+)?(proved|proven|solved)\b)"
+    r"[^.\n]{0,80}\b(hipotez\w*|conjectur\w*|hypothes\w*|slutnj\w*)")   # not bare "problem"
+
 # A blunt regex would also refuse things that are TRUE and central to this
 # subject — "RH over function fields is proved" (Weil/Deligne) is the single
 # most important fact in the whole map, and "a proof of RH would NOT break RSA"
@@ -79,7 +86,7 @@ def _claims_proof(text: str) -> tuple[bool, str]:
     True only if a proof claim survives the exemption check on its own sentence.
     Returns (is_claim, offending_sentence).
     """
-    for pat in (_PROOF_CLAIM, _PROOF_CLAIM_2):
+    for pat in (_PROOF_CLAIM, _PROOF_CLAIM_2, _PROOF_CLAIM_3):
         for m in pat.finditer(text or ""):
             lo = text.rfind(".", 0, m.start()) + 1
             hi = text.find(".", m.end())

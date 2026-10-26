@@ -77,6 +77,7 @@ def test_three_keys_infinity():
     for i in range(4):
         r = tk.observe("203.0.113.5", "root", t=1000 + i)
     assert r["identity"]["diverging"] and not r["cluster"]["diverging"]
+    assert tk.keys_of("1.2.3.4", "x", "fail:password")["cluster"] == "fail:password"
     assert r["target"]["value"] == "root" and K.ThreeKeys.violated(r) == 1
     assert tk.keys_of("1.2.3.4", "nema")["target"] == "sshd"
     s = K.Series()                                  # growing three windows running

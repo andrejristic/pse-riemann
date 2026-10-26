@@ -265,6 +265,32 @@ def main() -> int:
     args = sys.argv[1:]
     if args and args[0] == "--selftest":
         return selftest()
+    if args and args[0] == "--bench":                  # round 3, item 23
+        # always in a throwaway vault: the SSH part resets source records
+        import json as _json, os as _os, tempfile
+        if not _os.environ.get("PSE_RIEMANN_BENCH_VAULT"):
+            import subprocess
+            tmp = tempfile.mkdtemp(prefix="pse-riemann-bench-")
+            env = dict(_os.environ, PSE_RIEMANN_VAULT=_os.path.join(tmp, "vault"),
+                       PSE_RIEMANN_BENCH_VAULT="1")
+            r = subprocess.run([sys.executable] + sys.argv[:1] + ["--bench", "--json"],
+                               env=env, capture_output=True, text=True)
+            if r.returncode != 0:
+                print(r.stderr[-2000:])
+                return r.returncode
+            res = _json.loads(r.stdout)
+            from pse_r import bench as BN
+            md = BN.markdown(res)
+            if "--report" in args:                      # the numbers go into a report
+                _boot()
+                from pse_r.shared_lib import runtime as RT
+                print("izvještaj:", RT.write_final_report("benchmark-cuvara", md, "bench"))
+            print(_json.dumps(res, ensure_ascii=False) if "--json" in args else md)
+            return 0
+        config.ensure_vault()
+        from pse_r import bench as BN
+        print(_json.dumps(BN.run(), ensure_ascii=False))
+        return 0
     if args and args[0] == "--guardian":              # round 3, item 20
         _boot()
         from pse_r import guardian_app as GA
