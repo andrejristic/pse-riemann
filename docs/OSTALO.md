@@ -4,7 +4,7 @@ Grana `feature/runda3` na GitHubu (`andrejristic/pse-riemann`). Testovi: 281/281
 
 ## Šta je spremno za jutro
 
-- Paket **B — `pse-riemann_0.2.0~rc1_amd64.deb`** (puni: sve, uključujući lokalni DeepSeek preko llama-cpp) leži na Desktopu i u `app/build/`.
+- Paket **B — `pse-riemann_0.2.0~rc2_amd64.deb`** (puni: sve, uključujući lokalni DeepSeek preko llama-cpp) leži na Desktopu i u `app/build/`.
 - **rc1** znači „kandidat za izdanje“. Tilda (~) u verziji znači da je ovo *prije* 0.2.0, pa se konačni 0.2.0 kasnije instalira normalno preko njega.
 - Ovaj fajl je na dva mjesta: na Desktopu (`PSE Riemann — OSTALO.docx`) i u repou (`docs/OSTALO.md` + docx u korijenu repoa, na GitHubu).
 
@@ -21,7 +21,7 @@ Grana `feature/runda3` na GitHubu (`andrejristic/pse-riemann`). Testovi: 281/281
 ## Jutro: živi test (radi Andrej) — stavka 35
 
 1. Instalacija (traži lozinku, jer je sistemska):
-   `sudo apt install ~/Desktop/pse-riemann_0.2.0~rc1_amd64.deb`
+   `sudo apt install ~/Desktop/pse-riemann_0.2.0~rc2_amd64.deb`
 2. Pokreni iz menija „PSE Riemann“ ili komandom `pse-riemann`.
 3. Pri prvom otvaranju upiši ime operatera. Ako se otvori podešavanje, izaberi glavni AI:
    - bez ključa: lokalni DeepSeek GGUF, ako je u `models/`; inače „bez AI“;

@@ -1,6 +1,6 @@
-# PSE Riemann — vodič za živi test (0.2.0~rc1)
+# PSE Riemann — vodič za živi test (0.2.0~rc2)
 
-Stavka 35 runde 3. Test radi **Andrej**, na Dellu. Paket: **B** (puni), fajl `pse-riemann_0.2.0~rc1_amd64.deb`. Leži na Desktopu i na GitHubu (Releases → `test-0.2.0-rc1`).
+Stavka 35 runde 3. Test radi **Andrej**, na Dellu. Paket: **B** (puni), fajl `pse-riemann_0.2.0~rc2_amd64.deb`. Leži na Desktopu i na GitHubu (Releases → `test-0.2.0-rc2`).
 
 **Svrha:** potvrditi na pravom ekranu i u pravoj instalaciji ono što sam ja mogao provjeriti samo testovima, snimcima bez ekrana i selftestom iz raspakovanog paketa. Sve što ovdje ne radi je nalaz, a ne tvoja greška.
 
@@ -15,9 +15,9 @@ Stavka 35 runde 3. Test radi **Andrej**, na Dellu. Paket: **B** (puni), fajl `ps
   - **Shift+F12** = samo aktivni tab;
   - **📷** u gornjoj traci = cijeli prozor.
 
-  Slike idu u `~/Pictures/PSE-Riemann/`. Snimaj sve što izgleda čudno.
+  Slike idu u `~/Desktop/PSE Riemann rezultati/snimci ekrana/`. Snimaj sve što izgleda čudno.
 - **Zapisnik:** na kraju ovog vodiča je tabela. Za svaki test upiši ✓, ✗ ili ~ (djelimično) i kratku napomenu.
-- **Ništa ne može pokvariti tvoj stari rad.** Instalirana verzija drži podatke u `~/.local/share/pse-riemann/`, potpuno odvojeno od foldera `PSE Riemann` na Desktopu.
+- **Svi rezultati su u vidljivom folderu `~/Desktop/PSE Riemann rezultati/`** (dugme 📂 u traci ga otvara; `PROČITAJ.txt` objašnjava podfoldere). Ono što je rc1 sačuvao u skrivenom `~/.local/share/pse-riemann/` premjesti se tamo samo, pri prvom pokretanju. Potpuno je odvojeno od foldera `PSE Riemann` (kod) na Desktopu.
 - Za sudo, mrežu i ključeve sve radiš ti. Aplikacija ključeve nikad ne traži u chatu.
 
 ---
@@ -27,10 +27,10 @@ Stavka 35 runde 3. Test radi **Andrej**, na Dellu. Paket: **B** (puni), fajl `ps
 **T1 · Instalacija paketa**
 
 ```
-sudo apt install ~/Desktop/pse-riemann_0.2.0~rc1_amd64.deb
+sudo apt install ~/Desktop/pse-riemann_0.2.0~rc2_amd64.deb
 ```
 
-Očekuješ: apt instalira `pse-riemann` 0.2.0~rc1 bez greške (eventualno doda nekoliko sistemskih biblioteka). Ako je ranije bio instaliran 0.1.0, ovaj ga zamijeni.
+Očekuješ: apt instalira `pse-riemann` 0.2.0~rc2 bez greške (eventualno doda nekoliko sistemskih biblioteka). Ako je ranije bio instaliran 0.1.0, ovaj ga zamijeni.
 
 **T2 · Provjera verzije i pomoćnog programa**
 
@@ -40,7 +40,7 @@ ls -l /usr/lib/pse-riemann/pse-guard-helper
 ```
 
 Očekuješ:
-- `Version: 0.2.0~rc1`;
+- `Version: 0.2.0~rc2`;
 - `-rwxr-xr-x 1 root root … pse-guard-helper`, tj. vlasnik root i niko drugi ne može pisati u njega. Čuvar ga koristi samo pod tim uslovom.
 
 **T3 · Selftest iz instaliranog paketa**
@@ -63,7 +63,7 @@ Otvori aplikaciju iz menija (Aktivnosti → „PSE Riemann“) ili komandom `pse
 
 Očekuješ:
 - prozor se otvori na ekranu na kome je miš, ne veći od ekrana, centriran;
-- naslov prozora sadrži `0.2.0~rc1`;
+- naslov prozora sadrži `0.2.0~rc2`;
 - čuvar (Guardian) se pokrene kao poseban proces sa ikonom u traci sistema.
 
 **T5 · Prvo podešavanje (5 koraka)**
@@ -246,7 +246,9 @@ Očekuješ:
 
 Za vrijeme poziva lokalni model ne smije izaći na mrežu (P8). Ako vidiš upozorenje o tome, to je nalaz.
 
-**T24 · Cloud ključ** (nikad nije probano uživo)
+**T24 · Cloud ključ i izbor modela**
+
+Popravljeno u rc2: spisak modela se sam učita sa servera čim upišeš ključ (ne više samo jedan model), a „Testiraj“ provjerava **izabrani** model i pamti ga. Ako je model povučen (Groq je u rc1 vratio 404), sam izabere najbliži koji postoji. Gemini više ne ide u karantin pri pokretanju; ako bilo koji host ode u karantin, u „Čeka tvoju odluku“ dolazi stavka (Odobri = oslobodi).
 
 Podešavanje → glavni AI → npr. Claude → upiši ključ → „Testiraj“, pa jedno kratko pitanje u chatu.
 
@@ -280,8 +282,8 @@ Očekuješ:
 ## I · Ako nešto pukne
 
 - Pokreni iz terminala (`pse-riemann`) da vidiš grešku i snimi je.
-- Dnevnik je u `~/.local/share/pse-riemann/vault/.state/journal.db`. Ne brisati; ja ga čitam ako mi ga pošalješ.
-- Uklanjanje paketa: `sudo apt remove pse-riemann`. Podaci u `~/.local/share/pse-riemann/` ostaju.
+- Dnevnik je u `~/Desktop/PSE Riemann rezultati/vault/.state/journal.db`. Ne brisati; ja ga čitam ako mi ga pošalješ.
+- Uklanjanje paketa: `sudo apt remove pse-riemann`. Folder `PSE Riemann rezultati` ostaje.
 
 ---
 
