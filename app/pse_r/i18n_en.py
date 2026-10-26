@@ -700,5 +700,7 @@ EN = {
 "Otvori folder sa rezultatima": "Open the results folder",
 "Rezultati — otvori folder": "Results — open folder",
 "Rezultati: {0}": "Results: {0}",
-"✅ {0} modela sa servera — izaberi pa „Testiraj“": "✅ {0} models from the server — pick one, then “Test”"
+"✅ {0} modela sa servera — izaberi pa „Testiraj“": "✅ {0} models from the server — pick one, then “Test”",
+"⚙ Podešavanje": "⚙ Settings",
+"Promijeni provajdera AI-ja, ključeve, modele i skeptika": "Change the AI provider, keys, models and the skeptic"
 }

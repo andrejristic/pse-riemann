@@ -136,7 +136,7 @@ Oko **40–60 sati rada**, kalendarski realno **2–4 dana**. Mogu produžiti: k
 
 ## 6. Runda 3 (dogovorena 2026-10-25; „kreni“ dato 2026-10-25)
 
-Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitHub Release). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
+Završni proizvod: **.deb i .exe** (verzija **0.3.0**, tag `v0.3.0`, `.exe` kao GitHub Release; Andrej 2026-10-27: izdanje se zove v0.3.0, kandidati 0.3.0~rcN). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
 
 **P4 (prava prijava) je izbačen** (Andrej, 2026-10-25: „zaboravi p4“). Operater ostaje **samo ime**; nema lozinki, šefa ni ranga.
 
@@ -176,7 +176,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 18. Uputstvo za usko sudoers pravilo (ufw deny/delete od IP, systemctl stop/start ssh), korak po korak.
 19. Pozadinski rad i gašenje: čuvar je proces sa ikonom u traci (Otvori · Stanje θ · Prekini online AI · Ugasi čuvara); pri zatvaranju pitanje „Ugasi sve“ ili „Zatvori prozor, čuvar ostaje“; korisnički servis po izboru, sa systemd hardeningom (S9).
 
-### Faza 5 · Pametniji Fizičar i mjerenje
+### Faza 5 · Pametniji Doktor (ranije „Fizičar“) i mjerenje
 20. Statistički jača dijagnoza (S5) u liječenju i čuvarima: CUSUM, posterior i pravilo 3-od-3, manje lažnih „infekcija“.
 21. Budžeti otkrivanja + takmičenje hipoteza (P7).
 22. Mjereni benchmark (S7): označeni primjeri za tri zla, SSH napade i prekidač; lažno pozitivni i lažno negativni ulaze u izvještaj.
@@ -233,12 +233,21 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
 33a. **Nalazi živog testa 0.2.0~rc1** (Andrej, 2026-10-27), popravlja se redom: (1) Gemini u karantinu pri svakom startu — provjera dostupnosti radila `GET /` na API hostu, Google vraća HTML 404, čuvar to čitao kao captive portal → **popravljeno**; (2) karantin nije bilo moguće naći/osloboditi kroz meni → sada stavka u „Čeka tvoju odluku“ (Odobri = oslobodi) i poruka kaže gdje; (3) rezultati instalirane verzije u skrivenom `~/.local/share/pse-riemann/` — Andrej bira vidljivo mjesto; (4) Groq proba vratila 404 (put/model) — provjeriti.
 33b. **Potpuno dvojezično** (Andrej): sve, uključujući planove i sadržaj, mora postojati na SR i EN. (a) sav tekst koji kod sastavlja kroz prevod sa fiksnim EN verzijama; (b) zasijani sadržaj (teme, izvori, misije, koraci, ideje, PLAN, otvorena pitanja) dobija napisanu EN verziju; (c) sve ostalo (planovi, kartice, misije, ideje, odgovori, izvještaji) glavni AI prevodi automatski pri prebacivanju jezika — u pozadini, keširano, označeno „mašinski prevod“, original se nikad ne mijenja. Prije izdanja.
 
+33c. **„⚙ Podešavanje“ u meniju tabova** (Andrej, 2026-10-27): posljednji tab otvara podešavanje (provajder AI-ja, ključevi, modeli, skeptik) — isto kao prvo pokretanje.
+33d. **„Čeka tvoju odluku“ po grupama, sa izborom** (Andrej): stablo po vrsti, a radovi po temama koje mašina sama izvuče iz naslova i sažetaka (deterministički); kvačica na stavci i grupi; „Odobri označene“ / „Ne odobri označene“ — jedna, više ili sve; klik prikaže cijeli sažetak.
+33e. **SHARED_LIB razgovara ljudski** (Andrej): činjenice i dalje samo iz baze (SELECT, nijedan izmišljen broj), ali glasom asistenta na poslu; SQL i redovi sklopljeni ispod („prikaži odakle“); bez AI-ja šablonske ljudske rečenice.
+33f. **Razgovor o misiji — srce misije** (Andrej): izbor jednog, više ili svih radova + misija → agent misije čita (sažetak, na traženje puni tekst) uz stanje misije → razgovor u oba smjera (agent ispituje operatera, operater agenta; skeptik napada tvrdnje u toku) → „Sastavi zaključak“: prijedlozi (koraci misije, otvorena pitanja, ideje, cilj, metoda za vrata) idu u „Čeka tvoju odluku“, ništa se ne upisuje samo; razgovor sačuvan u rezultatima (NAŠE-NERECENZIRANO) i u „gdje si stao“.
+    **Redoslijed:** 33c → 33b (prvo sloj za prevođenje, da 33d–33f nastanu dvojezično) → 33d → 33e → 33f → rc3.
+
+### Faza 6d · SVI AGENTI SU PSE JEDINICE (Andrej, 2026-10-27 — prije svega ostalog)
+Ugovor za izvedbu: [`DOGOVOR-PSE-AGENTI.md`](DOGOVOR-PSE-AGENTI.md) / [`AGREEMENT-PSE-AGENTS.md`](AGREEMENT-PSE-AGENTS.md) (+ docx). Stanje 2026-10-27: 15 agenata, **0 PSE sazdano**, 3 djelimično. P0 jezgro u SHARED_LIB-u (PSEUnit, profili, registracija/PVP, θ po potezu iz rada i riječi, atraktori, vijek/smrt/predaja SHARED_LIB-u, Doktor, fisija i fuzija, deklaracije, DL1 + oznaka porijekla, prerada kočnica) → P1 AI agenti → P2 agenti bez modela → P3 agent misije (33f) → 33b → 33d → 33e → 0.3.0~rc1. „Fizičar“ se svuda zove **Doktor**. Otvoreno (odlučuje Andrej): povratnost fisije/fuzije; spajanje brojeva čitača i poda pravila; klasifikacija izvora; učenje težina glasova.
+
 ### Faza 7 · Dokumentacija i izdanje
 34. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
     **Redoslijed (Andrej, 2026-10-26):** kompletni SR/EN vodiči za **cijelu aplikaciju** pišu se tek **kad se naprave .deb i .exe**, da opisuju tačno ono što je u paketima (snimci iz instaliranog paketa); posle toga paketi se još jednom grade sa vodičima unutra. Vodiči za pojedine dijelove (npr. `docs/VODIC-GRAFOVI-*`) nastaju usput i ulaze u kompletne.
 35. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
 36. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
-37. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
+37. Verzija **0.3.0** (Andrej, 2026-10-27; bilo 0.2.0), tag `v0.3.0`, .exe samo kao GitHub Release. Kandidati: 0.3.0~rc1, rc2 … (instaliraju se preko 0.2.0~rc2).
 38. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).

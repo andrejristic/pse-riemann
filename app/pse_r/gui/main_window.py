@@ -120,6 +120,14 @@ class MainWindow(QMainWindow):
                         (self.tab_graph, tr("Graf")), (self.tab_guard, tr("Guardian"))):
             self._wraps[w] = scroll_wrap(w)              # a narrow screen scrolls the page
             self.tabs.addTab(self._wraps[w], tr(name))
+        # item 33c: the last "tab" is the setup (provider, keys, models, skeptic) — it opens
+        # the dialog and goes back to the tab you were on
+        self._setup_tab = QWidget()
+        self.tabs.addTab(self._setup_tab, tr("⚙ Podešavanje"))
+        self.tabs.setTabToolTip(self.tabs.count() - 1,
+                                tr("Promijeni provajdera AI-ja, ključeve, modele i skeptika"))
+        self._last_tab = 0
+        self.tabs.currentChanged.connect(self._tab_changed)
         split.addWidget(self.tabs)
 
         self.chat = ChatPanel()
@@ -395,6 +403,15 @@ class MainWindow(QMainWindow):
     def _save_active(self):
         if self.tabs.currentWidget() is self._tab(self.tab_editor):
             self.tab_editor._save()
+
+    def _tab_changed(self, i: int):
+        if self.tabs.widget(i) is self._setup_tab:
+            self.tabs.blockSignals(True)
+            self.tabs.setCurrentIndex(self._last_tab)
+            self.tabs.blockSignals(False)
+            self.open_setup()
+        else:
+            self._last_tab = i
 
     def open_setup(self):
         from .setup import SetupDialog
