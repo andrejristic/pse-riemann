@@ -114,7 +114,7 @@ def _judge(agent: str, findings: list, release: bool = True):
                                     "signs": [f.sign for f in findings]},
               subject=agent, verdict=v.level)
     if v.level == "infected":
-        _infect(agent, findings, release)
+        _infect(agent, findings, release, verdict=v)
     elif v.level == "hold" and agent not in _contained:
         from ..guardian.healing import healer
         case = healer().hold(agent, findings)
@@ -127,14 +127,14 @@ def _judge(agent: str, findings: list, release: bool = True):
     return v
 
 
-def _infect(agent: str, findings: list, release: bool = True):
+def _infect(agent: str, findings: list, release: bool = True, verdict=None):
     if not findings:
         return None
     from ..guardian.healing import healer
     h = healer()
     case = h.detect(agent, findings)
-    h.diagnose(case)
-    h.treat(case)
+    h.diagnose(case, verdict)
+    h.treat(case, verdict)
     _contained[agent] = case.signature
     if release:
         store().propose(RELEASE_KIND, f"Pusti agenta [{agent}] iz karantina (oporavak)",

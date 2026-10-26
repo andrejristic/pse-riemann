@@ -108,13 +108,24 @@ class Healer:
                                       "reversible": True})
 
     # ------------------------------------------------------------------ #
-    def diagnose(self, case: Case) -> Case:
+    _FORM_NAME = {"N": "N (preuzimajući)", "B": "B (oscilirajući)",
+                  "C": "C (sir-yes-sir)", "S": "S (povučen)"}
+
+    def diagnose(self, case: Case, verdict=None) -> Case:
         case.stage = DIAGNOSE
         # patient zero: the first journal event by this agent (actor)
         case.patient_zero = self._patient_zero(case.agent)
-        case.attractor = self._attractor(case.findings)
+        extra = {}
+        if verdict is not None and verdict.hypotheses:
+            # competing hypotheses (item 22): keep all of them until one is decided
+            case.attractor = (self._FORM_NAME[verdict.form] if verdict.decided else
+                              "neodlučeno: " + " / ".join(
+                                  f"{self._FORM_NAME[f]} {p:.2f}" for f, p in verdict.hypotheses[:2]))
+            extra = {"hypotheses": verdict.hypotheses, "decided": verdict.decided}
+        else:
+            case.attractor = self._attractor(case.findings)
         self._log(case, "diagnosed", {"patient_zero": case.patient_zero,
-                                      "attractor": case.attractor})
+                                      "attractor": case.attractor, **extra})
         return case
 
     @staticmethod
@@ -140,13 +151,25 @@ class Healer:
         return "S (povučen)"
 
     # ------------------------------------------------------------------ #
-    def treat(self, case: Case) -> Case:
+    # treatments that only make sense for ONE form: wait until it is decided
+    FORM_SPECIFIC = {"ponovni-prijem-modela": "N"}
+
+    def treat(self, case: Case, verdict=None) -> Case:
         """Apply tier-1 treatments; queue tier-2 ones for the operator."""
         case.stage = TREAT
         plan = self._ladder(case.findings)
+        if verdict is not None and not verdict.decided:
+            held = [a for a, _ in plan if a in self.FORM_SPECIFIC]
+            plan = [(a, t) for a, t in plan if a not in self.FORM_SPECIFIC]
+            for a in held:
+                self._log(case, "treatment_deferred",
+                          {"action": a, "why": "hipoteze se još takmiče",
+                           "hypotheses": verdict.hypotheses[:3]})
         from ..core import replay as RPL
+        decided = None if verdict is None else bool(verdict.decided)
         self._log(case, "plan", {"replay": RPL.record(
-            "heal.plan", {"findings": [[f.harm, f.sign] for f in case.findings]},
+            "heal.plan", {"findings": [[f.harm, f.sign] for f in case.findings],
+                          "decided": decided},
             {"plan": [[a, A.may_auto(a)] for a, _ in plan]})})
         for action, _ in plan:
             if A.may_auto(action):

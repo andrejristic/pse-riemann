@@ -30,13 +30,16 @@ def reproduce_out(res: dict) -> dict:
             "poly_ok": res.get("poly_ok"), "broken_walls": list(res.get("broken_walls") or [])}
 
 
-@decider("heal.plan", v=1)
+@decider("heal.plan", v=2)
 def heal_plan(inp: dict) -> dict:
+    """v2 (round 3, item 22): form-specific steps wait while hypotheses compete."""
     from ..guardian import harms as HRM
     from ..guardian.healing import Healer
     from . import actions as A
     findings = [HRM.Finding(h, s, "", HRM.HIGH) for h, s in inp["findings"]]
     plan = Healer._ladder(findings)
+    if inp.get("decided") is False:
+        plan = [(a, t) for a, t in plan if a not in Healer.FORM_SPECIFIC]
     return {"plan": [[a, A.may_auto(a)] for a, _ in plan]}
 
 

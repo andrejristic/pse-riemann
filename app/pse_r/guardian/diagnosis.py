@@ -55,6 +55,7 @@ FORGET = 0.05            # per output, pull the posterior 5 % back toward the pr
 K, H_CUSUM = 0.5, 4.0
 P_SICK = 0.80
 CONFIRM_WINDOW = 10      # outputs during which a hard sign still counts
+DECIDE_RATIO = 2.0       # the leading hypothesis must be ≥ 2× the runner-up
 
 
 @dataclass
@@ -66,6 +67,10 @@ class Verdict:
     cusum: float
     confirmed: bool
     reasons: list = field(default_factory=list)
+    # competing hypotheses (item 22, P7): every unhealthy form with its weight,
+    # strongest first; "decided" only when the leader clearly beats the runner-up
+    hypotheses: list = field(default_factory=list)
+    decided: bool = False
 
 
 @dataclass
@@ -119,8 +124,13 @@ class Diagnoser:
             level = "watch"
         else:
             level = "clean"
+        sick = sorted(((f, post[f]) for f in FORMS if f != "H"), key=lambda x: -x[1])
+        hyps = [(f, round(p / max(p_sick, 1e-12), 3)) for f, p in sick]
+        decided = hyps[0][1] >= DECIDE_RATIO * max(hyps[1][1], 1e-12)
+        if not decided:
+            reasons.append("neodlučeno: " + " vs ".join(f"{f} {p:.2f}" for f, p in hyps[:2]))
         return Verdict(level, round(p_sick, 4), round(conf, 4), form, round(st.s, 3),
-                       confirmed, reasons)
+                       confirmed, reasons, hyps, decided)
 
     def reset(self, agent: str) -> None:
         """After recovery/replacement the unit starts from the prior again."""

@@ -141,6 +141,12 @@ class StreamingBackend(Backend):
         except L.Aborted as a:
             raise EgressBlocked(f"{self.provider}: {a}") from None
         payload = self._payload(messages, system, max_tokens, effort)
+        from ..guardian import disclosure as DISC          # item 22: measured BEFORE sending
+        try:
+            DISC.check_and_spend(self.host, DISC.payload_text(payload),
+                                 actor=f"model:{self.provider}")
+        except DISC.DisclosureExceeded as e:
+            raise EgressBlocked(str(e)) from None
         st = {"in": 0, "out": 0, "stop": "", "model": self.model, "error": ""}
         parts: list[str] = []
         gen = egress().stream_post(self._url(), payload, headers=self._headers(),
