@@ -594,15 +594,36 @@ class GraphTab(QWidget):
         root.setContentsMargins(4, 4, 4, 4)
         bar = QHBoxLayout()
         bar.addWidget(button(tr("↻ Osvježi"), self.refresh))
+        # round 3, item 30: the same graph as a tree or as nodes and links
+        self.b_tree = button(tr("Stablo"), lambda: self._view(0))
+        self.b_net = button(tr("Mreža"), lambda: self._view(1))
+        bar.addWidget(self.b_tree)
+        bar.addWidget(self.b_net)
         self.info = small("")
         bar.addWidget(self.info, 1)
         root.addLayout(bar)
+        from PySide6.QtWidgets import QStackedWidget
+        self.stack = QStackedWidget()
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels([tr("čvor"), "status", "tip", "veze"])
         self.tree.itemDoubleClicked.connect(
             lambda it, _: self.open_card.emit(it.data(0, Qt.UserRole) or ""))
-        root.addWidget(self.tree, 1)
+        self.stack.addWidget(self.tree)
+        from .knowledge_view import KnowledgeView
+        self.net = KnowledgeView()
+        self.net.open_card.connect(self.open_card.emit)
+        self.stack.addWidget(self.net)
+        root.addWidget(self.stack, 1)
         self.refresh()
+        self._view(1)                                   # the picture first; the tree is one click away
+
+    def _view(self, i: int):
+        self.stack.setCurrentIndex(i)
+        self.b_tree.setProperty("kind", "" if i else "primary")
+        self.b_net.setProperty("kind", "primary" if i else "")
+        for b in (self.b_tree, self.b_net):
+            b.style().unpolish(b)
+            b.style().polish(b)
 
     def refresh(self):
         nodes, edges = VS.graph()
@@ -642,6 +663,8 @@ class GraphTab(QWidget):
             self.tree.addTopLevelItem(oi)
         self.tree.expandToDepth(0)
         self.info.setText(tr("{0} čvorova · {1} veza · {2} bez veza").format(len(nodes), len(edges), len(orphan)))
+        if hasattr(self, "net"):
+            self.net.refresh()
 
 
 # --------------------------------------------------------------------------- #

@@ -667,5 +667,22 @@ EN = {
 "|f| (do 6)": "|f| (up to 6)",
 "graf:": "plot:",
 "Sačuvaj PNG": "Save PNG",
-"Sačuvaj graf": "Save plot"
+"Sačuvaj graf": "Save plot",
+"Mreža": "Network",
+"Stablo": "Tree",
+"[{0}] {1} · veze ({2}): {3}": "[{0}] {1} · links ({2}): {3}",
+"klik = otvori karticu": "click = open the card",
+"klik = veze": "click = links",
+"nađi čvor…": "find a node…",
+"nema čvora za „{0}“": "no node for “{0}”",
+"{0} čvorova · {1} veza · nivo veza: iz vaulta, registra metoda, misija i ideja": "{0} nodes · {1} links · links come from the vault, the method registry, missions and ideas",
+"teme": "topics",
+"metode": "methods",
+"misije": "missions",
+"ideje": "ideas",
+"tema": "topic",
+"kartica": "card",
+"metoda": "method",
+"misija": "mission",
+"ideja": "idea"
 }
