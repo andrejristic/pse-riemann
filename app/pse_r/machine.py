@@ -7,7 +7,7 @@ The app knows the two machines it runs on and tunes the model limits itself:
          measured 2026-10-25: DeepSeek-R1-8B Q5_K_M ≈ 0.44–0.62 s/token
   acer   Acer, Intel i3, 2 cores / 4 threads, 16 GB
          NOT measured yet — the numbers below are an estimate (about half the
-         Dell's speed: half the physical cores) until the live test (item 33)
+         Dell's speed: half the physical cores) until the live test (item 35)
 
 Anything else gets a profile derived from its own core count and RAM.
 Override: env PSE_RIEMANN_MACHINE=dell|acer|generic (tests simulate the Acer

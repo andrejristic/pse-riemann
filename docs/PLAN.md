@@ -189,7 +189,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 Sve iz ove faze mora biti u završnom .deb i .exe.
 
 25. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
-26. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 25 završi; ništa od 27 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25.
+26. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 25 završi; ništa od 27 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25. **Odluka (Andrej, 2026-10-25):** cilj 1 (mapa prenosivosti) je obavezan i podrazumijevan; ciljevi 2 (E_d i T_d uslovno) i 3 (samo praćenje) su opcije. Promjenu cilja aplikacija NIKAD ne radi sama: predloži je u „Čeka tvoju odluku“ sa obrazloženjem; izbor 1 / 2 / 3 je uvijek dostupan u meniju misije (tab Misije → „Cilj misije“), svaka promjena zapisana sa imenom operatera.
 27. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori. Dodatna polja (Andrej, 2026-10-25, iz skeletona „tri pravca“):
     - **vrsta rezultata**: poluravan bez nula (npr. 7/8) · gustina nula · udio nula na kritičnoj pravoj (npr. 2/3) — aplikacija nikad ne poredi niti crta zajedno ono što se ne može porediti;
     - **pretpostavke** (npr. „funkcionalnost do GL(3)“, „pod RH“): kapija odbija bezuslovnu tvrdnju koja se oslanja na nedokazanu pretpostavku, kao što sada traži „pod RH“.
@@ -215,16 +215,25 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     - između dvije funkcije: osjenčana površina („rezerva“);
     - za misiju: kuda proširenje (t, w, kasnije d) pomjera tačku — bliže ili dalje od cilja.
     Pravila: računa Python deterministički (AI samo objašnjava, i to na zahtjev); red u pozadini sa „prekini“, poštuje limitere (RAM, CPU, „→ ∞“) i profil mašine; rezultat se kešira i bilježi kao lab run u SHARED_LIB-u sa oznakom NAŠE-NERECENZIRANO.
+    **Kompleksni brojevi i više dimenzija (Andrej, 2026-10-25):**
+    - funkcije kompleksne promjenljive (f(s) = ζ(s), L(s, χ), bilo šta u s); fazni portret (boja = argument, svjetlina = modul); krive Re f = 0 i Im f = 0 (nule su njihovi presjeci); presjeci duž prave (|ζ(1/2+it)|, Hardyjeva Z(t), Re/Im); oblasti u ravni (poluravan Re s > B, kritična traka, prava 1/2, nule kao tačke); „sve o tački“ za kompleksnu tačku (s, f(s), |f|, arg f, udaljenost do najbliže nule i do prave 1/2, u oblasti bez nula ili ne); računi na zahtjev: kompleksni izvod, nule u pravougaoniku (princip argumenta), rezidui;
+    - **povezani prikazi:** ravan eksponenata (σ, eksponent) i kompleksna ravan — isti broj σ\* je tačka presjeka u prvoj i granica poluravni u drugoj; pomjeranje parametra mijenja oba;
+    - **klizač „niska strana + Δ“:** σ\* = 11/16 + niska strana — koliko gubitka metoda podnosi prije nego što oblast bez nula nestane (σ\* → 1); mjerilo za mapu prenosivosti;
+    - **3D:** površi koje se rotiraju (|ζ(s)| iznad kompleksne ravni — nule su jame; eksponenti iznad (σ, ℓ) — dvije površi se sijeku po krivoj presjeka = B(ℓ)); **4. dimenzija kao boja** (npr. |f| obojen po arg f); **5. i dalje kao klizači ili animacija**; **male slike** (ista površ za više vrijednosti parametra); **paralelne koordinate** za sve parametre metoda odjednom. Pravilo: najviše 3 dimenzije na ekranu, ostale uvijek vidljive kao klizači; profil mašine smanjuje mrežu na Aceru.
 30. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
 31. **Adversarijalni mod** (iz skeletona „tri pravca“, Andrej, 2026-10-25): deterministička potraga po prostoru parametara (ℓ, b, κ, t, w…) jedne metode traži (a) tačku koja daje **bolje B** od tvrđenog (tvrdnja nije optimum) i (b) tačku u kojoj se **krši zid ili uslov**. Računska dopuna skeptiku (skeptik napada riječima, ovo brojevima). Uz to **certifikat praznine** (pravac A): za datu metodu strogi interval da iznad B* nema dopustivih parametara. Rezultati: „Čeka tvoju odluku“, tab Grafovi (tačka kontraprimjera), lab run NAŠE-NERECENZIRANO; poštuje limitere. Ne ulazi: apstraktna „mašina“ bez implementacije, „Langlands transfer“ kao konstanta (samo kao otvoreno pitanje / INSPIRACIJA, stavka 28), Lean.
 
+### Faza 6c · Misija 3 i radni tekst (dodato 2026-10-25, prije izdanja)
+32. **Misija 3 — kompleksna verzija:** dokaz 7/8 gleda samo σ = Re ρ, jer |X^s| = X^σ; imaginarni dio γ nosi fazu, a poništavanje u dokazu dolazi iz oscilacija. Pitanja: (a) zavisi li granica od visine γ — da li vertikalna prava Re s = B postaje kriva σ\*(γ) i savija li se igdje prema 1/2; (b) šta su funkcije eksponenata kad im se dozvoli kompleksni argument E(s; ℓ, b, κ) i gdje se signal i niska strana „sijeku“ u kompleksnom smislu. Otvoreno pitanje; svaki korak NAŠE-NERECENZIRANO; isti meni ciljeva i isto pravilo (aplikacija predlaže, operater bira).
+33. **Radni tekst rada iz misija 2 i 3:** aplikacija sastavlja radni tekst (uvod, metode, računi sa lab run-ovima, grafovi, izvori sa nivoima, otvorena pitanja), označen NAŠE-NERECENZIRANO; kapija i dalje odbija svaku tvrdnju o dokazu; svaki broj nosi izvor ili lab run; skeptik i adversarijalni mod napadaju tekst prije nego što ga operater vidi. Rezultat „kompleksna verzija ne daje ništa novo“ je takođe rezultat i piše se.
+
 ### Faza 7 · Dokumentacija i izdanje
-32. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
-33. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
-34. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
-35. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
-36. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
+34. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
+35. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
+36. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
+37. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
+38. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4) + oko 36–55 sati za Fazu 6b (sa stavkom 31 i poljima uz 27) = **oko 98–147 sati**, kalendarski oko 8–12 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4) + oko 36–55 sati za Fazu 6b (sa stavkom 31 i poljima uz 27) + oko 14–24 h za Fazu 6c i kompleksne/3D grafove = **oko 112–171 sat**, kalendarski oko 8–12 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
