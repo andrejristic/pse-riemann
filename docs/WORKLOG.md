@@ -21,14 +21,19 @@
 | 2026-10-25 | 8 · početno podešavanje | ✅ | pytest 157/157 (exit 0), snimci `docs/screenshots/r3_setup_*` | `setup_flow.py` (logika, testirana) + `gui/setup.py` (prozor): 1 ime operatera · 2 glavni AI (10 provajdera sa ✓/✗ i savjetom o naplati, „Učitaj prave modele“, „Testiraj“, vlastita adresa, GGUF sa bilo kog mjesta, „bez AI“ sa spiskom šta radi/ne radi) · 3 skeptik (drugi model ili bez) · 4 deklaracije (GGUF hash vs objavljeni, adresa = prijedlog koji potvrđuješ) · 5 čuvar pri prijavi + email; kasnije iz palete „Podešavanje“. Nađeno snimcima/testom: polja su se brisala pri prelasku između opcija (pad prozora) — popravljeno; lista odsječena — popravljeno |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
+| 2026-10-25 | 14 · SSH čuvar | ✅ | pytest 184/184; živo na ovom računaru | `guardian/ssh/`: čita journal (grupa adm, bez root-a) ili auth.log otporno na rotaciju i skraćivanje (nađeno testom: skraćen pa dopunjen fajl iste dužine gubio liniju — popravljeno provjerom početka fajla); tri ključa iz master §10.6 (identitet = IP, klaster = ime koje pokušaj nosi, cilj = napadnuti nalog ili sshd), svaki pod „→ ∞“; nivo 1 = zapis + pojačano praćenje, nivo 2 (sva tri) = prekid sesije + blokada 24 h; zapis po izvoru u SHARED_LIB; theta mjerena (ne podešavana), zdrava ~30, ravna dok saobraćaj teče → zamjena jedinice. Živo: 3 lažne prijave prema 127.0.0.1 → 6 događaja pročitano iz journala, sva tri ključa „→ ∞“, loopback ispravno odbijen kao zaštićen |
+| 2026-10-25 | 16 · povratno zadržavanje + auto-poništavanje (S3) | ✅ | testovi | `guardian/containment.py` + `packaging/pse-guard-helper` (jedini program iza sudoers-a, provjerava svaki argument; koristi se SAMO ako pripada root-u i niko drugi ga ne može mijenjati); blokada 24 h zapisana na disku → skida se i posle restarta; zaštićene adrese (loopback, vlastite, gateway, multicast) nikad; trajna blokada i gašenje SSH-a = prijedlog sa tačnom komandom |
+| 2026-10-25 | 17 · opasno upozorenje bez sudoers-a | ✅ | snimak `r3_danger_alarm.png` | veliki prozor, crvena pilula u traci, zapis u SHARED_LIB, zvuk na 2 s dok se ne klikne „U redu“ (zatvaranje/Esc ga ne utišava), tačna komanda + „Kopiraj komandu“ |
+| 2026-10-25 | 18 · šablonske poruke (P6) | ✅ | testovi | `guardian/templates.py`: alarmi/liječenje/upozorenja samo iz fiksnih rečenica; svako polje provjereno po tipu; ubačen tekst (npr. korisničko ime iz SSH dnevnika) se odbija, ne čisti |
+| 2026-10-25 | 19 · vodič za usko sudoers pravilo | ✅ | — | `SUDOERS-SR.md`, `SUDOERS-EN.md`: jedna linija samo za pomoćni program, visudo, provjera vlasnika, ufw upozorenje, uklanjanje |
 
 **Otvoreni problemi:** pri izlasku iz aplikacije nit za provjeru mreže (QThread) može još raditi → „QThread: Destroyed while thread is still running“ (viđeno u testovima kad zaostali tajmeri prozora okinu). Rješava se u stavci 20 (gašenje).
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** Faza 4 — stavka 14 (SSH čuvar).
+**Sljedeće:** stavka 20 (čuvar kao poseban proces sa ikonom u traci, dijalog pri zatvaranju, korisnički servis) + dugme „Provjeri prava čuvara“ u Guardian tabu.
 
-**Preostalo:** oko 66–111 h.
+**Preostalo:** oko 58–100 h.
 
 ---
 

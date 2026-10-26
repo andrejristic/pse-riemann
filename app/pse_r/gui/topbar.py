@@ -92,7 +92,11 @@ class TopBar(QFrame):
                   "provjerene / ukupno kartica")
         self._set("budget", budget().status_line(), "plain", budget().tooltip())
         g = guardian().self_check()
-        if g["quarantined"]:
+        from ..guardian.ssh import unit as SSHU
+        alarm = SSHU.pending_alarm()
+        if alarm:
+            self._set("guard", "⛔ OPASNOST", "danger", alarm.get("text", ""))
+        elif g["quarantined"]:
             self._set("guard", "Guardian: KARANTIN", "danger", ", ".join(g["quarantined"]))
         elif g["problems"]:
             self._set("guard", "Guardian: provjeri", "warn", "; ".join(map(str, g["problems"])))

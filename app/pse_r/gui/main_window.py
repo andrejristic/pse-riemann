@@ -416,6 +416,11 @@ class MainWindow(QMainWindow):
             self.toggle_chat_expand()
 
     def refresh_status(self):
+        try:
+            from .danger import show_if_pending
+            show_if_pending(self)                       # item 17: never silent
+        except Exception:                               # noqa: BLE001
+            pass
         if hasattr(self, "topbar"):
             self.topbar.refresh()
         h = TH.meter().health()
