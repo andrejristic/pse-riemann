@@ -689,5 +689,6 @@ EN = {
 "Adversarijalni mod…": "Adversarial mode…",
 "Koju tvrdnju da napadnem brojevima? (~5–15 s u pozadini; rezultat ide u „Čeka tvoju odluku“, na Grafove i u Lab)": "Which claim shall I attack with numbers? (~5–15 s in the background; the result goes to “Awaiting your decision”, to Graphs and to the Lab)",
 "Nema metode sa funkcijom eksponenta.": "No method with an exponent function.",
-"Pokrenuto za „{0}“. Nalaz stiže u „Čeka tvoju odluku“.": "Started for “{0}”. The finding arrives in “Awaiting your decision”."
+"Pokrenuto za „{0}“. Nalaz stiže u „Čeka tvoju odluku“.": "Started for “{0}”. The finding arrives in “Awaiting your decision”.",
+"graf se pojavi posle pokretanja eksperimenta": "the plot appears after the experiment runs"
 }

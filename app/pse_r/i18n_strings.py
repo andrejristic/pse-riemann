@@ -456,6 +456,7 @@ STRINGS = [
 "glavni: ?",
 "glavni: {0}",
 "glavni: {0} · skeptik: {1} ({2})",
+"graf se pojavi posle pokretanja eksperimenta",
 "graf:",
 "gruba + trijaža modelom…",
 "ideje / inspiracije",

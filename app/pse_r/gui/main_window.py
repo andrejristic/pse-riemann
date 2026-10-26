@@ -148,6 +148,14 @@ class MainWindow(QMainWindow):
         self.chat.expand_toggled.connect(self.toggle_chat_expand)
         QShortcut(QKeySequence("Escape"), self, self._unexpand_chat)
         self._restore_layout()
+        # ⤢ / ⤡ on every split panel where it makes sense (Andrej): Editor, Tabla, Corpus,
+        # Lab (list, history, result text), Ideje. Grafovi, the Lab plot and the chat
+        # already have their own; the main tabs|chat split is the chat's own ⤢.
+        from .widgets import expand_splitter
+        for sp in self.findChildren(QSplitter):
+            if sp.objectName() in ("main", "grafovi"):
+                continue
+            expand_splitter(sp, skip=[w for w in (getattr(self.tab_lab, "plot", None),) if w])
         # screen fitting: a combo box must not grow with its longest entry (a long queue
         # title widened the whole tab); the full text is shown when the list opens
         from PySide6.QtWidgets import QComboBox

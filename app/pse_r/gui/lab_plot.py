@@ -190,6 +190,7 @@ class LabPlotView(QWidget):
         self.canvas.hovered.connect(self.hover.setText)
         self._rec: dict = {}
         self._dir: Optional[Path] = None
+        self.clear()                                    # dark and empty until the first run
 
     def show_record(self, rec: dict, run_dir: Path):
         self._rec, self._dir = rec, Path(run_dir)
@@ -210,6 +211,14 @@ class LabPlotView(QWidget):
         self.which.clear()
         self.canvas.fig.clear()
         self.canvas.ax = self.canvas.fig.add_subplot(111)
+        ax = self.canvas.ax
+        ax.set_facecolor(AX)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for s in ax.spines.values():
+            s.set_color(GRID)
+        ax.text(0.5, 0.5, tr("graf se pojavi posle pokretanja eksperimenta"), transform=ax.transAxes,
+                ha="center", va="center", color=MUTED)
         self.canvas.draw_idle()
         self.png.clear()
 

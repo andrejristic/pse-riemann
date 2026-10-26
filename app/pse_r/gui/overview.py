@@ -91,6 +91,10 @@ class OverviewTab(QWidget):
         row.addWidget(f1, 1)
         row.addWidget(f2, 1)
         v.addLayout(row, 1)
+        from .widgets import add_expand                 # ⤢ on both cards
+        self._cards = (f1, f2)
+        for f in (f1, f2):
+            add_expand(f, lambda: [*self._cards, *self._tiles])
         b = button(tr("Otvori red odluka"), self.open_queue.emit, kind="primary")
         v.addWidget(b, 0, Qt.AlignRight)
         self.refresh()

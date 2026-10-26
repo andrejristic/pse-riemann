@@ -425,3 +425,75 @@ def short_combo(cb, chars: int = 18) -> None:
     from PySide6.QtWidgets import QComboBox
     cb.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
     cb.setMinimumContentsLength(chars)
+
+
+# --------------------------------------------------------------------------- #
+# ⤢ / ⤡ on every panel where it makes sense (Andrej, 2026-10-26)
+# --------------------------------------------------------------------------- #
+from PySide6.QtCore import QEvent, QObject  # noqa: E402
+
+
+class _CornerKeeper(QObject):
+    """Keeps a small button in the top-right corner of its panel."""
+
+    def __init__(self, pane, btn):
+        super().__init__(pane)
+        self.pane, self.btn = pane, btn
+
+    def eventFilter(self, obj, ev):
+        if ev.type() in (QEvent.Resize, QEvent.Show):
+            self.place()
+        return False
+
+    def place(self):
+        sb = 0
+        vsb = getattr(self.pane, "verticalScrollBar", None)
+        if vsb is not None and vsb() is not None and vsb().isVisible():
+            sb = vsb().width()
+        self.btn.adjustSize()
+        self.btn.move(max(0, self.pane.width() - self.btn.width() - sb - 4), 4)
+        self.btn.raise_()
+
+
+def add_expand(pane, siblings) -> QPushButton:
+    """A ⤢ in the panel's corner: the panel takes the place of its `siblings`
+    (they are hidden); ⤡ brings them back."""
+    b = QPushButton("⤢", pane)
+    b.setObjectName("expandBtn")
+    b.setToolTip("raširi ovaj panel (ponovo = vrati)")
+    b.setCursor(Qt.PointingHandCursor)
+    b.setStyleSheet("QPushButton#expandBtn { padding:0px 6px; min-width:0px; border-radius:6px;"
+                    " background:rgba(34,42,55,0.85); }")
+    state = {"on": False, "hidden": []}
+
+    def toggle():
+        if state["on"]:
+            for w in state["hidden"]:
+                w.show()
+            state["on"], state["hidden"] = False, []
+            b.setText("⤢")
+        else:
+            # isHidden(): what is shown in its own place, even inside a tab not on screen
+            state["hidden"] = [w for w in siblings() if w is not pane and not w.isHidden()]
+            for w in state["hidden"]:
+                w.hide()
+            state["on"] = True
+            b.setText("⤡")
+    b.clicked.connect(toggle)
+    keeper = _CornerKeeper(pane, b)
+    pane.installEventFilter(keeper)
+    keeper.place()
+    pane.setProperty("has_expand", True)
+    return b
+
+
+def expand_splitter(splitter, skip=()) -> list:
+    """Give every panel of a splitter its own ⤢ (panels that already have one are skipped)."""
+    out = []
+    for i in range(splitter.count()):
+        w = splitter.widget(i)
+        from PySide6.QtWidgets import QSplitter as _QS
+        if w in skip or w.property("has_expand") or isinstance(w, _QS):
+            continue                                    # a nested splitter's panes have their own
+        out.append(add_expand(w, lambda sp=splitter: [sp.widget(j) for j in range(sp.count())]))
+    return out
