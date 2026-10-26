@@ -103,6 +103,11 @@ def names_in(tree) -> set:
     return {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} - CONSTS
 
 
+def _fp():
+    import mpmath
+    return mpmath.fp
+
+
 def _ns_numpy():
     import numpy as np
 
@@ -113,7 +118,6 @@ def _ns_numpy():
             out = v(a)
             return out.real if np.all(np.abs(out.imag) < 1e-300) and not np.iscomplexobj(a) else out
         return f
-    from ..lab import zeta as ZL
     return {"sin": np.sin, "cos": np.cos, "tan": np.tan, "exp": np.exp,
             "log": lambda a: np.log(a + 0j) if np.iscomplexobj(a) else np.log(a),
             "sqrt": lambda a: np.sqrt(a + 0j) if np.iscomplexobj(a) else np.sqrt(a),
@@ -121,9 +125,11 @@ def _ns_numpy():
             "sinh": np.sinh, "cosh": np.cosh, "tanh": np.tanh, "re": np.real, "im": np.imag,
             "arg": np.angle, "conj": np.conj, "floor": np.floor,
             "min": np.minimum, "max": np.maximum,
-            "zeta": vec(lambda z: ZL.zeta(z, dps=15)),
-            "Z": np.vectorize(lambda t: ZL.Z(float(t), dps=15), otypes=[float]),
-            "gamma": vec(lambda z: __import__("mpmath").gamma(z)),
+            # grids use mpmath's float back end (~0.09 ms per ζ value, 8× the mp one);
+            # precise points go through the mpmath back end below
+            "zeta": vec(lambda z: _fp().zeta(z)),
+            "Z": np.vectorize(lambda t: float(_fp().siegelz(float(t))), otypes=[float]),
+            "gamma": vec(lambda z: _fp().gamma(z)),
             "pi": np.pi, "e": np.e, "i": 1j, "I": 1j}
 
 

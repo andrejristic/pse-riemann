@@ -139,3 +139,50 @@ def test_area_result_shades_the_reserve():
     t.calc._job_done("površina", dict(res))
     app.processEvents()
     assert t.canvas.shade == ("a", "b", 0.0, 1.0)
+
+
+# ---- step 4: complex views, linked views, the low side + Δ slider ----------- #
+def _zeta_tab():
+    app, t = _tab()
+    t.funcs.funcs = [F.Function("z", "ζ", "complex", "zeta(s)")]
+    t.redraw()
+    return app, t
+
+
+def test_phase_portrait_click_knows_the_zero_and_counts_zeros():
+    import time
+    app, t = _zeta_tab()
+    _mode(app, t, "complex")
+    t0 = time.time()
+    while t.canvas._cgrid is None and time.time() - t0 < 60:
+        app.processEvents()
+        time.sleep(0.05)
+        t.canvas.redraw()
+    assert t.canvas._cgrid is not None
+    t._clicked_xy("z", 0.5, 14.1347)
+    assert "14.1347251" in t.calc._info_md and "kritičnoj traci" in t.calc._info_md
+    from pse_r.graphs import compute as C
+    jid = C.JOBS.submit("c_zeros", t.funcs.funcs[0], complex(0.5, 14), extra={"rect": [[0.1, 1], [0.9, 30]]})
+    r = C.JOBS.wait(jid)
+    assert r["count"] == 3 and r["sure"]                      # γ = 14.13, 21.02, 25.01
+
+
+def test_residue_of_zeta_at_one():
+    from pse_r.graphs import compute as C
+    r = C.calculate("c_residue", F.Function("z", "ζ", "complex", "zeta(s)"), 1 + 0j)
+    assert abs(r["|res|"] - 1) < 1e-6
+
+
+def test_slice_and_linked_follow_the_sliders():
+    app, t = _zeta_tab()
+    _mode(app, t, "slice")
+    ts, absz = t.canvas._lines["z"]
+    k = int(np.argmin(np.abs(ts - 14.134725)))
+    assert absz[k] < 0.05                                     # |ζ(1/2 + iγ1)| ≈ 0
+    _mode(app, t, "linked")
+    from pse_r.graphs import complex_ as CX
+    assert abs(t.canvas._sigma_star() - 7 / 8) < 1e-12           # low = 3/16 by default
+    t.funcs.sliders["delta"].setValue(1000)                   # Δ = 0.3 → σ* > 1
+    app.processEvents()
+    assert t.canvas._sigma_star() > 1 and "nestala" in t.funcs.sigma.text()
+    assert CX.sigma_star(3 / 16, 1 / 8) == 1.0                # Δ that 7/8 tolerates: 1/8

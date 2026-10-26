@@ -28,7 +28,8 @@ from . import fexpr as FX
 
 KINDS = ("real", "complex", "surface", "parametric", "polar", "builtin")
 PARAMS = {"l": 1 / 6, "b": 0.0, "k": 0.75, "t": 0.0, "w": 0.25, "d": 1.0,
-          "low": 0.0, "delta": 0.0}             # sliders (ℓ, b, κ, t, w, d, niska strana, Δ)
+          "low": 3 / 16, "delta": 0.0}           # sliders (ℓ, b, κ, t, w, d, niska strana, Δ);
+#                                                 low = 3/16 gives σ* = 11/16 + 3/16 = 7/8
 RAD, OURS, USER = "RAD", "NAŠE-NERECENZIRANO", "KORISNIK"
 COLORS = ["#ffb74d", "#4fc3f7", "#81c784", "#e57373", "#ba68c8", "#fff176", "#4db6ac",
           "#f06292", "#a1887f", "#90a4ae"]

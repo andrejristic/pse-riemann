@@ -293,8 +293,11 @@ def offers(f: F.Function, info: dict, others: list = ()) -> list:
 # --------------------------------------------------------------------------- #
 # the calculations
 # --------------------------------------------------------------------------- #
-def calculate(key: str, f: F.Function, x: float, others: list = (), params=None,
-              cancel: Optional[threading.Event] = None, other_id: str = "") -> dict:
+def calculate(key: str, f: F.Function, x, others: list = (), params=None,
+              cancel: Optional[threading.Event] = None, other_id: str = "",
+              extra: Optional[dict] = None) -> dict:
+    if key.startswith("c_"):
+        return _calculate_complex(key, f, complex(x), params, cancel, extra or {})
     f1 = _f1(f, params)
     lo, hi = float(f.domain[0]), float(f.domain[1])
     span = hi - lo or 1.0
@@ -364,6 +367,41 @@ def calculate(key: str, f: F.Function, x: float, others: list = (), params=None,
     raise ValueError(f"nepoznat račun '{key}'")
 
 
+def _calculate_complex(key, f, s, params, cancel, extra) -> dict:
+    from . import complex_ as CX
+    fp = F.precise(f, params)
+    fc = lambda z: complex(fp(z))                         # noqa: E731
+    _check(cancel)
+    if key == "c_deriv":
+        d = CX.cderivative(fc, s)
+        return {"s": str(s), "f'(s)": str(d), "|f'|": abs(d)}
+    if key == "c_zeros":
+        r = extra.get("rect") or [[s.real - 0.5, s.imag - 5], [s.real + 0.5, s.imag + 5]]
+        fast = F.numeric(f, params)
+        g = lambda z: complex(np.asarray(fast(np.array([z])))[0])   # noqa: E731
+        out = CX.zeros_in_rect(g, complex(*r[0]), complex(*r[1]), cancel=cancel)
+        out["note"] = ("broj nula minus broj polova unutra (princip argumenta)"
+                       + ("" if out["sure"] else " — NESIGURNO: faza skače i posle profinjenja"))
+        return out
+    if key == "c_residue":
+        res = CX.residue(fc, s, r=float(extra.get("r", 1e-3)))
+        return {"s": str(s), "residue": str(res), "|res|": abs(res)}
+    raise ValueError(f"nepoznat račun '{key}'")
+
+
+def offers_complex(f: F.Function, rect) -> list:
+    c = F.eval_cost(f)
+    out = [{"key": "c_deriv", "title": "kompleksni izvod f′(s)", "args": [], "est_s": round(4 * c, 3)},
+           {"key": "c_zeros", "title": "broj nula u vidljivom pravougaoniku (princip argumenta)",
+            "args": [], "est_s": round(900 * c, 3), "extra": {"rect": rect}},
+           {"key": "c_residue", "title": "rezidua u tački (kružni integral)", "args": [],
+            "est_s": round(256 * c * 8, 3)}]
+    for o in out:
+        o["ask"] = o["est_s"] > CHEAP_S
+        o["why"] = ""
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # background queue with "prekini", cache, record in SHARED_LIB
 # --------------------------------------------------------------------------- #
@@ -373,29 +411,32 @@ _SCHEMA = ["""CREATE TABLE IF NOT EXISTS graph_runs (
     seconds REAL NOT NULL, oznaka TEXT NOT NULL DEFAULT 'NAŠE-NERECENZIRANO', operator TEXT)"""]
 
 
-def _key(calc: str, f: F.Function, x, params, other_id="") -> str:
-    blob = json.dumps([calc, f.to_dict(), repr(x), params or {}, other_id], sort_keys=True,
-                      default=str)
+def _key(calc: str, f: F.Function, x, params, other_id="", extra=None) -> str:
+    blob = json.dumps([calc, f.to_dict(), repr(x), params or {}, other_id, extra or {}],
+                      sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()[:24]
 
 
-def cached(calc: str, f: F.Function, x, params=None, other_id="") -> Optional[dict]:
+def cached(calc: str, f: F.Function, x, params=None, other_id="", extra=None) -> Optional[dict]:
     from ..shared_lib.store import store
     store().ensure(_SCHEMA)
-    r = store().rows("SELECT result FROM graph_runs WHERE id=?", (_key(calc, f, x, params, other_id),))
+    r = store().rows("SELECT result FROM graph_runs WHERE id=?",
+                     (_key(calc, f, x, params, other_id, extra),))
     return json.loads(r[0]["result"]) if r else None
 
 
-def record(calc: str, f: F.Function, x, params, result: dict, seconds: float, other_id="") -> str:
+def record(calc: str, f: F.Function, x, params, result: dict, seconds: float, other_id="",
+           extra=None) -> str:
     from ..shared_lib.store import store
     from ..shared_lib import operator as OP
     from ..core import journal as J
     store().ensure(_SCHEMA)
-    rid = _key(calc, f, x, params, other_id)
+    rid = _key(calc, f, x, params, other_id, extra)
     store().execute("INSERT OR REPLACE INTO graph_runs(id,ts,calc,function,point,params,result,"
                     "seconds,operator) VALUES (?,?,?,?,?,?,?,?,?)",
                     (rid, time.time(), calc, json.dumps(f.to_dict(), ensure_ascii=False),
-                     json.dumps(x, default=str), json.dumps(params or {}, default=str),
+                     json.dumps(str(x) if isinstance(x, complex) else x, default=str),
+                     json.dumps(params or {}, default=str),
                      json.dumps(result, ensure_ascii=False, default=str), seconds, OP.current()))
     J.log(J.LAB, OP.current() or "grafovi", {"event": "graph_calc", "id": rid, "calc": calc,
                                              "function": f.label, "seconds": round(seconds, 3),
@@ -414,9 +455,9 @@ class Jobs:
         self._lock = threading.Lock()
 
     def submit(self, calc: str, f: F.Function, x, others=(), params=None, other_id: str = "",
-               done: Optional[Callable[[str, dict], None]] = None) -> str:
-        hit = cached(calc, f, x, params, other_id)
-        jid = _key(calc, f, x, params, other_id)
+               done: Optional[Callable[[str, dict], None]] = None, extra=None) -> str:
+        hit = cached(calc, f, x, params, other_id, extra)
+        jid = _key(calc, f, x, params, other_id, extra)
         if hit is not None:
             self.results[jid] = {"status": "keš", **hit}
             if done:
@@ -425,7 +466,7 @@ class Jobs:
         ev = threading.Event()
         self._cancel[jid] = ev
         self.results[jid] = {"status": "čeka"}
-        self._q.put((jid, calc, f, x, list(others), params, other_id, done, ev))
+        self._q.put((jid, calc, f, x, list(others), params, other_id, done, ev, extra))
         with self._lock:
             if self._t is None or not self._t.is_alive():
                 self._t = threading.Thread(target=self._run, name="grafovi-jobs", daemon=True)
@@ -444,7 +485,7 @@ class Jobs:
     def _run(self):
         while True:
             try:
-                jid, calc, f, x, others, params, other_id, done, ev = self._q.get(timeout=0.5)
+                jid, calc, f, x, others, params, other_id, done, ev, extra = self._q.get(timeout=0.5)
             except queue.Empty:
                 return
             self.results[jid] = {"status": "radi"}
@@ -453,9 +494,9 @@ class Jobs:
                 if ev.is_set():
                     raise Cancelled("prekinuto")
                 _ram_ok()
-                res = calculate(calc, f, x, others, params, ev, other_id)
+                res = calculate(calc, f, x, others, params, ev, other_id, extra)
                 secs = time.perf_counter() - t0
-                record(calc, f, x, params, res, secs, other_id)
+                record(calc, f, x, params, res, secs, other_id, extra)
                 self.results[jid] = {"status": "gotovo", "seconds": secs, **res}
             except Cancelled as e:
                 self.results[jid] = {"status": "prekinuto", "why": str(e)}

@@ -99,6 +99,8 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.mpl_connect("motion_notify_event", self._on_motion)
         self._annot = None
         self.mode = "cartesian"
+        self.ax2 = None
+        self._cgrid = None                # (f, extent, W) of the complex view
         self.shade = None                 # (fid, gid, a, b) after an "area" calculation
         self._field = None                # (f, X, Y, Z) of the field mode
 
@@ -166,6 +168,9 @@ class GraphCanvas(FigureCanvasQTAgg):
         if self.mode == "field" and self._field is not None:
             self.clicked_xy.emit(self._field[0].id, float(ev.xdata), float(ev.ydata))
             return
+        if self.mode == "complex" and self._cgrid is not None and ev.inaxes is self.ax:
+            self.clicked_xy.emit(self._cgrid[0].id, float(ev.xdata), float(ev.ydata))
+            return
         hit = self.nearest(ev)
         if not hit:
             return
@@ -195,6 +200,14 @@ class GraphCanvas(FigureCanvasQTAgg):
             j = int(np.clip(np.searchsorted(X[0], ev.xdata), 0, Z.shape[1] - 1))
             self.hovered.emit(tr("{0} · ({1:.6g}, {2:.6g}) · vrijednost ≈ {3:.6g} · {4} — klik = sve o tački")
                               .format(f.label, ev.xdata, ev.ydata, Z[i, j], f.level))
+            return
+        if self.mode == "complex" and self._cgrid is not None:
+            f, (x0, x1, y0, y1), W = self._cgrid
+            j = int(np.clip((ev.xdata - x0) / (x1 - x0) * (W.shape[1] - 1), 0, W.shape[1] - 1))
+            i = int(np.clip((ev.ydata - y0) / (y1 - y0) * (W.shape[0] - 1), 0, W.shape[0] - 1))
+            w = W[i, j]
+            self.hovered.emit(tr("s = {0:.6g} + {1:.6g}i · f(s) ≈ {2:.4g} · |f| ≈ {3:.4g} · arg ≈ {4:+.3f} — klik = sve o tački")
+                              .format(ev.xdata, ev.ydata, w, abs(w), float(np.angle(w))))
             return
         hit = self.nearest(ev)
         if hit is None:
@@ -373,7 +386,23 @@ class GraphCanvas(FigureCanvasQTAgg):
                           color=MUTED, fontsize=fs * 0.9, loc="left")
         levels.add(f.level)
 
+    def _layout(self, two: bool):
+        """One axes, or two side by side (linked views)."""
+        if two == (self.ax2 is not None):
+            return
+        xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
+        self.fig.clear()
+        if two:
+            self.ax = self.fig.add_subplot(1, 2, 1)
+            self.ax2 = self.fig.add_subplot(1, 2, 2)
+        else:
+            self.ax = self.fig.add_subplot(111)
+            self.ax2 = None
+        self.ax.set_xlim(*xl)
+        self.ax.set_ylim(*yl)
+
     def redraw(self, fast: bool = False):
+        self._layout(self.mode == "linked")
         xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
         self.ax.clear()
         fs = self._style()
@@ -394,6 +423,12 @@ class GraphCanvas(FigureCanvasQTAgg):
             self._draw_shade(xl)
         if mode in ("cartesian", "parametric"):
             self._draw_overlays(xl, yl, fs)
+        if mode == "complex":
+            self._draw_complex(xl, yl, levels, waiting, fs)
+        if mode == "slice":
+            self._draw_slice(xl, levels, fs)
+        if mode == "linked":
+            self._draw_linked(fs, levels)
         if self._lines:
             leg = self.ax.legend(loc="lower left", fontsize=fs * 0.85, facecolor=AX,
                                  edgecolor=GRID, labelcolor=TXT)
@@ -435,8 +470,124 @@ class GraphCanvas(FigureCanvasQTAgg):
                     self.ax.text(v, yl[1], f" {name}", color="#f49090", fontsize=fs * 0.8,
                                  va="top", rotation=90)
 
+    # ---- complex (step 4) ---------------------------------------------- #
+    def _cfunc(self):
+        return next((g for g in self.funcs if g.visible and F.shape(g) == "complex"), None)
+
+    def _sigma_star(self) -> float:
+        from ..graphs import complex_ as CX
+        return CX.sigma_star(self.params.get("low", 0), self.params.get("delta", 0))
+
+    def _regions(self, ax, xl, yl, fs, zeros: bool):
+        from ..graphs import complex_ as CX
+        ss = self._sigma_star()
+        ax.axvline(0, color=MUTED, linewidth=0.8, linestyle="--")
+        ax.axvline(1, color=MUTED, linewidth=0.8, linestyle="--")
+        ax.axvline(0.5, color=TXT, linewidth=1.0, linestyle="--")
+        if ss < 1:
+            ax.axvspan(ss, max(xl[1], ss), color="#74d79a", alpha=0.10)
+            ax.axvline(ss, color="#74d79a", linewidth=1.4)
+            ax.text(ss, yl[1], tr(" bez nula: Re s > σ* = {0:.4f}").format(ss), color="#74d79a",
+                    fontsize=fs * 0.8, va="top")
+        else:
+            ax.text(0.5, 0.95, tr("σ* = {0:.4f} ≥ 1: oblast bez nula je nestala").format(ss),
+                    transform=ax.transAxes, color="#f49090", ha="center", fontsize=fs * 0.9)
+        if zeros:
+            zs = [g for g in CX.zeta_zeros(60) if yl[0] <= g <= yl[1]] + \
+                 [-g for g in CX.zeta_zeros(60) if yl[0] <= -g <= yl[1]]
+            ax.plot([0.5] * len(zs), zs, "o", color="white", markersize=4, markerfacecolor="none",
+                    label=tr("nule ζ (poznate)"))
+
+    def _draw_complex(self, xl, yl, levels, waiting, fs):
+        from ..graphs import complex_ as CX
+        f = self._cfunc()
+        self._cgrid = None
+        if f is None:
+            self.ax.text(0.5, 0.5, tr("Kompleksni prikaz treba vidljivu kompleksnu funkciju w = f(s)\n(npr. „+ funkcija“ → kompleksna → zeta(s))."),
+                         transform=self.ax.transAxes, ha="center", va="center", color=MUTED, fontsize=fs)
+            return
+        n = 160 if _samples() >= 500 else 100
+        key = ("C", f.id, f.expr, round(xl[0], 6), round(xl[1], 6), round(yl[0], 6), round(yl[1], 6), n,
+               tuple(sorted(self.params.items())))
+
+        def work(f=f, xl=xl, yl=yl, n=n):
+            X, Y = np.meshgrid(np.linspace(*xl, n), np.linspace(*yl, n))
+            return np.asarray(F.numeric(f, self.params)(X + 1j * Y), complex)
+        W = self._bg(key, work)
+        if W is None:
+            waiting.append(f.label)
+            return
+        ext = (xl[0], xl[1], yl[0], yl[1])
+        self._cgrid = (f, ext, W)
+        self.ax.imshow(CX.phase_rgb(W), extent=ext, origin="lower", aspect="auto", interpolation="bilinear")
+        X, Y = np.meshgrid(np.linspace(*xl, W.shape[1]), np.linspace(*yl, W.shape[0]))
+        with np.errstate(all="ignore"):
+            try:
+                self.ax.contour(X, Y, W.real, levels=[0], colors=["#ffffff"], linewidths=0.8)
+                self.ax.contour(X, Y, W.imag, levels=[0], colors=["#111111"], linewidths=0.8)
+            except Exception:                           # noqa: BLE001
+                pass
+        self._regions(self.ax, xl, yl, fs, "zeta" in f.expr)
+        self.ax.set_xlabel("Re s = σ", color=MUTED, fontsize=fs * 0.9)
+        self.ax.set_ylabel("Im s = t", color=MUTED, fontsize=fs * 0.9)
+        self.ax.set_title(tr("boja = arg f, svjetlina = |f|; bijelo: Re f = 0, crno: Im f = 0 (nule su presjeci)"),
+                          color=MUTED, fontsize=fs * 0.85, loc="left")
+        levels.add(f.level)
+
+    def _draw_slice(self, xl, levels, fs):
+        f = self._cfunc()
+        if f is None:
+            return
+        ts = np.linspace(xl[0], xl[1], max(400, _samples()))
+        W = np.asarray(F.numeric(f, self.params)(0.5 + 1j * ts), complex)
+        for ys, lab, st in ((np.abs(W), f"|{f.label}|", "-"), (W.real, f"Re {f.label}", "--"),
+                            (W.imag, f"Im {f.label}", ":")):
+            self.ax.plot(ts, ys, st, color=f.color, linewidth=1.6, label=lab)
+        self._lines[f.id] = (ts, np.abs(W))
+        if "zeta" in f.expr:
+            from ..graphs import complex_ as CX
+            Zt = np.vectorize(lambda t: float(__import__("mpmath").fp.siegelz(t)))(ts)
+            self.ax.plot(ts, Zt, color="#ffb74d", linewidth=1.4, label="Hardy Z(t)")
+            for g in CX.zeta_zeros(60):
+                if xl[0] <= g <= xl[1]:
+                    self.ax.axvline(g, color=GRID, linewidth=0.8)
+        self.ax.axhline(0, color=MUTED, linewidth=0.8)
+        self.ax.set_xlabel(tr("t (s = 1/2 + it)"), color=MUTED, fontsize=fs * 0.9)
+        levels.add(f.level)
+
+    def _draw_linked(self, fs, levels):
+        """Left: exponent plane (ℓ, σ) with B(ℓ) and σ*; right: ℂ with the half-plane Re s > σ*.
+        The same σ* is the crossing on the left and the edge of the region on the right."""
+        ss = self._sigma_star()
+        ax, ax2 = self.ax, self.ax2
+        xl, yl = ax.get_xlim(), ax.get_ylim()
+        ls = np.linspace(xl[0], xl[1], 200)
+        ax.plot(ls, 11 / 12 - ls / 4, color="#ffb74d", linewidth=1.8, label="B(ℓ) = 11/12 − ℓ/4")
+        ax.axhline(ss, color="#74d79a", linewidth=1.4, label=tr("σ* = 11/16 + niska strana + Δ"))
+        l_star = 4 * (11 / 12 - ss)
+        ax.plot([l_star], [ss], "o", color="#74d79a", markersize=7)
+        ax.annotate(tr(" ℓ = {0:.4f}, σ* = {1:.4f}").format(l_star, ss), (l_star, ss), color=TXT, fontsize=fs * 0.8)
+        for name, v in F.TARGETS.items():
+            ax.axhline(v, color=GRID, linewidth=0.8, linestyle="--")
+        ax.set_xlabel("ℓ", color=MUTED, fontsize=fs * 0.9)
+        ax.set_ylabel(tr("σ (eksponent visoke strane)"), color=MUTED, fontsize=fs * 0.9)
+        ax.legend(loc="lower left", fontsize=fs * 0.75, facecolor=AX, edgecolor=GRID, labelcolor=TXT)
+        ax2.clear()
+        ax2.set_facecolor(AX)
+        for s_ in ax2.spines.values():
+            s_.set_color(GRID)
+        ax2.tick_params(colors=MUTED, labelsize=max(7.0, _base_pt() * 0.62))
+        ax2.set_xlim(-0.5, 1.5)
+        ax2.set_ylim(0, 45)
+        self._regions(ax2, (-0.5, 1.5), (0, 45), fs, True)
+        ax2.set_xlabel("Re s", color=MUTED, fontsize=fs * 0.9)
+        ax2.set_title(tr("Δ do nestanka oblasti: {0:+.4f}").format(1 - ss), color=MUTED, fontsize=fs * 0.85)
+        levels.update({F.RAD, F.OURS})
+
     HOMES = {"cartesian": ((0.0, 0.3), (0.80, 0.95)), "parametric": ((0.14, 0.20), (0.86, 0.885)),
-             "polar": ((-2.2, 2.2), (-2.2, 2.2)), "field": ((0.10, 0.22), (0.60, 0.90))}
+             "polar": ((-2.2, 2.2), (-2.2, 2.2)), "field": ((0.10, 0.22), (0.60, 0.90)),
+             "complex": ((-1.0, 2.0), (-2.0, 35.0)), "slice": ((0.0, 50.0), (-4.0, 4.0)),
+             "linked": ((0.0, 0.5), (0.5, 1.05))}
 
     def set_mode(self, mode: str):
         self.mode = mode
@@ -558,6 +709,7 @@ class FunctionsPanel(QWidget):
         for n in SLIDERS:
             self._slid(n, emit=False)
         self._slid("low", emit=False)
+        self._slid("delta", emit=False)
         self.refresh()
 
     def value(self, name: str) -> float:
@@ -567,8 +719,10 @@ class FunctionsPanel(QWidget):
     def _slid(self, name: str, emit: bool = True):
         self.params[name] = self.value(name)
         self.vals[name].setText(f"{self.params[name]:.4f}")
-        if name == "low" and hasattr(self, "sigma"):
-            self.sigma.setText(tr("  → σ* = {0:.4f}").format(11 / 16 + self.params[name]))
+        if name in ("low", "delta") and hasattr(self, "sigma"):
+            ss = 11 / 16 + self.params.get("low", 0) + self.params.get("delta", 0)
+            self.sigma.setText(tr("  → σ* = 11/16 + niska strana + Δ = {0:.4f}").format(ss)
+                               + (tr("  (oblast bez nula nestala)") if ss >= 1 else ""))
         if emit:
             self.changed.emit()
 
@@ -690,7 +844,7 @@ def result_md(title: str, res: dict) -> str:
         elif isinstance(v, (dict, list)):
             import json
             v = "`" + json.dumps(v, ensure_ascii=False, default=str)[:600] + "`"
-        lines.append(f"- **{k}**: {v}")
+        lines.append(f"- **{k}:** {v}")
     lines.append(tr("_oznaka: NAŠE-NERECENZIRANO — računao Python, deterministički_"))
     return "\n".join(lines)
 
@@ -761,6 +915,32 @@ class CalcPanel(QWidget):
         self.view.set_markdown(self._info_md)
         self.offers.clear()
 
+    def show_complex(self, f: F.Function, s: complex, params: dict, sigma_s: float, rect):
+        from ..graphs import complex_ as CX
+        fp = F.precise(f, params)
+        info = CX.point_info_c(f.label, f.level, lambda z: complex(fp(z)), s, sigma_s, "zeta" in f.expr)
+        self._ctx = (f, s, [f], params)
+        self._results = []
+        md = [tr("### Sve o tački"), "", f"**{f.label}** · {f.level}", "",
+              f"s = `{s.real:.10g} + {s.imag:.10g}i`", "",
+              f"f(s) = `{info['f(s)']:.10g}`", "",
+              f"|f| = `{info['|f|']:.6g}` · arg f = `{info['arg f']:+.6f}`", "",
+              tr("**Udaljenost do prave 1/2:** {0:.6g}").format(info["dist_to_1/2"]), "",
+              tr("**Granica oblasti bez nula σ∗:** {0:.6g}").format(sigma_s)]
+        if info["flags"]:
+            md += ["", tr("**Tačka je:** {0}").format("; ".join(info["flags"]))]
+        if info.get("nearest_zero"):
+            z = info["nearest_zero"]
+            md += ["", tr("**Najbliža poznata nula ζ:** 1/2 + {0:.9g}i (udaljenost {1:.4g})").format(z["s"].imag, z["distance"])]
+        self._info_md = "\n".join(md)
+        self.view.set_markdown(self._info_md)
+        self.offers.clear()
+        self._more = []
+        for o in C.offers_complex(f, rect):
+            it = QListWidgetItem("▸ " + self._offer_text(o))
+            it.setData(Qt.UserRole, o)
+            self.offers.addItem(it)
+
     def _offer_text(self, o) -> str:
         est = o["est_s"]
         dur = tr("odmah") if not o["ask"] else (tr("~{0:.0f} s").format(est) if est < 120 else tr("~{0:.0f} min").format(est / 60))
@@ -792,7 +972,7 @@ class CalcPanel(QWidget):
             return
         f, x, funcs, params = self._ctx
         self.status.setText(tr("računam: {0}…").format(tr(o["title"]).format(*o.get("args", []))))
-        C.JOBS.submit(o["key"], f, x, funcs, params,
+        C.JOBS.submit(o["key"], f, x, funcs, params, extra=o.get("extra"),
                       done=lambda jid, res, t=tr(o["title"]).format(*o.get("args", [])): self.bridge.job_done.emit(t, dict(res)))
 
     def _job_done(self, title: str, res: dict):
@@ -814,7 +994,10 @@ class GrafoviTab(QWidget):
         v = QVBoxLayout(self)
         self.mode = QComboBox()
         for key, txt in (("cartesian", tr("Kartezijanski")), ("parametric", tr("Parametarski")),
-                         ("polar", tr("Polarni")), ("field", tr("Vektorsko polje"))):
+                         ("polar", tr("Polarni")), ("field", tr("Vektorsko polje")),
+                         ("complex", tr("Kompleksni (fazni portret)")),
+                         ("slice", tr("Presjek duž prave Re s = 1/2")),
+                         ("linked", tr("Povezani: ravan eksponenata ↔ ℂ"))):
             self.mode.addItem(txt, key)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.cb_t = QCheckBox(tr("ciljevi"))
@@ -903,6 +1086,11 @@ class GrafoviTab(QWidget):
     def _clicked_xy(self, fid: str, x: float, y: float):
         f = next((g for g in self.funcs.funcs if g.id == fid), None)
         if f is None:
+            return
+        if F.shape(f) == "complex":
+            xl, yl = self.canvas.ax.get_xlim(), self.canvas.ax.get_ylim()
+            self.calc.show_complex(f, complex(x, y), dict(self.funcs.params),
+                                   self.canvas._sigma_star(), [[xl[0], yl[0]], [xl[1], yl[1]]])
             return
         z = None
         if F.shape(f) == "surface":

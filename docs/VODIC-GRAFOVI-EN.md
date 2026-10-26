@@ -153,6 +153,37 @@ A click on the field gives the value, the gradient, the kind of point by the Hes
 
 **Reserve.** When you compute "shaded area between two functions" in the Cartesian view, the area between them (on their common domain) stays shaded on the plot. Changing the view clears the shading.
 
+### Complex views (step 4)
+
+You need a visible **complex** function: "+ function" → kind "complex" → e.g. `zeta(s)`.
+
+| View | What you see |
+|---|---|
+| **Complex (phase portrait)** | colour = arg f, brightness = \|f\| (zeros dark, poles bright). **White** lines are Re f = 0, **black** lines Im f = 0, and the zeros are where they cross. Dashed: the critical strip 0 < Re s < 1 and the line 1/2. **Green**: the zero-free half-plane Re s > σ\*. For ζ the known zeros are drawn as small circles |
+| **Slice along Re s = 1/2** | \|f(1/2+it)\| (solid), Re (dashed), Im (dotted); for ζ also Hardy's Z(t) (orange), which changes sign at every zero |
+| **Linked: exponent plane ↔ ℂ** | on the left the line B(ℓ) and the horizontal σ\*, whose crossing is the method's ℓ; on the right the same σ\* as the edge of the zero-free half-plane. Move a slider and both sides change |
+
+**The "low side + Δ" slider.** σ\* = 11/16 + low side + Δ:
+- the low side starts at 3/16, so σ\* = 7/8, i.e. the 7/8 method;
+- Δ is an extra loss the method suffers;
+- when σ\* reaches 1, **the zero-free region disappears**, and this is written both on the plot and next to the slider;
+- the 7/8 method tolerates Δ up to 1/8.
+
+This is the yardstick for the transfer map (mission 2): how much loss a step in higher degree may bring.
+
+**The phase portrait** is computed in the background: a 160×160 grid on the Dell (about 2 s for ζ), 100×100 on the Acer. Meanwhile the title shows "računam …" (computing). Every move or zoom draws a new grid.
+
+**A click on a complex point** gives:
+- s, f(s), |f| and arg f;
+- the distance to the line 1/2;
+- whether the point is in the critical strip or in the zero-free half-plane;
+- for ζ, the nearest known zero and the distance to it.
+
+Offers:
+- **complex derivative** f′(s);
+- **number of zeros in the visible rectangle**: the argument principle (the winding of f along the boundary, refined where the phase jumps); if it is still not sure after refining, it says "NESIGURNO" (unsure). For ζ on [0.1 · 0.9] × [1 · 30] it gives 3 zeros (γ = 14.13, 21.02, 25.01);
+- **residue at the point** (circle integral); for ζ at s = 1 it gives 1.
+
 ## 6. Export
 
 - **PNG / SVG**: the plot as on screen, on the dark background, with the level in the title.
@@ -160,9 +191,8 @@ A click on the field gives the value, the gradient, the kind of point by the Hes
 
 ---
 
-## 7. Coming next (item 29, steps 4–6)
+## 7. Coming next (item 29, steps 5–6)
 
-- complex functions: phase portrait, the curves Re f = 0 and Im f = 0, slices along a line (|ζ(1/2+it)|, Z(t)), regions, zeros in a rectangle, residues; linked views (σ, exponent) ↔ complex plane; the "low side + Δ" slider;
 - 3D surfaces (|ζ| above the plane, two exponent surfaces), a 4th dimension as colour, further ones as sliders or animation, small multiples, parallel coordinates; a coarser grid on the Acer;
 - the Lab plots move to this view.
 

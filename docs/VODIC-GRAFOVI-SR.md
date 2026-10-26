@@ -153,6 +153,37 @@ Klik na polje daje vrijednost, gradijent, vrstu tačke po Hesijanu (minimum, mak
 
 **Rezerva.** Kada u Kartezijanskom prikazu izračunaš „osjenčana površina između dvije funkcije“, površina između njih (na zajedničkom domenu) ostaje osjenčana na grafu. Promjena prikaza briše sjenčenje.
 
+### Kompleksni prikazi (korak 4)
+
+Treba ti vidljiva **kompleksna** funkcija: „+ funkcija“ → vrsta „kompleksna“ → npr. `zeta(s)`.
+
+| Prikaz | Šta vidiš |
+|---|---|
+| **Kompleksni (fazni portret)** | boja = arg f, svjetlina = \|f\| (nule su tamne, polovi svijetli). **Bijele** linije su Re f = 0, **crne** Im f = 0, a nule su njihovi presjeci. Isprekidano: kritična traka 0 < Re s < 1 i prava 1/2. **Zeleno**: poluravan bez nula Re s > σ\*. Za ζ su poznate nule ucrtane kao kružići |
+| **Presjek duž prave Re s = 1/2** | \|f(1/2+it)\| (puna linija), Re (crtice), Im (tačkice); za ζ i Hardyjeva Z(t) (narandžasto), koja mijenja znak u svakoj nuli |
+| **Povezani: ravan eksponenata ↔ ℂ** | lijevo prava B(ℓ) i horizontala σ\*, a njihov presjek je ℓ metode; desno ista σ\* kao granica poluravni bez nula. Pomjeri klizač i mijenjaju se obje strane |
+
+**Klizač „niska strana + Δ“.** σ\* = 11/16 + niska strana + Δ:
+- početno je niska strana = 3/16, pa je σ\* = 7/8, tj. metoda 7/8;
+- Δ je dodatni gubitak koji metoda trpi;
+- kad σ\* dostigne 1, **oblast bez nula nestaje**, i to piše i na grafu i pored klizača;
+- metoda 7/8 podnosi Δ do 1/8.
+
+To je mjerilo za mapu prenosivosti (misija 2): koliko gubitka korak u višem stepenu smije donijeti.
+
+**Fazni portret** se računa u pozadini: mreža 160×160 na Dellu (oko 2 s za ζ), 100×100 na Aceru. Dok traje, u naslovu piše „računam …“. Svako pomjeranje ili zum crta novu mrežu.
+
+**Klik na kompleksnu tačku** daje:
+- s, f(s), |f| i arg f;
+- udaljenost do prave 1/2;
+- da li je tačka u kritičnoj traci ili u poluravni bez nula;
+- za ζ, najbližu poznatu nulu i udaljenost do nje.
+
+Ponude:
+- **kompleksni izvod** f′(s);
+- **broj nula u vidljivom pravougaoniku**: princip argumenta (namotavanje f po rubu, profinjeno gdje faza skače); ako ni poslije profinjenja nije siguran, piše „NESIGURNO“. Za ζ u [0,1 · 0,9] × [1 · 30] daje 3 nule (γ = 14,13; 21,02; 25,01);
+- **rezidua u tački** (kružni integral); za ζ u s = 1 daje 1.
+
 ## 6. Izvoz
 
 - **PNG / SVG**: slika grafa kakav je na ekranu, na tamnoj pozadini, sa oznakom nivoa u naslovu.
@@ -160,9 +191,8 @@ Klik na polje daje vrijednost, gradijent, vrstu tačke po Hesijanu (minimum, mak
 
 ---
 
-## 7. Šta dolazi (stavka 29, koraci 4–6)
+## 7. Šta dolazi (stavka 29, koraci 5–6)
 
-- kompleksne funkcije: fazni portret, krive Re f = 0 i Im f = 0, presjeci duž prave (|ζ(1/2+it)|, Z(t)), oblasti, nule u pravougaoniku, rezidui; povezani prikazi (σ, eksponent) ↔ kompleksna ravan; klizač „niska strana + Δ“;
 - 3D površi (|ζ| iznad ravni, dvije površi eksponenata), 4. dimenzija kao boja, dalje kao klizači ili animacija, male slike, paralelne koordinate; Acer dobija rjeđu mrežu;
 - Lab grafovi prelaze na ovaj prikaz.
 
