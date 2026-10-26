@@ -7,6 +7,8 @@ Every pill is computed from SHARED_LIB state on refresh; none is free text.
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -33,6 +35,7 @@ def _logo() -> QLabel:
 class TopBar(QFrame):
     open_queue = Signal()
     toggle_online = Signal()
+    toggle_lang = Signal()
 
     def __init__(self, font_pt: float, parent=None):
         super().__init__(parent)
@@ -42,7 +45,7 @@ class TopBar(QFrame):
         h.setContentsMargins(14, 8, 14, 8)
         h.setSpacing(8)
         h.addWidget(_logo())
-        t = QLabel("PSE Riemann")
+        t = QLabel(tr("PSE Riemann"))
         t.setObjectName("title")
         h.addWidget(t)
         h.addStretch(1)
@@ -54,11 +57,16 @@ class TopBar(QFrame):
             self.pills[key] = lb
             h.addWidget(lb)
         self.online_btn = QPushButton("")             # round 3, item 12 (also Ctrl+K)
-        self.online_btn.setToolTip("Prekidač za online AI (Ctrl+K): zatvara put prema "
+        self.online_btn.setToolTip(tr("Prekidač za online AI (Ctrl+K): zatvara put prema "
                                    "cloud modelima, prekida pozive u toku, sklanja ključeve "
-                                   "iz memorije. Uključuje ga samo operater.")
+                                   "iz memorije. Uključuje ga samo operater."))
         self.online_btn.clicked.connect(self.toggle_online.emit)
         h.addWidget(self.online_btn)
+        from ..i18n import lang
+        self.lang_btn = QPushButton("SR | en" if lang() == "sr" else "sr | EN")
+        self.lang_btn.setToolTip("Jezik interfejsa / interface language (SR/EN)")
+        self.lang_btn.clicked.connect(self.toggle_lang.emit)
+        h.addWidget(self.lang_btn)
         self.queue_btn = QPushButton("")
         self.queue_btn.setProperty("kind", "primary")
         self.queue_btn.clicked.connect(self.open_queue.emit)
@@ -79,61 +87,60 @@ class TopBar(QFrame):
         from ..vault import store as VS
 
         op = OP.current()
-        self._set("op", f"operater: {op or '—'}", "plain" if op else "danger",
-                  "registrovani operater ove sesije — glas SHARED_LIB-a govori samo njemu")
+        self._set("op", tr("operater: {0}").format(op or '—'), "plain" if op else "danger",
+                  tr("registrovani operater ove sesije — glas SHARED_LIB-a govori samo njemu"))
         h = TH.meter().health()
         kind = {"healthy": "ok", "enmeshment": "warn", "withdrawal": "warn",
                 "schizoid": "danger"}.get(h["status"], "plain")
-        self._set("theta", f"θ {h['theta']:.1f}", kind,
-                  f"Ravnoteža izvor/izvođenje: {h['message']} "
-                  f"(zdravo {h['band'][0]:.0f}–{h['band'][1]:.0f}, σ {h['sigma']:.3f})")
+        self._set("theta", tr("θ {0:.1f}").format(h['theta']), kind,
+                  tr("Ravnoteža izvor/izvođenje: {0} (zdravo {1:.0f}–{2:.0f}, σ {3:.3f})").format(h['message'], h['band'][0], h['band'][1], h['sigma']))
         st = VS.stats()
-        self._set("vault", f"kartice {st.verified}/{st.total}", "plain",
-                  "provjerene / ukupno kartica")
+        self._set("vault", tr("kartice {0}/{1}").format(st.verified, st.total), "plain",
+                  tr("provjerene / ukupno kartica"))
         self._set("budget", budget().status_line(), "plain", budget().tooltip())
         g = guardian().self_check()
         from ..guardian.ssh import unit as SSHU
         alarm = SSHU.pending_alarm()
         if alarm:
-            self._set("guard", "⛔ OPASNOST", "danger", alarm.get("text", ""))
+            self._set("guard", tr("⛔ OPASNOST"), "danger", alarm.get("text", ""))
         elif g["quarantined"]:
-            self._set("guard", "Guardian: KARANTIN", "danger", ", ".join(g["quarantined"]))
+            self._set("guard", tr("Guardian: KARANTIN"), "danger", ", ".join(g["quarantined"]))
         elif g["problems"]:
-            self._set("guard", "Guardian: provjeri", "warn", "; ".join(map(str, g["problems"])))
+            self._set("guard", tr("Guardian: provjeri"), "warn", "; ".join(map(str, g["problems"])))
         else:
-            self._set("guard", "Guardian: ok", "ok",
-                      f"{g['observations']} zahtjeva · {g['tier1']} tier-1 · {g['tier2']} tier-2")
+            self._set("guard", tr("Guardian: ok"), "ok",
+                      tr("{0} zahtjeva · {1} tier-1 · {2} tier-2").format(g['observations'], g['tier1'], g['tier2']))
         try:
             from ..llm import selection as SEL
             main = SEL.get_main()
-            self._set("main", f"glavni: {main or 'nema'}", "info" if main else "warn",
-                      "glavni AI radi sve uloge osim skeptika")
+            self._set("main", tr("glavni: {0}").format(main or 'nema'), "info" if main else "warn",
+                      tr("glavni AI radi sve uloge osim skeptika"))
             if SEL.skeptic_available():
-                self._set("skeptic", f"skeptik: {SEL.get_skeptic()}", "info",
-                          "skeptik je uvijek drugi model; samo napada, nikad ne piše")
+                self._set("skeptic", tr("skeptik: {0}").format(SEL.get_skeptic()), "info",
+                          tr("skeptik je uvijek drugi model; samo napada, nikad ne piše"))
             else:
-                self._set("skeptic", "skeptik: nedostupan", "warn",
-                          "samo determinističke provjere (test reprodukcije, kapija, nivoi)")
+                self._set("skeptic", tr("skeptik: nedostupan"), "warn",
+                          tr("samo determinističke provjere (test reprodukcije, kapija, nivoi)"))
         except Exception:                                   # noqa: BLE001
-            self._set("main", "glavni: ?", "warn")
-            self._set("skeptic", "skeptik: ?", "warn")
+            self._set("main", tr("glavni: ?"), "warn")
+            self._set("skeptic", tr("skeptik: ?"), "warn")
         try:
             from ..llm import limits as L
             free = L.free_ram_gb()
             danger = L.Limits().must_unload()
-            self._set("limits", f"RAM {free:.1f} GB", "danger" if danger else "plain",
-                      "limiteri: model se oslobađa kad slobodna memorija padne ispod praga")
+            self._set("limits", tr("RAM {0:.1f} GB").format(free), "danger" if danger else "plain",
+                      tr("limiteri: model se oslobađa kad slobodna memorija padne ispod praga"))
         except Exception:                                   # noqa: BLE001
-            self._set("limits", "limiteri: ?", "plain")
+            self._set("limits", tr("limiteri: ?"), "plain")
         from ..guardian import killswitch as KS
         off = KS.closed()
-        self.online_btn.setText("ONLINE AI: ISKLJUČEN" if off else "⏻ Online AI: uključen")
+        self.online_btn.setText(tr("ONLINE AI: ISKLJUČEN") if off else tr("⏻ Online AI: uključen"))
         self.online_btn.setStyleSheet(
             ("QPushButton { background:#c62828; color:white; font-weight:700; "
              "border:1px solid #ff8a80; border-radius:11px; padding:3px 12px; }")
             if off else pill_style("ok", self.font_pt).replace("QLabel", "QPushButton"))
         n = len(store().open_items())
-        self.queue_btn.setText(f"Čeka tvoju odluku: {n}")
+        self.queue_btn.setText(tr("Čeka tvoju odluku: {0}").format(n))
         self.queue_btn.setProperty("kind", "primary" if n else "")
         self.queue_btn.style().unpolish(self.queue_btn)
         self.queue_btn.style().polish(self.queue_btn)

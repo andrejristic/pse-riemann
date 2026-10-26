@@ -19,6 +19,8 @@ want to know exactly what was in front of it when it answered.
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 import json
 import re
 
@@ -59,7 +61,7 @@ class _Worker(QObject):
             self.done.emit(None, f"{type(e).__name__}: {e}")
 
 
-FACTS = "SHARED_LIB (činjenice)"
+FACTS = tr("SHARED_LIB (činjenice)")
 
 
 class _VoiceWorker(QObject):
@@ -123,7 +125,7 @@ class GrowingInput(QTextEdit):
         self.max_frac = max_frac
         self.setAcceptRichText(False)
         self.setWordWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
-        self.setPlaceholderText("Pitaj… (Enter šalje, Shift+Enter novi red)")
+        self.setPlaceholderText(tr("Pitaj… (Enter šalje, Shift+Enter novi red)"))
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.textChanged.connect(self._resize)
         self._min = 34
@@ -163,7 +165,7 @@ class ProposalWidget(QFrame):
         verdict = gate().validate(self.card, actor="model:chat")
 
         head = QHBoxLayout()
-        head.addWidget(QLabel("<b>Prijedlog kartice</b>"))
+        head.addWidget(QLabel(tr("<b>Prijedlog kartice</b>")))
         head.addWidget(status_chip(self.card.status))
         head.addStretch(1)
         v.addLayout(head)
@@ -172,16 +174,16 @@ class ProposalWidget(QFrame):
             v.addWidget(small("izvori: " + ", ".join(self.card.sources)))
 
         if verdict.ok:
-            v.addWidget(small("✅ kapija prihvata" +
+            v.addWidget(small(tr("✅ kapija prihvata") +
                               ("  ·  " + "; ".join(verdict.warnings)
                                if verdict.warnings else ""), "#7bc67b"))
         else:
-            v.addWidget(small("⛔ kapija odbija: " + verdict.reason, "#e07070"))
+            v.addWidget(small(tr("⛔ kapija odbija: ") + verdict.reason, "#e07070"))
 
         row = QHBoxLayout()
-        self.b_write = button("Upiši", self._write, primary=verdict.ok)
+        self.b_write = button(tr("Upiši"), self._write, primary=verdict.ok)
         self.b_write.setEnabled(verdict.ok)
-        self.b_spec = button("Kao SPECULATION", self._write_spec)
+        self.b_spec = button(tr("Kao SPECULATION"), self._write_spec)
         row.addWidget(self.b_write)
         row.addWidget(self.b_spec)
         row.addStretch(1)
@@ -218,7 +220,7 @@ class ProposalWidget(QFrame):
 
     def _after(self, v):
         if v.ok:
-            self.msg.setText(f"✅ upisano: {v.path.name if v.path else ''}")
+            self.msg.setText(tr("✅ upisano: {0}").format(v.path.name if v.path else ''))
             self.b_write.setEnabled(False)
             self.b_spec.setEnabled(False)
             if self.on_written:
@@ -244,15 +246,15 @@ class ChatPanel(QWidget):
         root.setSpacing(4)
 
         head = QHBoxLayout()
-        head.addWidget(QLabel("<b>Chat</b>"))
+        head.addWidget(QLabel(tr("<b>Chat</b>")))
         self.role_box = QComboBox()
         self.role_box.addItems([FACTS, B.MATH, B.CHAT, B.SUMMARIZE])
-        self.role_box.setToolTip("SHARED_LIB (činjenice): odgovor samo iz biblioteke, "
-                                 "sa SQL-om i citatima · ostalo: razgovor sa glavnim AI")
+        self.role_box.setToolTip(tr("SHARED_LIB (činjenice): odgovor samo iz biblioteke, "
+                                 "sa SQL-om i citatima · ostalo: razgovor sa glavnim AI"))
         head.addWidget(self.role_box)
         head.addStretch(1)
         self.b_expand = button("⤢", lambda: self.expand_toggled.emit())
-        self.b_expand.setToolTip("raširi chat preko cijelog prozora (Esc vraća)")
+        self.b_expand.setToolTip(tr("raširi chat preko cijelog prozora (Esc vraća)"))
         head.addWidget(self.b_expand)
         self.cost = small("")
         head.addWidget(self.cost)
@@ -260,8 +262,8 @@ class ChatPanel(QWidget):
 
         # context tray
         ctx = QHBoxLayout()
-        ctx.addWidget(small("kontekst:"))
-        self.ctx_label = small("(prazan — model vidi samo tvoje pitanje)")
+        ctx.addWidget(small(tr("kontekst:")))
+        self.ctx_label = small(tr("(prazan — model vidi samo tvoje pitanje)"))
         ctx.addWidget(self.ctx_label, 1)
         ctx.addWidget(button("×", self.clear_context))
         root.addLayout(ctx)
@@ -282,17 +284,17 @@ class ChatPanel(QWidget):
         root.addWidget(self.input)
 
         bar = QHBoxLayout()
-        self.b_send = button("Pošalji", self.send, primary=True)
+        self.b_send = button(tr("Pošalji"), self.send, primary=True)
         bar.addWidget(self.b_send)
-        bar.addWidget(button("Očisti", self.clear))
+        bar.addWidget(button(tr("Očisti"), self.clear))
         bar.addStretch(1)
         self.state = small("")
         bar.addWidget(self.state)
         root.addLayout(bar)
 
-        self._say("system", "Spreman. Pitaj o ζ, ili traži da napravim karticu.\n\n"
+        self._say("system", tr("Spreman. Pitaj o ζ, ili traži da napravim karticu.\n\n"
                             "Zapamti: nikad neću tvrditi dokaz RH, i svaka tvrdnja "
-                            "iz literature mora nositi izvor.")
+                            "iz literature mora nositi izvor."))
 
     # ------------------------------------------------------------------ #
     def add_context(self, card_id: str) -> None:
@@ -306,7 +308,7 @@ class ChatPanel(QWidget):
 
     def _refresh_ctx(self) -> None:
         if not self.context_ids:
-            self.ctx_label.setText("(prazan — model vidi samo tvoje pitanje)")
+            self.ctx_label.setText(tr("(prazan — model vidi samo tvoje pitanje)"))
         else:
             self.ctx_label.setText(", ".join(self.context_ids[:6]) +
                                    (f" +{len(self.context_ids)-6}"
@@ -319,9 +321,7 @@ class ChatPanel(QWidget):
         for cid in self.context_ids[:8]:
             c = VS.get(cid)
             if c:
-                chunks.append(f"### [{c.status}] {c.title} (id: {c.id})\n"
-                              f"izvori: {', '.join(c.sources) or '—'}\n\n"
-                              f"{c.body[:4000]}")
+                chunks.append(tr("### [{0}] {1} (id: {2})\nizvori: {3}\n\n{4}").format(c.status, c.title, c.id, ', '.join(c.sources) or '—', c.body[:4000]))
         if not chunks:
             return ""
         return ("KARTICE IZ VAULTA KOJE JE KORISNIK STAVIO U KONTEKST "
@@ -337,7 +337,7 @@ class ChatPanel(QWidget):
              "system": "#1a1f2b", "error": "#301618"}.get(who, "#171b25"))
         v = QVBoxLayout(box)
         v.setContentsMargins(8, 6, 8, 6)
-        tag = {"user": "ti", "assistant": "asistent", "system": "sistem",
+        tag = {"user": tr("ti"), "assistant": tr("asistent"), "system": tr("sistem"),
                "error": "greška"}.get(who, who)
         v.addWidget(small(tag, "#ffcf7a" if who == "user" else "#9aa4b5"))
         md = MarkdownView(on_card=self.open_card.emit)
@@ -368,7 +368,7 @@ class ChatPanel(QWidget):
         self._say("user", text)
         self.history.append(B.Msg("user", text))
         self.b_send.setEnabled(False)
-        self.state.setText("razmišlja…")
+        self.state.setText(tr("razmišlja…"))
 
         role = self.role_box.currentText()
         self._thread = QThread()
@@ -384,8 +384,8 @@ class ChatPanel(QWidget):
             self._thread = None
             self.b_send.setEnabled(True)
             self.state.setText("")
-            self._say("error", "Chat agent je u karantinu (tri zla) — pogledaj "
-                               "„Čeka tvoju odluku“ i pusti ga kad pregledaš.")
+            self._say("error", tr("Chat agent je u karantinu (tri zla) — pogledaj "
+                               "„Čeka tvoju odluku“ i pusti ga kad pregledaš."))
             return
         self._worker = _Worker(role, list(self.history[-12:]),
                                self._context_text())
@@ -408,17 +408,15 @@ class ChatPanel(QWidget):
         findings = RT.check_output("chat", reply.text,
                                    data_in_context=self._context_text())
         if findings:
-            self._say("error", "⚠ Odgovor nosi znak zla (" +
-                      ", ".join(f.sign for f in findings) + ") — agent je zadržan; "
-                      "odluka je u „Čeka tvoju odluku“.")
+            self._say("error", tr("⚠ Odgovor nosi znak zla (") +
+                      ", ".join(f.sign for f in findings) + tr(") — agent je zadržan; "
+                      "odluka je u „Čeka tvoju odluku“."))
         props = psel.extract_card_proposals(reply.text)
-        prose = psel.strip_card_blocks(reply.text) or "_(samo prijedlog kartice)_"
+        prose = psel.strip_card_blocks(reply.text) or tr("_(samo prijedlog kartice)_")
         self.history.append(B.Msg("assistant", reply.text))
         self._say("assistant", prose, props)
         from ..llm.budget import budget
-        self.cost.setText(f"{reply.provider}/{reply.model.split('-')[-1]} · "
-                          f"{reply.in_tokens}→{reply.out_tokens} tok · "
-                          f"{budget().status_line()}")
+        self.cost.setText(tr("{0}/{1} · {2}→{3} tok · {4}").format(reply.provider, reply.model.split('-')[-1], reply.in_tokens, reply.out_tokens, budget().status_line()))
 
     # ------------------------------------------------------------------ #
     def _facts_reply(self, ans, err):
@@ -433,10 +431,10 @@ class ChatPanel(QWidget):
             return
         md = []
         if ans.get("unknown"):
-            md.append("**Nema u biblioteci (UNKNOWN).**")
+            md.append(tr("**Nema u biblioteci (UNKNOWN).**"))
         elif ans.get("answer"):
             md.append(ans["answer"])
-        md += ["", "SQL (jedino što je izvršeno):", "```sql", ans["sql"], "```"]
+        md += ["", tr("SQL (jedino što je izvršeno):"), "```sql", ans["sql"], "```"]
         cols, rows = ans.get("columns", []), ans.get("rows", [])
         if cols and rows:
             md.append("| " + " | ".join(map(str, cols)) + " |")
@@ -444,7 +442,7 @@ class ChatPanel(QWidget):
             for r in rows[:15]:
                 md.append("| " + " | ".join(str(v)[:60].replace("|", "/") for v in r) + " |")
             if len(rows) > 15:
-                md.append(f"_… još {len(rows) - 15} redova_")
+                md.append(tr("_… još {0} redova_").format(len(rows) - 15))
         for w in ans.get("warnings", []):
             md.append(f"> ⚠ {w}")
         from ..shared_lib import runtime as RT

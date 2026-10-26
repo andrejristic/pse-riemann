@@ -71,7 +71,8 @@ function table(rows, weights) {
 function parseTable(lines) {
   return lines
     .filter((l) => !/^\|\s*-{2,}/.test(l.replace(/:/g, "")))
-    .map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
+    .map((l) => l.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/)
+      .map((c) => c.trim().replace(/\\\|/g, "|")));
 }
 
 // ---------------------------------------------------------------- blocks

@@ -7,6 +7,8 @@ window is reachable later from the palette ("Podešavanje — prvo podešavanje"
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal
@@ -63,13 +65,13 @@ class ModelPicker(QWidget):
         self.lst = QListWidget()
         self.lst.setFixedWidth(340)
         if skeptic:
-            self._add(NO_SKEPTIC, "Bez skeptika", "samo determinističke provjere")
+            self._add(NO_SKEPTIC, tr("Bez skeptika"), tr("samo determinističke provjere"))
         for pid, pr in P.PRESETS.items():
-            self._add(pid, pr.label, pr.note)
-        self._add(CUSTOM, "Vlastita adresa…", "bilo koji OpenAI-kompatibilan servis")
-        self._add(GGUF, "Lokalni GGUF…", "sa bilo kog mjesta, bez kopiranja")
+            self._add(pid, tr(pr.label), tr(pr.note))
+        self._add(CUSTOM, tr("Vlastita adresa…"), tr("bilo koji OpenAI-kompatibilan servis"))
+        self._add(GGUF, tr("Lokalni GGUF…"), tr("sa bilo kog mjesta, bez kopiranja"))
         if not skeptic:
-            self._add(NONE, "Bez AI za sada", "šta radi, a šta ne")
+            self._add(NONE, tr("Bez AI za sada"), tr("šta radi, a šta ne"))
         h.addWidget(self.lst)
         self.detail = QVBoxLayout()
         box = QWidget()
@@ -118,62 +120,62 @@ class ModelPicker(QWidget):
         if k in P.PRESETS:
             pr = P.PRESETS[k]
             adv = P.billing_advice(k)
-            d.addWidget(QLabel(f"<h3>{pr.label}</h3>"))
-            d.addWidget(small(f"✓ bolje kada: {pr.better}<br>✗ slabije kada: {pr.worse}"))
-            d.addWidget(small(f"<b>Naplata pri prekidu:</b> {adv['text']}",
+            d.addWidget(QLabel(tr("<h3>{0}</h3>").format(tr(pr.label))))
+            d.addWidget(small(tr("✓ bolje kada: {0}<br>✗ slabije kada: {1}").format(tr(pr.better), tr(pr.worse))))
+            d.addWidget(small(tr("<b>Naplata pri prekidu:</b> {0}").format(tr(adv['text'])),
                               "#ffc257" if adv.get("caps") == "strict" else "#7bc67b"))
             f = QFormLayout()
             from ..guardian import secrets as SEC
             self.key.setText(SEC.store().get(pr.key_name))
             self.key.setPlaceholderText(pr.key_name)
-            f.addRow("ključ:", self.key)
+            f.addRow(tr("ključ:"), self.key)
             self.model.clear(); self.model.addItem(pr.default_model)
             self.model.setCurrentText(pr.default_model)
-            f.addRow("model:", self.model)
+            f.addRow(tr("model:"), self.model)
             w = QWidget(); w.setLayout(f); d.addWidget(w)
             row = QHBoxLayout()
-            row.addWidget(button("Učitaj prave modele", self._load_models))
-            row.addWidget(button("Testiraj (1 pravi poziv)", self._test))
+            row.addWidget(button(tr("Učitaj prave modele"), self._load_models))
+            row.addWidget(button(tr("Testiraj (1 pravi poziv)"), self._test))
             row.addStretch(1)
             rw = QWidget(); rw.setLayout(row); d.addWidget(rw)
-            d.addWidget(small(f"Ključ praviš / opozivaš ovdje: {pr.console}"))
+            d.addWidget(small(tr("Ključ praviš / opozivaš ovdje: {0}").format(pr.console)))
         elif k == CUSTOM:
-            d.addWidget(QLabel("<h3>Vlastita OpenAI-kompatibilna adresa</h3>"))
-            d.addWidget(small("Bilo koji servis koji govori OpenAI chat-completions. Adresa se "
+            d.addWidget(QLabel(tr("<h3>Vlastita OpenAI-kompatibilna adresa</h3>")))
+            d.addWidget(small(tr("Bilo koji servis koji govori OpenAI chat-completions. Adresa se "
                               "NE otvara sama: postaje deklaracija koju potvrđuješ u 4. koraku. "
                               "Samo https. Ključ ide isključivo na tu adresu. Naplata pri "
-                              "prekidu je nepoznata — računa se najgori slučaj."))
+                              "prekidu je nepoznata — računa se najgori slučaj.")))
             f = QFormLayout()
-            f.addRow("ime:", self.c_name); f.addRow("adresa (base URL):", self.c_url)
-            self.model.clear(); f.addRow("model:", self.model)
-            self.key.setText(""); f.addRow("ključ:", self.key)
+            f.addRow(tr("ime:"), self.c_name); f.addRow(tr("adresa (base URL):"), self.c_url)
+            self.model.clear(); f.addRow(tr("model:"), self.model)
+            self.key.setText(""); f.addRow(tr("ključ:"), self.key)
             w = QWidget(); w.setLayout(f); d.addWidget(w)
         elif k == GGUF:
-            d.addWidget(QLabel("<h3>Lokalni GGUF</h3>"))
-            d.addWidget(small("Model ostaje gdje jeste (bez kopiranja). Prima se po sha256: "
+            d.addWidget(QLabel(tr("<h3>Lokalni GGUF</h3>")))
+            d.addWidget(small(tr("Model ostaje gdje jeste (bez kopiranja). Prima se po sha256: "
                               "poredim sa objavljenim hash-om; ako ga nema, deklarišeš ga ti. "
                               "Radi bez interneta i ne smije se obratiti nijednoj adresi osim "
-                              "ovog računara."))
+                              "ovog računara.")))
             row = QHBoxLayout()
             row.addWidget(self.g_path, 1)
-            row.addWidget(button("Izaberi…", self._pick_gguf))
+            row.addWidget(button(tr("Izaberi…"), self._pick_gguf))
             rw = QWidget(); rw.setLayout(row); d.addWidget(rw)
             from ..llm import gguf as G
             for m in G.list_models():
-                d.addWidget(button(f"iz models/: {m['name']} ({m['gb']} GB)",
+                d.addWidget(button(tr("iz models/: {0} ({1} GB)").format(m['name'], m['gb']),
                                    lambda _=False, p=m["path"]: self._set_gguf(p)))
         elif k == NONE:
-            d.addWidget(QLabel("<h3>Bez AI za sada</h3>"))
-            d.addWidget(small("<b>Radi:</b><br>• " + "<br>• ".join(SF.NO_AI_TEXT["radi"]),
+            d.addWidget(QLabel(tr("<h3>Bez AI za sada</h3>")))
+            d.addWidget(small(tr("<b>Radi:</b>") + "<br>• " + "<br>• ".join(tr(x) for x in SF.NO_AI_TEXT["radi"]),
                               "#7bc67b"))
-            d.addWidget(small("<b>Ne radi:</b><br>• " + "<br>• ".join(SF.NO_AI_TEXT["ne radi"]),
+            d.addWidget(small(tr("<b>Ne radi:</b>") + "<br>• " + "<br>• ".join(tr(x) for x in SF.NO_AI_TEXT["ne radi"]),
                               "#e07070"))
-            d.addWidget(small("AI dodaješ kad hoćeš (paleta → Podešavanje)."))
+            d.addWidget(small(tr("AI dodaješ kad hoćeš (paleta → Podešavanje).")))
         elif k == NO_SKEPTIC:
-            d.addWidget(QLabel("<h3>Bez skeptika</h3>"))
-            d.addWidget(small("Tvrdnje i dalje napadaju determinističke provjere: test "
+            d.addWidget(QLabel(tr("<h3>Bez skeptika</h3>")))
+            d.addWidget(small(tr("Tvrdnje i dalje napadaju determinističke provjere: test "
                               "reprodukcije, porijeklo brojeva, kapija, nivoi izvora. "
-                              "Nezavisni drugi model je jača provjera — preporuka je skeptik."))
+                              "Nezavisni drugi model je jača provjera — preporuka je skeptik.")))
         d.addWidget(self.status)
         d.addStretch(1)
         for keep in (self.key, self.model, self.c_name, self.c_url, self.g_path, self.status):
@@ -190,7 +192,7 @@ class ModelPicker(QWidget):
 
     def _load_models(self):
         pr = self._with_key()
-        self.status.setText("… pitam server za spisak modela")
+        self.status.setText(tr("… pitam server za spisak modela"))
         from ..llm import backend as B
 
         def done(res):
@@ -200,28 +202,28 @@ class ModelPicker(QWidget):
             cur = self.model.currentText()
             self.model.clear(); self.model.addItems(res or [pr.default_model])
             self.model.setCurrentText(cur if cur in res else pr.default_model)
-            self.status.setText(f"✅ {len(res)} modela")
+            self.status.setText(tr("✅ {0} modela").format(len(res)))
         _run_bg(self, lambda: B.list_models(pr.provider), done)
 
     def _test(self):
         pr = self._with_key()
-        self.status.setText("… jedan pravi poziv")
+        self.status.setText(tr("… jedan pravi poziv"))
         from ..llm.router import router
 
         def done(res):
             ok, msg = (False, str(res)) if isinstance(res, Exception) else res
-            self.status.setText(("✅ radi · " if ok else "⛔ ") + msg[:240])
+            self.status.setText((tr("✅ radi · ") if ok else "⛔ ") + msg[:240])
         _run_bg(self, lambda: router().ping(pr.provider), done)
 
     def _pick_gguf(self):
-        p, _ = QFileDialog.getOpenFileName(self, "Izaberi GGUF", str(Path.home()),
+        p, _ = QFileDialog.getOpenFileName(self, tr("Izaberi GGUF"), str(Path.home()),
                                            "GGUF (*.gguf)")
         if p:
             self._set_gguf(p)
 
     def _set_gguf(self, p):
         self.g_path.setText(p)
-        self.status.setText("… računam sha256 (veliki fajl: do pola minute)")
+        self.status.setText(tr("… računam sha256 (veliki fajl: do pola minute)"))
 
         def done(res):
             if isinstance(res, Exception):
@@ -229,7 +231,7 @@ class ModelPicker(QWidget):
                 return
             self.gguf_info[res["path"]] = res
             self.status.setText(("✅ " if res["published"] else "⚠ ") + res["note"]
-                                + f"<br><code>{res['sha256']}</code>")
+                                + "<br><code>{0}</code>".format(res['sha256']))
         _run_bg(self, lambda: SF.gguf_check(p), done)
 
     def choice(self):
@@ -249,21 +251,21 @@ class ModelPicker(QWidget):
     def describe(self) -> str:
         c = self.choice()
         if c.kind == "none":
-            return "bez skeptika" if self.skeptic else "bez AI za sada"
+            return tr("bez skeptika") if self.skeptic else tr("bez AI za sada")
         if c.kind == "cloud":
-            return f"{P.PRESETS[c.provider].label} · model {c.model}"
+            return "{0} · model {1}".format(P.PRESETS[c.provider].label, c.model)
         if c.kind == "custom":
-            return f"vlastita adresa „{c.custom_name}“ {c.custom_url} · model {c.model}"
+            return tr("vlastita adresa „{0}“ {1} · model {2}").format(c.custom_name, c.custom_url, c.model)
         info = self.gguf_info.get(str(Path(c.gguf_path).expanduser().resolve()))
-        tail = (" · " + info["note"]) if info else " · hash još nije izračunat"
-        return f"GGUF {c.gguf_path}{tail}"
+        tail = (" · " + info["note"]) if info else tr(" · hash još nije izračunat")
+        return tr("GGUF {0}{1}").format(c.gguf_path, tail)
 
 
 class SetupDialog(QDialog):
     def __init__(self, parent=None, first_run: bool = True):
         super().__init__(parent)
-        self.setWindowTitle("PSE Riemann — prvo podešavanje" if first_run
-                            else "PSE Riemann — podešavanje")
+        self.setWindowTitle(tr("PSE Riemann — prvo podešavanje") if first_run
+                            else tr("PSE Riemann — podešavanje"))
         self.resize(1180, 760)
         self.setMinimumSize(1000, 640)
         root = QVBoxLayout(self)
@@ -276,9 +278,9 @@ class SetupDialog(QDialog):
         p1 = QWidget(); v = QVBoxLayout(p1)
         from ..shared_lib import operator as OP
         self.op = QLineEdit(OP.current() or OP.last_used())
-        v.addWidget(small("Upiši svoje ime. Bez lozinke: ime se veže za svaki run, upis, "
-                          "odluku i izvještaj, a glas SHARED_LIB-a govori samo tebi."))
-        f = QFormLayout(); f.addRow("ime operatera:", self.op)
+        v.addWidget(small(tr("Upiši svoje ime. Bez lozinke: ime se veže za svaki run, upis, "
+                          "odluku i izvještaj, a glas SHARED_LIB-a govori samo tebi.")))
+        f = QFormLayout(); f.addRow(tr("ime operatera:"), self.op)
         w = QWidget(); w.setLayout(f); v.addWidget(w); v.addStretch(1)
         # 2 main / 3 skeptic
         self.main = ModelPicker(False)
@@ -288,40 +290,38 @@ class SetupDialog(QDialog):
         self.decl_view = small("")
         self.decl_view.setWordWrap(True)
         v4.addWidget(self.decl_view)
-        self.cb_confirm = QCheckBox("Potvrđujem ove deklaracije (inače čekaju u „Čeka tvoju "
-                                    "odluku“)")
+        self.cb_confirm = QCheckBox(tr("Potvrđujem ove deklaracije (inače čekaju u „Čeka tvoju "
+                                    "odluku“)"))
         self.cb_confirm.setChecked(True)
         v4.addWidget(self.cb_confirm); v4.addStretch(1)
         # 5 guardian + sources
         p5 = QWidget(); v5 = QVBoxLayout(p5)
-        self.cb_auto = QCheckBox("Pokreni čuvara (SSH + domaćin) automatski pri prijavi u sistem")
+        self.cb_auto = QCheckBox(tr("Pokreni čuvara (SSH + domaćin) automatski pri prijavi u sistem"))
         v5.addWidget(self.cb_auto)
-        v5.addWidget(small("Čuvar je zaseban proces sa ikonom u traci; radi i kad zatvoriš "
-                           "prozor. Ovo se kasnije mijenja u podešavanju."))
+        v5.addWidget(small(tr("Čuvar je zaseban proces sa ikonom u traci; radi i kad zatvoriš "
+                           "prozor. Ovo se kasnije mijenja u podešavanju.")))
         v5.addWidget(hline())
         from ..guardian import secrets as SEC
         self.email = QLineEdit(SEC.store().get("CONTACT_EMAIL"))
-        self.email.setPlaceholderText("ti@primjer.com (opciono — Crossref/OpenAlex polite pool)")
-        f5 = QFormLayout(); f5.addRow("email za izvore:", self.email)
+        self.email.setPlaceholderText(tr("ti@primjer.com (opciono — Crossref/OpenAlex polite pool)"))
+        f5 = QFormLayout(); f5.addRow(tr("email za izvore:"), self.email)
         w5 = QWidget(); w5.setLayout(f5); v5.addWidget(w5)
-        g = QGroupBox("⚠ Prvi kontakt sa mrežom")
+        g = QGroupBox(tr("⚠ Prvi kontakt sa mrežom"))
         gl = QVBoxLayout(g)
         from ..guardian.egress import network_id
-        gl.addWidget(small(f"Trenutna mreža: <code>{network_id()}</code>. TLS ključevi servera "
-                           "se pamte pri prvom kontaktu — uradi prvi test sa mreže kojoj "
-                           "vjeruješ (kuća)."))
+        gl.addWidget(small(tr("Trenutna mreža: <code>{0}</code>. TLS ključevi servera se pamte pri prvom kontaktu — uradi prvi test sa mreže kojoj vjeruješ (kuća).").format(network_id())))
         v5.addWidget(g); v5.addStretch(1)
 
-        self.pages = [("1 / 5 · Operater", p1), ("2 / 5 · Glavni AI", self.main),
-                      ("3 / 5 · Skeptik (drugi model)", self.sk),
-                      ("4 / 5 · Deklaracije", p4), ("5 / 5 · Čuvar i izvori", p5)]
+        self.pages = [(tr("1 / 5 · Operater"), p1), (tr("2 / 5 · Glavni AI"), self.main),
+                      (tr("3 / 5 · Skeptik (drugi model)"), self.sk),
+                      (tr("4 / 5 · Deklaracije"), p4), (tr("5 / 5 · Čuvar i izvori"), p5)]
         for _, pg in self.pages:
             self.stack.addWidget(pg)
 
         nav = QHBoxLayout()
-        self.b_back = button("← Nazad", lambda: self._go(-1))
-        self.b_next = button("Dalje →", lambda: self._go(+1), primary=True)
-        self.b_done = button("Završi", self._finish, primary=True)
+        self.b_back = button(tr("← Nazad"), lambda: self._go(-1))
+        self.b_next = button(tr("Dalje →"), lambda: self._go(+1), primary=True)
+        self.b_done = button(tr("Završi"), self._finish, primary=True)
         nav.addWidget(self.b_back); nav.addStretch(1)
         nav.addWidget(self.b_next); nav.addWidget(self.b_done)
         root.addLayout(nav)
@@ -332,7 +332,7 @@ class SetupDialog(QDialog):
         if step > 0 and self.stack.currentIndex() == 0:
             from ..shared_lib import operator as OP
             if not OP.valid_name(self.op.text().strip()):
-                QMessageBox.warning(self, "Ime", "Ime: 2–40 slova (bez posebnih znakova).")
+                QMessageBox.warning(self, tr("Ime"), tr("Ime: 2–40 slova (bez posebnih znakova)."))
                 return
         if step > 0 and self.stack.currentWidget() is self.main \
                 and self.main.choice().kind == "none":
@@ -341,18 +341,18 @@ class SetupDialog(QDialog):
             i -= 1
         i = max(0, min(i, len(self.pages) - 1))
         self.stack.setCurrentIndex(i)
-        self.title.setText(f"<h2>{self.pages[i][0]}</h2>")
+        self.title.setText(tr("<h2>{0}</h2>").format(self.pages[i][0]))
         self.b_back.setEnabled(i > 0)
         self.b_next.setVisible(i < len(self.pages) - 1)
         self.b_done.setVisible(i == len(self.pages) - 1)
         if self.pages[i][1] is self.stack.widget(3):
             self.decl_view.setText(
-                "<b>Glavni AI:</b> " + self.main.describe() + "<br><br>"
-                + ("<b>Skeptik:</b> " + self.sk.describe() + "<br><br>"
+                tr("<b>Glavni AI:</b> ") + self.main.describe() + "<br><br>"
+                + (tr("<b>Skeptik:</b> ") + self.sk.describe() + "<br><br>"
                    if self.main.choice().kind != "none" else "")
-                + "GGUF: hash se poredi sa objavljenim i upisuje kao deklaracija. "
+                + tr("GGUF: hash se poredi sa objavljenim i upisuje kao deklaracija. "
                   "Vlastita adresa: postaje deklarisana tek kad je potvrdiš. Cloud preset: "
-                  "ključ ide samo njegovom hostu (allowlista).")
+                  "ključ ide samo njegovom hostu (allowlista)."))
 
     def _finish(self):
         c = SF.SetupChoices(
@@ -363,10 +363,10 @@ class SetupDialog(QDialog):
         try:
             out = SF.apply(c)
         except Exception as e:                           # noqa: BLE001 — shown, stays open
-            QMessageBox.warning(self, "Podešavanje", str(e))
+            QMessageBox.warning(self, tr("Podešavanje"), str(e))
             return
         QMessageBox.information(
-            self, "Podešeno",
-            f"Glavni: {out['main'] or 'bez AI'}\nSkeptik: {out['skeptic'] or 'nema'}\n\n"
+            self, tr("Podešeno"),
+            tr("Glavni: {0}\nSkeptik: {1}\n\n").format(out['main'] or 'bez AI', out['skeptic'] or 'nema')
             + "\n".join("• " + n for n in out["notes"]))
         self.accept()

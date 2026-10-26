@@ -155,8 +155,9 @@ class Budget:
         free_calls = sum(v["calls"] for p, v in d["by_provider"].items()
                          if p in FREE_TIER)
         paid_calls = d["calls"] - free_calls
-        return (f"danas ${d['usd']:.2f} od ${self.daily_cap:.2f} · "
-                f"{d['calls']} poziva ({free_calls} bespl. / {paid_calls} plać.)")
+        from ..i18n import tr
+        return tr("danas ${0:.2f} od ${1:.2f} · {2} poziva ({3} bespl. / {4} plać.)").format(
+            d["usd"], self.daily_cap, d["calls"], free_calls, paid_calls)
 
     def tooltip(self) -> str:
         d = self.today()

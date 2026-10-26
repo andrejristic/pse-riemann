@@ -180,6 +180,13 @@ def selftest() -> int:
     from pse_r.core import replay as RPL
     _rep = RPL.replay_all(notify=False)
     check("odluke se mogu ponovo izvesti iz dnevnika", _rep.intact, _rep.summary())
+    from pse_r import i18n as I18N
+    _miss = I18N.missing()
+    check("SR/EN: svaki tekst interfejsa ima engleski", not _miss,
+          f"{len(_miss)} bez prevoda" if _miss else "sve prevedeno")
+    from pse_r.guardian import templates as TPL
+    check("SR/EN: kritični šabloni postoje na oba jezika",
+          set(TPL.TEMPLATES) == set(TPL.TEMPLATES_EN))
     from pse_r.core import archive as ARC
     _aok, _apr = ARC.verify_archives()
     check("arhive dnevnika: sha256 + lanac + sidra", _aok,

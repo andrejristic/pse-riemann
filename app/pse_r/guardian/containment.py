@@ -76,6 +76,8 @@ def helper() -> Optional[str]:
 
 
 _RIGHTS: dict = {"at": 0.0, "ok": False, "detail": ""}
+HELPER_MISSING = ("pomoćni program nije instaliran kao root "
+                  "(/usr/lib/pse-riemann/pse-guard-helper) — instaliraj .deb")
 
 
 def have_rights(refresh: bool = False) -> tuple[bool, str]:
@@ -83,8 +85,7 @@ def have_rights(refresh: bool = False) -> tuple[bool, str]:
     if not refresh and time.time() - _RIGHTS["at"] < 60:
         return _RIGHTS["ok"], _RIGHTS["detail"]
     h = helper()
-    ok, detail = False, ("pomoćni program nije instaliran kao root "
-                         "(/usr/lib/pse-riemann/pse-guard-helper) — instaliraj .deb")
+    ok, detail = False, HELPER_MISSING
     if h and shutil.which("sudo"):
         try:
             r = subprocess.run(["sudo", "-n", h, "check"], capture_output=True, timeout=10)

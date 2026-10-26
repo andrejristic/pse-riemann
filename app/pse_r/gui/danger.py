@@ -7,6 +7,8 @@ always a fixed template (guardian/templates.py), never model output.
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 import re
 import shutil
 from pathlib import Path
@@ -34,7 +36,7 @@ class DangerDialog(QDialog):
     def __init__(self, alarm: dict, parent=None, sound: bool = True):
         super().__init__(parent)
         self.alarm = alarm
-        self.setWindowTitle("PSE Riemann — OPASNOST")
+        self.setWindowTitle(tr("PSE Riemann — OPASNOST"))
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         scr = QGuiApplication.primaryScreen()
         if scr is not None:
@@ -42,7 +44,7 @@ class DangerDialog(QDialog):
             self.resize(int(g.width() * 0.8), int(g.height() * 0.7))
         self.setStyleSheet("QDialog { background:#1a0b0d; }")
         v = QVBoxLayout(self)
-        pill = QLabel("  ⛔  OPASNOST  ")
+        pill = QLabel(tr("  ⛔  OPASNOST  "))
         pill.setAlignment(Qt.AlignCenter)
         pill.setStyleSheet("background:#c62828; color:white; font-size:34pt; font-weight:800;"
                            " border-radius:28px; padding:10px 30px;")
@@ -63,18 +65,18 @@ class DangerDialog(QDialog):
             v.addWidget(tb)
         row = QHBoxLayout()
         if cmd:
-            cp = QPushButton("Kopiraj komandu")
+            cp = QPushButton(tr("Kopiraj komandu"))
             cp.clicked.connect(lambda: QGuiApplication.clipboard().setText(cmd))
             row.addWidget(cp)
         row.addStretch(1)
-        ok = QPushButton("U redu")
+        ok = QPushButton(tr("U redu"))
         ok.setStyleSheet("background:#ffc257; color:#3a2a06; font-size:22pt; font-weight:700;"
                          " padding:10px 40px;")
         ok.clicked.connect(self._ack)
         row.addWidget(ok)
         v.addLayout(row)
-        v.addWidget(QLabel("<span style='color:#c9a0a0'>Zapisano u SHARED_LIB. Usko sudoers "
-                           "pravilo: vodič SUDOERS-SR.md (u Pomoći / repou).</span>"))
+        v.addWidget(QLabel(tr("<span style='color:#c9a0a0'>Zapisano u SHARED_LIB. Usko sudoers "
+                           "pravilo: vodič SUDOERS-SR.md (u Pomoći / repou).</span>")))
         self.timer = QTimer(self)
         self.timer.timeout.connect(lambda: _beep(self))
         if sound:

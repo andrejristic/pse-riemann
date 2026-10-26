@@ -53,12 +53,37 @@ TEMPLATES = {
     "heal.queued": "Liječenje [{agent:word}]: {action:word} (traži odobrenje)",
 }
 
+# English versions — same slots, fixed text (never translated on the fly)
+TEMPLATES_EN = {
+    "ssh.tier1": ("SSH guardian: source {ip:ip} — {n:int} suspicious attempts; keys violated: "
+                  "{k:int}/3. Watching closer, recorded in SHARED_LIB."),
+    "ssh.blocked": ("SSH guardian: source {ip:ip} BLOCKED for 24 h (all three keys “→ ∞”: "
+                    "identity, cluster, target {target:name}). The block lifts itself {until:word}."),
+    "ssh.unblocked": "SSH guardian: the block on {ip:ip} expired and was removed.",
+    "ssh.session_killed": "SSH guardian: SSH session ended (PID {pid:int}) from {ip:ip}.",
+    "ssh.no_rights": ("DANGER: the SSH guardian must block {ip:ip} but has NO right to (no sudoers "
+                      "rule). The attack goes on. Do it by hand: {cmd:cmd} — or install the narrow "
+                      "rule from the SUDOERS guide."),
+    "ssh.propose_permanent": ("Proposal: block {ip:ip} PERMANENTLY (irreversible — your decision). "
+                              "Command: {cmd:cmd}"),
+    "ssh.propose_stop": ("Proposal: stop the SSH server while the attack lasts (your decision). "
+                         "Command: {cmd:cmd} · start again: {cmd2:cmd}"),
+    "ks.auto": ("ONLINE AI SWITCHED OFF AUTOMATICALLY: “→ ∞” {metric:word} = {value:num} "
+                "(L = {L:num}). Revoke the keys: {links:word}"),
+    "guard.pause": ("“→ ∞”: {metric:word} = {value:num} (L = {L:num}) — model calls "
+                    "paused, model unloaded. Approve = continue."),
+    "integrity": ("INTEGRITY BROKEN: {n:int} decisions cannot be re-derived from the journal "
+                  "(records {ids:word}). Check."),
+    "heal.queued": "Healing [{agent:word}]: {action:word} (needs approval)",
+}
+
 _FIELD = re.compile(r"\{(\w+):(\w+)\}")
 
 
 def render(tid: str, **slots) -> str:
     """Fill a fixed template. Raises KeyError/ValueError on anything unexpected."""
-    tpl = TEMPLATES[tid]
+    from ..i18n import lang
+    tpl = (TEMPLATES_EN if lang() == "en" else TEMPLATES)[tid]
     need = _FIELD.findall(tpl)
     names = {n for n, _ in need}
     extra = set(slots) - names
