@@ -39,7 +39,7 @@ Grana `feature/runda3` na GitHubu (`andrejristic/pse-riemann`). Testovi: 281/281
 
 ## Ostatak posla, redom
 
-1. **35 · Vodič za živi test** kao poseban dokument (gornji koraci, detaljnije, sa ključevima).
+1. ~~35 · Vodič za živi test~~ — **gotovo**: `PSE Riemann — VODIC ZIVI TEST.docx` (Desktop i repo). Radi test po njemu.
 2. **36 · CI** (GitHub, na svaki tag):
    - čist Ubuntu i Windows;
    - instalira .deb, odnosno .exe, iz nule;

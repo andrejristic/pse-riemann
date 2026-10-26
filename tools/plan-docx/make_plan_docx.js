@@ -87,6 +87,17 @@ function convert(md) {
     const raw = lines[i];
     const line = raw.replace(/\s+$/, "");
     if (!line.trim()) continue;
+    if (/^```/.test(line.trim())) {                  // fenced code: grey monospace box
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i].trim())) {
+        out.push(new Paragraph({ spacing: { after: 0 }, indent: { left: 360 },
+          shading: { type: ShadingType.CLEAR, fill: "F1EEE6", color: "auto" },
+          children: [new TextRun({ text: lines[i] || " ", font: "Consolas", size: 20, color: "3A2A06" })] }));
+        i++;
+      }
+      out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+      continue;
+    }
     if (/^---+$/.test(line.trim())) {
       out.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT, space: 1 } }, spacing: { after: 160 }, children: [] }));
       continue;
@@ -196,7 +207,8 @@ const doc = new Document({
   sections: [{
     properties: { page: { size: { width: PAGE_W, height: 16838 }, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN } } },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-      new TextRun({ text: "PSE Riemann — plan · strana ", size: 16, color: MUTED }),
+      new TextRun({ text: (ARG_MD ? (fs.readFileSync(path.resolve(ROOT, ARG_MD), "utf8").match(/^#\s+(.*)$/m) || [, "PSE Riemann"])[1].replace(/[*`]/g, "")
+                           : "PSE Riemann — plan") + " · strana ", size: 16, color: MUTED }),
       new TextRun({ children: [PageNumber.CURRENT], size: 16, color: MUTED })] })] }) },
     children,
   }],
