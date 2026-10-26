@@ -368,6 +368,9 @@ def main() -> int:
     from pse_r.vault import qrh_seed as QS
     if not QS.is_seeded():
         QS.seed_qrh()                  # QRH source cards + topic + barriers (fast)
+    from pse_r.vault import langlands_seed as LS
+    if not LS.is_seeded():
+        LS.seed()                      # mission 2: Langlands / higher-degree sources
     try:
         IX.index().reindex()
     except Exception as e:                              # noqa: BLE001

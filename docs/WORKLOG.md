@@ -25,6 +25,8 @@
 | 2026-10-25 | 23 · SR/EN za cijeli interfejs | ✅ | pytest 202/202; snimci `r3_en_*.png` | `pse_r/i18n.py` (`tr()`), `i18n_en.py` (~470 prevoda), `i18n_strings.py` (generiše `tools/i18n_collect.py`); prekidač „SR \| EN“ u gornjoj traci (snima, pa ponovo otvara prozor); kritični šabloni imaju fiksne engleske verzije; selftest provjerava da nijedan tekst nema bez prevoda i da se poklapaju polja za vrijednosti. Automatsko omotavanje je na pregledu omotalo i SQL, metapodatke kartica, prečice i promptove za model — vraćeno; tri mjesta gdje je tekst bio i ključ u kodu — popravljeno (test ih je uhvatio). Ostaje na izvornom jeziku namjerno: sadržaj (dnevnik, kartice, odgovori modela, promptovi) |
 | 2026-10-25 | 24 · automatski profil mašine | ✅ | pytest 206/206 | `pse_r/machine.py`: prepoznaje Dell (i5-6600, 4 jezgra — ovaj računar, izmjereno 0,44–0,62 s/token) i Acer (i3, 2 jezgra/4 niti — **procjena**, nije mjereno), inače generički profil po jezgrima; podešava niti, kontekst, budžet razmišljanja, izlaz, rok i „→ ∞“ s/token; „kad birati“ i čarobnjak upozoravaju da je DeepSeek spor na Aceru; testovi sa simuliranim Acerom (`PSE_RIEMANN_MACHINE=acer`) |
 | 2026-10-25 | — · prenumerisanje plana | ✅ | — | Andrej je primijetio: izgradnja .deb/.exe (bila stavka 29) mora biti posljednja. Redoslijed je već bio takav (Faza 6b prije Faze 7), ali brojevi nisu. Sada: Faza 6b = 25–31, Faza 7 = 32–36 (36 = .deb + .exe + spajanje). WORKLOG je do sada pratio staru numeraciju (sa P4 kao 8) — redovi od 15 nadalje su ispravljeni na brojeve iz plana; u commit porukama prije ovoga brojevi 16–25 znače 15–24 |
+| 2026-10-25 | 25 · istraživanje Langlandsa sa izvorima | ✅ | pytest 207/207 | `research/langlands-2026-10/REPORT.md` (izvori, nivoi, mapa prenosivosti, 3 prijedloga cilja) + `vault/langlands_seed.py` (8 kartica izvora: Newton–Thorne I = REFEREED po DOI, ostalo PREPRINT; tema = FOLKLORE mapa) — paketi ih nose. Glavni nalaz [naše čitanje]: dokaz 7/8 stoji na GL(1) alatima (kubna theta, Pattersonovi koeficijenti, Gaussove sume) bez poznatog GL(2) analoga → prenos nije direktan; misija 2 je zasad otvoreno pitanje, ne račun. Geometrijski Langlands (2024) ne daje eksponente nad ℚ — kontekst, ne alat. Alpöge–Furman (2/3 na pravoj) je drugi tip rezultata |
+| 2026-10-25 | 26 · dogovor o cilju misije 2 | ⏳ čeka Andreja | — | pitanje postavljeno u chatu; stavka 27 ne počinje prije odgovora; u međuvremenu 28–31 |
 
 **Nalazi iz živog testa (ispravljeno):** (1) „→ ∞“ je mjerio cijeli poziv uključujući učitavanje + hash 6 GB → lažno okidanje na prvom pozivu; sada mjeri sekunde po tokenu samog generisanja (L = 2 s/token; izmjereno 0,44–0,62 na Dellu). (2) hash 6 GB se računao pri SVAKOM pozivu (+15–18 s); sada samo pri prijemu i kad se fajl promijeni.
 | 2026-10-25 | 14 · SSH čuvar | ✅ | pytest 184/184; živo na ovom računaru | `guardian/ssh/`: čita journal (grupa adm, bez root-a) ili auth.log otporno na rotaciju i skraćivanje (nađeno testom: skraćen pa dopunjen fajl iste dužine gubio liniju — popravljeno provjerom početka fajla); tri ključa iz master §10.6 (identitet = IP, klaster = ime koje pokušaj nosi, cilj = napadnuti nalog ili sshd), svaki pod „→ ∞“; nivo 1 = zapis + pojačano praćenje, nivo 2 (sva tri) = prekid sesije + blokada 24 h; zapis po izvoru u SHARED_LIB; theta mjerena (ne podešavana), zdrava ~30, ravna dok saobraćaj teče → zamjena jedinice. Živo: 3 lažne prijave prema 127.0.0.1 → 6 događaja pročitano iz journala, sva tri ključa „→ ∞“, loopback ispravno odbijen kao zaštićen |
@@ -36,9 +38,9 @@
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** Faza 6b — stavka 25 (istraživanje Langlandsa sa izvorima), pa 26 (pitanje za Andreja o cilju druge misije). Izdanje (.deb, .exe) je stavka 36 — posljednja.
+**Sljedeće:** stavke 28–31 (inspiracije, grafovi, graf znanja, adversarijalni mod) dok Andrej ne odluči o cilju misije 2 (26); zatim 27; izdanje 36 posljednje.
 
-**Preostalo:** oko 38–74 h.
+**Preostalo:** oko 35–70 h.
 
 ---
 
