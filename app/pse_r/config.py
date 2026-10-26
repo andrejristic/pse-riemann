@@ -18,7 +18,7 @@ from pathlib import Path
 
 APP_NAME = "PSE Riemann"
 APP_SLUG = "pse-riemann"
-VERSION = "0.1.0"
+VERSION = "0.2.0~rc1"     # round 3 release candidate (live test); final: 0.2.0
 
 # --------------------------------------------------------------------------- #
 # Paths

@@ -129,9 +129,20 @@ cp -r packaging "$STAGE/opt/$APP/app/" 2>/dev/null || true
 if [ -d ../research/qrh-2026-10/method-packs ]; then
     cp -r ../research/qrh-2026-10/method-packs "$STAGE/opt/$APP/app/method-packs"
 fi
-for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md; do
+for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md ../SUDOERS-SR.md ../SUDOERS-EN.md \
+         ../docs/VODIC-GRAFOVI-SR.md ../docs/VODIC-GRAFOVI-EN.md ../docs/BENCHMARK.md; do
     [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"
 done
+# round 3: the benchmark corpus (pse-riemann --bench), the research reports the app
+# and the working paper cite, and the ONE root helper of the guardian (root:root 0755
+# under /usr/lib — fakeroot makes the owner root; containment checks owner and mode)
+cp -r bench "$STAGE/opt/$APP/app/"
+for r in qrh-2026-10 langlands-2026-10 misija3-2026-10; do
+    [ -f "../research/$r/REPORT.md" ] && { mkdir -p "$STAGE/usr/share/doc/$APP/research/$r";
+        cp "../research/$r/REPORT.md" "$STAGE/usr/share/doc/$APP/research/$r/"; }
+done
+mkdir -p "$STAGE/usr/lib/$APP"
+install -m 0755 packaging/pse-guard-helper "$STAGE/usr/lib/$APP/pse-guard-helper"
 
 # ------------------------------------------------------------- deps ----
 # Base (A i B): GUI + numerika + sympy (metode: egzaktni polinomi) + llama-cpp

@@ -159,7 +159,11 @@ function progressTable() {
 
 // ---------------------------------------------------------------- document
 const today = new Date().toISOString().slice(0, 10);
-const children = [
+// any Markdown file → its own docx:  node make_plan_docx.js --md docs/OSTALO.md --out "X.docx"
+const argv = process.argv.slice(2);
+const ARG_MD = argv.includes("--md") ? argv[argv.indexOf("--md") + 1] : null;
+const ARG_OUT = argv.includes("--out") ? argv[argv.indexOf("--out") + 1] : null;
+const children = ARG_MD ? convert(fs.readFileSync(path.resolve(ROOT, ARG_MD), "utf8")) : [
   new Paragraph({ spacing: { before: 1200, after: 120 }, children: [new TextRun({ text: "PSE Riemann", bold: true, size: 56, color: DARK })] }),
   new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: "Plan rada — runda 2 i runda 3", size: 32, color: ACCENT })] }),
   new Paragraph({ spacing: { after: 600 }, children: [new TextRun({ text: `Stanje na dan ${today} · izvor: docs/PLAN.md i docs/WORKLOG.md (GitHub andrejristic/pse-riemann)`, size: 20, color: MUTED })] }),
@@ -198,4 +202,5 @@ const doc = new Document({
   }],
 });
 
-Packer.toBuffer(doc).then((buf) => { fs.writeFileSync(OUT, buf); console.log("napisano:", OUT); });
+const OUTFILE = ARG_OUT ? path.resolve(ROOT, ARG_OUT) : OUT;
+Packer.toBuffer(doc).then((buf) => { fs.writeFileSync(OUTFILE, buf); console.log("napisano:", OUTFILE); });
