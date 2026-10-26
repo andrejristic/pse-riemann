@@ -205,13 +205,18 @@ class Egress:
                                 secret_name="", max_bytes=max_bytes,
                                 timeout=timeout, _depth=_depth + 1)
 
-        # captive-portal shape: an API host answering HTML
+        # captive-portal shape: an API call carrying a key that "succeeds" with HTML.
+        # An HTML ERROR page (404 on "/", 5xx) is an ordinary error, not an attack —
+        # quarantining on it took Gemini down at every start (live test, 0.2.0~rc1).
         ctype = resp.headers.get("content-type", "")
         if rule.klass == policy.CREDENTIALED and "html" in ctype.lower():
-            g.quarantine(host, "API host vratio HTML — captive portal ili presretanje")
-            raise EgressBlocked(
-                f"{host} je vratio HTML umjesto JSON-a. Skoro sigurno si iza captive "
-                f"portala. Prijavi se na mrežu pa probaj ponovo — ključ NIJE poslat.")
+            if secret_name and resp.status < 400:
+                g.quarantine(host, "API host vratio HTML — captive portal ili presretanje")
+                raise EgressBlocked(
+                    f"{host} je vratio HTML umjesto JSON-a. Skoro sigurno si iza captive "
+                    f"portala. Prijavi se na mrežu pa probaj ponovo.")
+            raise EgressBlocked(f"{host}: HTTP {resp.status}, HTML umjesto JSON-a (pogrešan put "
+                                f"ili greška servera) — nije napad, host NIJE u karantinu")
 
         sent = len(body or b"") + sum(len(k) + len(v) for k, v in headers.items())
         self._observe(host, endpoint, sent, len(resp.body),
@@ -225,6 +230,24 @@ class Egress:
                "network": self.network, "replay": _policy_record(host)},
               subject=host, verdict="allow")
         return resp
+
+    def probe(self, host: str, timeout: float = 5.0) -> str:
+        """Is the host reachable, untampered? Same gates (allowlist, kill switch,
+        quarantine), then TCP + TLS + pin check, and close — no HTTP request, so no
+        page can be misread as an attack. Returns the pin state; raises EgressBlocked."""
+        url = f"https://{host}/"
+        _u, _h, host, _e, parts, _rule, _p = self._gate("GET", url, None, None, "", "")
+        try:
+            conn, state = self._connect(host, parts, timeout)
+        except PinFailure:
+            raise
+        except (socket.gaierror, ConnectionError, OSError, ssl.SSLError) as e:
+            raise EgressBlocked(f"{host}: mreža nedostupna ({e})") from e
+        try:
+            conn.close()
+        except Exception:                               # noqa: BLE001
+            pass
+        return state
 
     def _gate(self, method: str, url: str, headers: Optional[dict], body: Optional[bytes],
               secret_name: str, auth_style: str):
@@ -263,8 +286,9 @@ class Egress:
         # 3. quarantine
         if g.is_quarantined(host):
             self._refuse(host, endpoint, 1,
-                         f"host '{host}' je u karantinu poslije tier-2 nalaza. "
-                         f"Pogledaj Guardian tab pa ga svjesno oslobodi ako je lažna uzbuna")
+                         f"host '{host}' je u karantinu poslije tier-2 nalaza. Ako je lažna "
+                         f"uzbuna: „Čeka tvoju odluku“ → stavka „Karantin: {host}“ → Odobri "
+                         f"(= oslobodi), ili Guardian tab → „Oslobodi host iz karantina“")
 
         # 5a. credential containment — decide BEFORE building the request
         if secret_name:

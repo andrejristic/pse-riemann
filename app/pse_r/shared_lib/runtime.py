@@ -295,6 +295,8 @@ def install_hooks() -> None:
     store().on_decision(RELEASE_KIND, _on_release)
     store().on_decision(ARXIV_KIND, _on_arxiv)
     store().on_decision(GUARD_KIND, _on_guard_decision)
+    from ..guardian import unit as _GU                  # quarantine → operator (live test fix)
+    _GU.install_hooks()
     LIM.on_pause(_on_guard_trip)
     LIM.configure(LIM.Limits.from_settings())
     # a pause survives a restart: an open "→ ∞" item means calls stay paused

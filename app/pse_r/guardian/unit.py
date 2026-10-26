@@ -101,6 +101,7 @@ class GuardianUnit:
         else:
             self.quarantined.add(host)
             self.tier2_pending.append(iv)
+            _ask_operator(host, reason)
         J.log(J.THREAT, self.unit_id,
               {"tier": tier, "host": host, "risk": round(risk, 3), "shape": shape,
                "axes": {k: round(v, 3) for k, v in scores.items()}, "reason": reason},
@@ -162,3 +163,31 @@ def guardian() -> GuardianUnit:
     if _G is None:
         _G = GuardianUnit()
     return _G
+
+
+QUARANTINE_KIND = "quarantine"
+
+
+def _ask_operator(host: str, reason: str) -> None:
+    """A quarantine is never silent: an item in "Čeka tvoju odluku" says why, and
+    approving it releases the host (journalled as the operator's call)."""
+    try:
+        from ..shared_lib.store import store
+        for it in store().open_items(QUARANTINE_KIND):
+            if it["payload"].get("host") == host:
+                return
+        store().propose(QUARANTINE_KIND, f"Karantin: {host} — {reason[:120]} · Odobri = oslobodi",
+                        {"host": host, "reason": reason[:500]}, proposer="guardian")
+    except Exception:                                   # noqa: BLE001 — never blocks the guard
+        pass
+
+
+def _on_quarantine_decision(item: dict, approved: bool) -> None:
+    if approved:
+        guardian().release(item["payload"]["host"], "oslobođeno odlukom u redu")
+
+
+def install_hooks() -> None:
+    from ..shared_lib.store import store
+    store().on_decision(QUARANTINE_KIND, _on_quarantine_decision)
+

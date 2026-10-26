@@ -227,7 +227,7 @@ def main_reachable(timeout: float = 5.0) -> bool:
         return True
     from ..guardian.egress import EgressBlocked, egress
     try:
-        egress().request("GET", f"https://{host}/", timeout=timeout)
+        egress().probe(host, timeout=timeout)       # TLS + pin only, never an HTTP page
         return True
     except EgressBlocked:
         return False
