@@ -194,6 +194,13 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
     if not force and time.time() - last < ARXIV_INTERVAL_S:
         return {"skipped": True}
     from ..methods import arxiv as AX
+    from . import missions as MIS
+    owner = MIS.FEED_OWNER["arxiv-qrh"]
+    if not MIS.accepts_background(owner):
+        # item 28a: the owning mission is parked and frozen — nothing is collected
+        J.log(J.INGEST, "arxiv", {"event": "frozen", "mission": owner}, verdict="frozen")
+        return {"skipped": True, "frozen": owner}
+    quiet = MIS.is_quiet(owner)
     items = (fetch or AX.watch)()
     store().kv_set("arxiv_last", time.time())
     seen = set(store().kv_get("arxiv_seen", []))
@@ -204,15 +211,18 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
             continue
         seen.add(rid)
         title = getattr(it, "title", rid)
-        store().propose(ARXIV_KIND, f"Novi QRH rad: {title[:120]} — izvući metodu?",
-                        {"ref": rid, "title": title,
-                         "abstract": (getattr(it, "abstract", "") or "")[:2000]},
-                        proposer="arxiv")
+        payload = {"ref": rid, "title": title, "mission": owner,
+                   "abstract": (getattr(it, "abstract", "") or "")[:2000]}
+        if quiet:                     # parked + collecting: no queue noise until resume
+            MIS.hold(owner, ARXIV_KIND, payload)
+        else:
+            store().propose(ARXIV_KIND, f"Novi QRH rad: {title[:120]} — izvući metodu?",
+                            payload, proposer="arxiv")
         new.append(rid)
     store().kv_set("arxiv_seen", sorted(seen))
     J.log(J.INGEST, "arxiv", {"event": "qrh_watch", "found": len(items), "new": new},
           verdict="watched")
-    return {"skipped": False, "found": len(items), "new": new}
+    return {"skipped": False, "found": len(items), "new": new, "quiet": quiet}
 
 
 def _on_arxiv(item: dict, approved: bool) -> None:

@@ -50,7 +50,7 @@ class TopBar(QFrame):
         h.addWidget(t)
         h.addStretch(1)
         self.pills: dict[str, QLabel] = {}
-        for key in ("op", "theta", "vault", "budget", "guard", "main", "skeptic",
+        for key in ("mission", "op", "theta", "vault", "budget", "guard", "main", "skeptic",
                     "limits"):
             lb = QLabel("")
             lb.setTextFormat(Qt.PlainText)
@@ -86,6 +86,19 @@ class TopBar(QFrame):
         from ..shared_lib.store import store
         from ..vault import store as VS
 
+        try:                                            # item 28a: the active mission
+            from ..shared_lib import missions as MIS
+            am = MIS.get(MIS.active() or "")
+            if am:
+                short = am["title"] if len(am["title"]) <= 34 else am["title"][:33] + "…"
+                parked = int(am.get("parked") or 0)
+                self._set("mission", tr("misija: {0}").format(short) + (" ⏸" if parked else ""),
+                          "warn" if parked else "info",
+                          tr("aktivna misija — mijenjaš je u tabu Misije (Sljedeća misija ⟳)"))
+            else:
+                self._set("mission", tr("misija: —"), "plain")
+        except Exception:                               # noqa: BLE001
+            self._set("mission", tr("misija: ?"), "plain")
         op = OP.current()
         self._set("op", tr("operater: {0}").format(op or '—'), "plain" if op else "danger",
                   tr("registrovani operater ove sesije — glas SHARED_LIB-a govori samo njemu"))

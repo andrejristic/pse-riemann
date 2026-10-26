@@ -93,6 +93,8 @@ class MainWindow(QMainWindow):
         self.tab_queue = QueueTab()
         self.tab_queue.decided.connect(self.tab_missions.refresh)
         self.tab_queue.decided.connect(self.tab_overview.refresh)
+        self.tab_missions.switched.connect(lambda: self.topbar.refresh())
+        self.tab_queue.decided.connect(lambda: self.topbar.refresh())
         self.tab_overview.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
         for w, name in ((self.tab_overview, tr("Pregled")),
                         (self.tab_missions, tr("Misije")), (self.tab_queue, tr("Čeka tvoju odluku")),

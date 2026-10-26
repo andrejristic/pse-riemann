@@ -35,6 +35,7 @@ from .widgets import MarkdownView, button, hline, small
 
 class MissionsTab(QWidget):
     """The Missions tab: question, frontier, and the step log (state→action→outcome)."""
+    switched = Signal()                 # item 28a: the active mission changed
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,6 +59,21 @@ class MissionsTab(QWidget):
         goal.addWidget(self.cb_goal, 1)
         goal.addWidget(button(tr("Primijeni cilj"), self._apply_goal))
         v.addLayout(goal)
+        # round 3, item 28a: one active mission; park the others "for later"
+        turn = QHBoxLayout()
+        self.lb_active = QLabel("")
+        turn.addWidget(self.lb_active, 1)
+        turn.addWidget(button(tr("Pređi na izabranu"), self._switch_selected))
+        turn.addWidget(button(tr("Sljedeća misija ⟳"), self._switch_next))
+        turn.addWidget(button(tr("Ostavi za kasnije…"), self._park_active))
+        turn.addWidget(QLabel(tr("Dok čeka:")))
+        self.cb_bg = QComboBox()
+        for k, txt in MIS.BACKGROUND.items():
+            self.cb_bg.addItem(tr(txt), k)
+        self.cb_bg.activated.connect(self._apply_bg)
+        turn.addWidget(self.cb_bg)
+        v.addLayout(turn)
+        self._card_md = ""
         v.addWidget(hline())
         self.view = MarkdownView()
         v.addWidget(self.view, 1)
@@ -69,6 +85,64 @@ class MissionsTab(QWidget):
         if m:
             i = self.cb_goal.findData(int(m.get("goal") or 1))
             self.cb_goal.setCurrentIndex(max(0, i))
+            if hasattr(self, "cb_bg"):
+                self.cb_bg.setCurrentIndex(max(0, self.cb_bg.findData(MIS.background(mid))))
+
+    # ---- missions in turn (item 28a) ---------------------------------- #
+    def _ask_note(self) -> "str | None":
+        from PySide6.QtWidgets import QInputDialog
+        cur = MIS.get(MIS.active() or "")
+        txt, ok = QInputDialog.getMultiLineText(
+            self, tr("Ostavi za kasnije"),
+            tr("Gdje si stao u misiji „{0}“? (jedna rečenica za sebe; front, koraci i otvorene stavke se pamte sami)").format(cur["title"] if cur else "—"))
+        return txt if ok else None
+
+    def _switch_to(self, mid):
+        note = self._ask_note() if mid != MIS.active() else ""
+        if note is None:
+            return
+        try:
+            card = MIS.set_active(mid, note)
+        except Exception as e:                       # noqa: BLE001 — shown, nothing changed
+            QMessageBox.warning(self, tr("Misije"), str(e))
+            return
+        self._card_md = where_md(card)
+        self.refresh()
+        self.switched.emit()
+
+    def _switch_selected(self):
+        mid = self.cb_mission.currentData()
+        if mid:
+            self._switch_to(mid)
+
+    def _switch_next(self):
+        mid = MIS.next_id()
+        if mid:
+            self._switch_to(mid)
+
+    def _park_active(self):
+        mid = MIS.active()
+        note = self._ask_note()
+        if not mid or note is None:
+            return
+        try:
+            MIS.park(mid, note)
+        except Exception as e:                       # noqa: BLE001
+            QMessageBox.warning(self, tr("Misije"), str(e))
+            return
+        self._card_md = tr("_Misija „{0}“ je ostavljena za kasnije. Izaberi drugu ili je nastavi sa „Pređi na izabranu“._").format(MIS.get(mid)["title"])
+        self.refresh()
+        self.switched.emit()
+
+    def _apply_bg(self):
+        mid = self.cb_mission.currentData()
+        if not mid:
+            return
+        try:
+            MIS.set_background(mid, self.cb_bg.currentData())
+        except Exception as e:                       # noqa: BLE001
+            QMessageBox.warning(self, tr("Misije"), str(e))
+        self.refresh()
 
     def _apply_goal(self):
         mid, g = self.cb_mission.currentData(), self.cb_goal.currentData()
@@ -116,11 +190,20 @@ class MissionsTab(QWidget):
             self.cb_mission.setCurrentIndex(max(0, self.cb_mission.findData(cur)))
             self.cb_mission.blockSignals(False)
             self._show_goal()
+        act = MIS.active()
+        if hasattr(self, "lb_active"):
+            am = MIS.get(act) if act else None
+            self.lb_active.setText(tr("<b>Aktivna:</b> {0}").format(am["title"] if am else "—")
+                                   + (tr(" <i>(ostavljena za kasnije)</i>") if am and int(am.get("parked") or 0) else ""))
+        if getattr(self, "_card_md", ""):
+            md += [self._card_md, "", "---", ""]
         if not missions:
             md.append(tr("_Nema misija._"))
         for m in missions:
             best = "—" if m["best_B"] is None else f"{m['best_B']:.12f}"
-            md += [f"## {m['title']}", "", tr("**Pitanje.** {0}").format(m['question']), "",
+            mark = (tr(" · ▶ aktivna") if m["id"] == act and not int(m.get("parked") or 0) else
+                    tr(" · ⏸ za kasnije") if int(m.get("parked") or 0) else "")
+            md += [f"## {m['title']}{mark}", "", tr("**Pitanje.** {0}").format(m['question']), "",
                    tr("**Front (najniže B).** {0}").format(best), "",
                    tr("**Cilj.** {0}").format(tr(MIS.GOALS.get(int(m.get("goal") or 1), ""))), "",
                    tr("**Stanje.** {0}").format(m['state']), "", tr("**Koraci.**")]
@@ -133,6 +216,33 @@ class MissionsTab(QWidget):
             md.append("")
         self._last_md = "\n".join(md)
         self.view.set_markdown(self._last_md)
+
+
+def where_md(card: dict) -> str:
+    """The "Gdje si stao" card as Markdown (item 28a)."""
+    import time as _t
+    out = [tr("### Gdje si stao: {0}").format(card["title"]), ""]
+    if card.get("parked_at"):
+        out.append(tr("Ostavljeno: {0}").format(_t.strftime("%Y-%m-%d %H:%M", _t.localtime(card["parked_at"]))))
+    out.append(tr("**Tvoja bilješka:** {0}").format(card["note"] or tr("_(bez bilješke)_")))
+    snap = card.get("snapshot") or {}
+    if snap:
+        best = "—" if snap.get("best_B") is None else f"{snap['best_B']:.9f}"
+        out.append(tr("**Tada:** front B = {0}, cilj {1}, koraka {2}.").format(best, snap.get("goal"), snap.get("n_steps")))
+        if snap.get("last_step"):
+            out.append(tr("**Zadnji korak:** {0} → {1}").format(snap["last_step"]["action"], snap["last_step"]["outcome"]))
+    out.append("")
+    since, rel = card.get("steps_since") or [], card.get("released") or []
+    oi = (card.get("now") or {}).get("open_items") or []
+    if not since and not rel:
+        out.append(tr("**Dok te nije bilo:** ništa novo") + (tr(" (misija je bila zamrznuta).") if card.get("background") == MIS.FREEZE else "."))
+    else:
+        out.append(tr("**Dok te nije bilo:** {0} novih koraka, {1} radova sa arXiv-a (sada u „Čeka tvoju odluku“).").format(len(since), len(rel)))
+        for st in since[-5:]:
+            out.append(f"- {st['action']} → **{st['outcome']}**")
+    if oi:
+        out.append(tr("**Otvoreno u redu za ovu misiju:** {0}").format(len(oi)))
+    return "\n".join(out)
 
 
 class QueueTab(QWidget):

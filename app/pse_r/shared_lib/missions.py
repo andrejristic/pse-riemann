@@ -60,6 +60,12 @@ def _migrate() -> None:
     cols = {r["name"] for r in store().rows("PRAGMA table_info(missions)")}
     if "goal" not in cols:
         store().execute("ALTER TABLE missions ADD COLUMN goal INTEGER NOT NULL DEFAULT 1")
+    # round 3, item 28a: work on missions in turn ("ostavi za kasnije")
+    for col, ddl in (("parked", "INTEGER NOT NULL DEFAULT 0"), ("parked_at", "REAL"),
+                     ("parked_note", "TEXT"), ("parked_snapshot", "TEXT"),
+                     ("background", "TEXT NOT NULL DEFAULT 'freeze'")):
+        if col not in cols:
+            store().execute(f"ALTER TABLE missions ADD COLUMN {col} {ddl}")
 
 FIRST_ID = "misija-kontinualna-transformacija"
 TARGETS = (0.87, 5 / 6, 3 / 4, 1 / 2)
@@ -201,6 +207,7 @@ def _on_goal_decision(item: dict, approved: bool) -> None:
 
 def install_hooks() -> None:
     store().on_decision(GOAL_KIND, _on_goal_decision)
+    store().on_decision(SWITCH_KIND, _on_switch_decision)
 
 
 # The transfer map of mission 2 (goal 1): every step of the 7/8 proof and whether
@@ -233,3 +240,223 @@ def seed_second() -> str:
         step(SECOND_ID, f"korak dokaza: {step_name}", verdict,
              "mapa prenosivosti u izradi (cilj 1)", ref=ref)
     return SECOND_ID
+
+
+# --------------------------------------------------------------------------- #
+# missions in turn (round 3, item 28a, Andrej 2026-10-25)
+# --------------------------------------------------------------------------- #
+# Exactly one mission is ACTIVE. The operator switches freely (menu) or with
+# "Sljedeća misija" (cycle 1 → 2 → 3 → 1). Switching away PARKS the old mission
+# with a "where I stopped" note (the operator's sentence + an automatic snapshot);
+# coming back shows the "Gdje si stao" card first. A parked mission is FROZEN by
+# default (nothing is collected for it); the operator can switch it to COLLECT
+# (arXiv/ideas gathered quietly, no badge, shown on resume) and back at any time.
+# The app never switches missions itself — at most it proposes (human queue).
+ACTIVE_KEY = "mission_active"
+SWITCH_KIND = "mission-switch"
+FREEZE, COLLECT = "freeze", "collect"
+BACKGROUND = {FREEZE: "potpuno zamrznuta (podrazumijevano)",
+              COLLECT: "tiho skuplja (bez značke, prikaz pri nastavku)"}
+# which mission owns which background feed (arXiv QRH watch → mission 1)
+FEED_OWNER = {"arxiv-qrh": FIRST_ID}
+_SNAPSHOTS: dict = {}          # name -> fn(mid) -> dict (e.g. Grafovi view, item 29)
+
+
+def register_snapshot(name: str, fn) -> None:
+    """Other parts (graphs, ideas) add their own piece to the parking snapshot."""
+    _SNAPSHOTS[name] = fn
+
+
+def active() -> Optional[str]:
+    """The active mission id (first mission if none chosen yet)."""
+    _ensure()
+    mid = store().kv_get(ACTIVE_KEY)
+    if mid and get(mid) is not None:
+        return mid
+    ms = all_missions()
+    return ms[0]["id"] if ms else None
+
+
+def _related_open_items(mid: str) -> list[dict]:
+    out = []
+    for it in store().open_items():
+        p = it["payload"] if isinstance(it["payload"], dict) else {}
+        if mid in (p.get("mission"), p.get("mission_id")):
+            out.append({"id": it["id"], "title": it["title"]})
+    return out
+
+
+def snapshot(mid: str) -> dict:
+    """Automatic part of "where I stopped": frontier, last step, open items, extras."""
+    import json as _json
+    m = get(mid)
+    if m is None:
+        raise KeyError(mid)
+    last = m["steps"][-1] if m["steps"] else None
+    snap = {"best_B": m["best_B"], "goal": int(m.get("goal") or 1), "state": m["state"],
+            "n_steps": len(m["steps"]),
+            "last_step": ({"action": last["action"], "outcome": last["outcome"]} if last else None),
+            "open_items": _related_open_items(mid)}
+    for name, fn in _SNAPSHOTS.items():
+        try:
+            snap[name] = fn(mid)
+        except Exception as e:                          # noqa: BLE001 — a snapshot part may fail
+            snap[name] = {"error": str(e)[:200]}
+    _json.dumps(snap, default=str)                      # must be storable
+    return snap
+
+
+def park(mid: str, note: str = "") -> dict:
+    """"Ostavi za kasnije": operator only; note + automatic snapshot, journalled."""
+    import json as _json
+    who = OP.require_operator()
+    snap = snapshot(mid)
+    now = time.time()
+    store().execute("UPDATE missions SET parked=1, parked_at=?, parked_note=?, parked_snapshot=?,"
+                    " updated=? WHERE id=?",
+                    (now, (note or "")[:2000], _json.dumps(snap, ensure_ascii=False, default=str),
+                     now, mid))
+    J.log(J.MISSION, who, {"event": "parked", "id": mid, "note": (note or "")[:300],
+                           "best_B": snap["best_B"], "n_steps": snap["n_steps"]},
+          subject=mid, verdict="parked")
+    return snap
+
+
+def is_parked(mid: str) -> bool:
+    m = get(mid)
+    return bool(m and int(m.get("parked") or 0))
+
+
+def background(mid: str) -> str:
+    m = get(mid)
+    return (m or {}).get("background") or FREEZE
+
+
+def set_background(mid: str, mode: str) -> None:
+    """Frozen ↔ collecting quietly. Operator only, always reversible."""
+    who = OP.require_operator()
+    if mode not in BACKGROUND:
+        raise ValueError(f"način mora biti {FREEZE} ili {COLLECT}")
+    if get(mid) is None:
+        raise KeyError(mid)
+    old = background(mid)
+    store().execute("UPDATE missions SET background=?, updated=? WHERE id=?",
+                    (mode, time.time(), mid))
+    J.log(J.MISSION, who, {"event": "background", "id": mid, "from": old, "to": mode},
+          subject=mid, verdict=mode)
+
+
+def accepts_background(mid: Optional[str]) -> bool:
+    """May a background feed (arXiv, ideas) work for this mission right now?"""
+    if not mid or get(mid) is None:
+        return True
+    if mid == active() or not is_parked(mid):
+        return True
+    return background(mid) == COLLECT
+
+
+def is_quiet(mid: Optional[str]) -> bool:
+    """Collecting for a parked mission: gather, but no badge / no queue noise."""
+    return bool(mid) and mid != active() and is_parked(mid) and background(mid) == COLLECT
+
+
+def hold(mid: str, kind: str, item: dict) -> None:
+    """Something collected quietly for a parked mission; released on resume."""
+    held = store().kv_get(f"mission_held:{mid}", [])
+    held.append({"kind": kind, "ts": time.time(), **item})
+    store().kv_set(f"mission_held:{mid}", held[-500:])
+
+
+def where_you_stopped(mid: str) -> dict:
+    """The "Gdje si stao" card: the note, the snapshot, and what happened since."""
+    import json as _json
+    m = get(mid)
+    if m is None:
+        raise KeyError(mid)
+    since = m.get("parked_at") or 0
+    snap = _json.loads(m["parked_snapshot"]) if m.get("parked_snapshot") else None
+    new_steps = [s for s in m["steps"] if since and s["ts"] > since]
+    return {"mission": mid, "title": m["title"], "parked": bool(int(m.get("parked") or 0)),
+            "parked_at": m.get("parked_at"), "note": m.get("parked_note") or "",
+            "snapshot": snap, "steps_since": new_steps,
+            "held": store().kv_get(f"mission_held:{mid}", []),
+            "background": background(mid), "now": snapshot(mid)}
+
+
+def resume(mid: str) -> dict:
+    """Un-park: returns the card, then releases what was collected quietly."""
+    card = where_you_stopped(mid)
+    who = OP.require_operator()
+    store().execute("UPDATE missions SET parked=0, updated=? WHERE id=?", (time.time(), mid))
+    released = []
+    for h in card["held"]:
+        if h.get("kind") == "arxiv-paper":
+            pid = store().propose("arxiv-paper", f"Novi QRH rad: {h.get('title', '')[:120]} — izvući metodu?",
+                                  {"ref": h.get("ref"), "title": h.get("title", ""),
+                                   "abstract": h.get("abstract", ""), "mission": mid},
+                                  proposer="arxiv")
+            released.append(pid)
+    store().kv_set(f"mission_held:{mid}", [])
+    J.log(J.MISSION, who, {"event": "resumed", "id": mid, "held_released": len(released),
+                           "steps_since": len(card["steps_since"])}, subject=mid, verdict="resumed")
+    card["released"] = released
+    return card
+
+
+def set_active(mid: str, note: str = "") -> dict:
+    """Switch the active mission (operator only). The previous one is parked with
+    `note`; the new one is resumed and its "Gdje si stao" card returned."""
+    OP.require_operator()
+    if get(mid) is None:
+        raise KeyError(mid)
+    prev = active()
+    if prev == mid and not is_parked(mid):
+        return where_you_stopped(mid)
+    if prev and prev != mid:
+        park(prev, note)
+    store().kv_set(ACTIVE_KEY, mid)
+    J.log(J.MISSION, OP.current(), {"event": "activated", "id": mid, "from": prev},
+          subject=mid, verdict="active")
+    return resume(mid)
+
+
+def next_id(current: Optional[str] = None) -> Optional[str]:
+    """The next mission in the cycle 1 → 2 → 3 → 1 (by creation order)."""
+    ids = [m["id"] for m in all_missions()]
+    if not ids:
+        return None
+    cur = current or active()
+    return ids[(ids.index(cur) + 1) % len(ids)] if cur in ids else ids[0]
+
+
+def next_mission(note: str = "") -> dict:
+    """"Sljedeća misija": park the active one with `note`, activate the next."""
+    return set_active(next_id(), note)
+
+
+def propose_switch(mid: str, why: str, proposer: str = "system") -> str:
+    """The app may only PROPOSE a switch; the operator decides."""
+    if get(mid) is None:
+        raise KeyError(mid)
+    for it in store().open_items(SWITCH_KIND):
+        if it["payload"].get("mission") == mid:
+            return it["id"]
+    return store().propose(SWITCH_KIND, f"Prijedlog: pređi na misiju „{mid}“",
+                           {"mission": mid, "why": why[:1000]}, proposer)
+
+
+def _on_switch_decision(item: dict, approved: bool) -> None:
+    if approved:
+        set_active(item["payload"]["mission"], "prebačeno odobrenim prijedlogom")
+
+
+def context_line() -> str:
+    """One line for the chat context: which mission the operator works on."""
+    mid = active()
+    m = get(mid) if mid else None
+    if not m:
+        return ""
+    best = "—" if m["best_B"] is None else f"{m['best_B']:.9f}"
+    return (f"AKTIVNA MISIJA (operater radi na njoj): {m['title']} — cilj "
+            f"{int(m.get('goal') or 1)} ({GOALS.get(int(m.get('goal') or 1), '')}); front B = {best}; "
+            f"stanje: {m['state'][:400]}")

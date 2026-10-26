@@ -315,6 +315,15 @@ class ChatPanel(QWidget):
                                     if len(self.context_ids) > 6 else ""))
 
     def _context_text(self) -> str:
+        try:                                     # item 28a: the active mission frames the chat
+            from ..shared_lib import missions as _MIS
+            head = _MIS.context_line()
+        except Exception:                        # noqa: BLE001
+            head = ""
+        body = self._cards_text()
+        return "\n\n".join(x for x in (head, body) if x)
+
+    def _cards_text(self) -> str:
         if not self.context_ids:
             return ""
         chunks = []
