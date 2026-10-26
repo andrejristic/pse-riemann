@@ -472,6 +472,28 @@ class MainWindow(QMainWindow):
                                 "ponovnog pokretanja.")
 
     def closeEvent(self, e):
+        # round 3, item 20: the guardian is a separate process — ask what to close
+        if not getattr(self, "_closing_confirmed", False):
+            from PySide6.QtWidgets import QMessageBox
+            from .. import guardian_app as GA
+            if GA.running_pid():
+                box = QMessageBox(self)
+                box.setWindowTitle("Zatvaranje")
+                box.setText("Čuvar (SSH + prekidač) radi kao poseban proces.")
+                b_all = box.addButton("Ugasi sve", QMessageBox.DestructiveRole)
+                b_win = box.addButton("Zatvori prozor, čuvar ostaje", QMessageBox.AcceptRole)
+                box.addButton("Odustani", QMessageBox.RejectRole)
+                box.setDefaultButton(b_win)
+                box.exec()
+                if box.clickedButton() is b_all:
+                    GA.stop()
+                elif box.clickedButton() is not b_win:
+                    e.ignore()
+                    return
+        th = getattr(self, "_net_thread", None)          # no QThread left running at exit
+        if th is not None:
+            th.quit()
+            th.wait(3000)
         try:
             self._save_layout()
             TH.meter().save()

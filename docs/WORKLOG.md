@@ -26,14 +26,13 @@
 | 2026-10-25 | 17 · opasno upozorenje bez sudoers-a | ✅ | snimak `r3_danger_alarm.png` | veliki prozor, crvena pilula u traci, zapis u SHARED_LIB, zvuk na 2 s dok se ne klikne „U redu“ (zatvaranje/Esc ga ne utišava), tačna komanda + „Kopiraj komandu“ |
 | 2026-10-25 | 18 · šablonske poruke (P6) | ✅ | testovi | `guardian/templates.py`: alarmi/liječenje/upozorenja samo iz fiksnih rečenica; svako polje provjereno po tipu; ubačen tekst (npr. korisničko ime iz SSH dnevnika) se odbija, ne čisti |
 | 2026-10-25 | 19 · vodič za usko sudoers pravilo | ✅ | — | `SUDOERS-SR.md`, `SUDOERS-EN.md`: jedna linija samo za pomoćni program, visudo, provjera vlasnika, ufw upozorenje, uklanjanje |
-
-**Otvoreni problemi:** pri izlasku iz aplikacije nit za provjeru mreže (QThread) može još raditi → „QThread: Destroyed while thread is still running“ (viđeno u testovima kad zaostali tajmeri prozora okinu). Rješava se u stavci 20 (gašenje).
+| 2026-10-25 | 20 · pozadinski rad i gašenje | ✅ | pytest 188/188, selftest ✅, živo (proces → SIGTERM → uredno zaustavljen) | `guardian_app.py`: `--guardian` = proces sa ikonom u traci (Otvori · Stanje θ · Prekini online AI · Ugasi čuvara), jedna instanca (lock), glavna aplikacija ga pokreće ako ne radi; `--headless` za servis. Pri zatvaranju: „Ugasi sve“ / „Zatvori prozor, čuvar ostaje“ / „Odustani“. `autostart.py`: XDG autostart (podrazumijevano) ili systemd korisnički servis sa hardeningom (NoNewPrivileges samo kad nema sudoers pravila — inače bi blokirao sudo; zapisano u samom servisu). Guardian tab: stanje SSH čuvara, θ, prava, aktivne blokade, izvori + „Provjeri prava čuvara“. Otvoreni problem QThread pri izlasku riješen (zatvaranje čeka nit) |
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** stavka 20 (čuvar kao poseban proces sa ikonom u traci, dijalog pri zatvaranju, korisnički servis) + dugme „Provjeri prava čuvara“ u Guardian tabu.
+**Sljedeće:** Faza 5 — stavka 21 (statistički jača dijagnoza: CUSUM, posterior, 3-od-3).
 
-**Preostalo:** oko 58–100 h.
+**Preostalo:** oko 55–97 h.
 
 ---
 

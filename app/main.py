@@ -265,6 +265,14 @@ def main() -> int:
     args = sys.argv[1:]
     if args and args[0] == "--selftest":
         return selftest()
+    if args and args[0] == "--guardian":              # round 3, item 20
+        _boot()
+        from pse_r import guardian_app as GA
+        if "--headless" in args:
+            return GA.run_headless()
+        from pse_r import settings as S
+        S.apply_qt_env()
+        return GA.run_tray()
     if args and args[0] == "--lab":
         _boot()
         from pse_r.lab import runner as LR
@@ -357,6 +365,12 @@ def main() -> int:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(None, "Ime operatera", str(e))
 
+    # the SSH guardian runs as its own process, always (round 3, item 20)
+    try:
+        from pse_r import guardian_app as GA
+        GA.ensure_running()
+    except Exception as e:                              # noqa: BLE001 — never block the app
+        print("čuvar nije pokrenut:", e)
     w = MainWindow()
     w.show()
     return app.exec()

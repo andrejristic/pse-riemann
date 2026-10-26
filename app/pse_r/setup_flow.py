@@ -150,6 +150,11 @@ def apply(c: SetupChoices) -> dict:
             raise ValueError("skeptik mora biti drugi model od glavnog")
     S.set_(SEL.SKEPTIC_KEY, sk or SEL.NO_SKEPTIC)
     S.set_(AUTOSTART_KEY, bool(c.guardian_autostart))                # 6
+    try:
+        from . import autostart as AS
+        notes.append("čuvar pri prijavi: " + AS.apply_setting(bool(c.guardian_autostart)))
+    except OSError as e:
+        notes.append(f"čuvar pri prijavi: nije podešeno ({e})")
     if c.contact_email.strip():
         SEC.store().set("CONTACT_EMAIL", c.contact_email.strip())
     S.set_(DONE_KEY, True)

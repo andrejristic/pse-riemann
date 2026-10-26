@@ -7,6 +7,8 @@ blocks, because on this machine a blocked GUI looks identical to a crash.
 """
 from __future__ import annotations
 
+import time
+
 import json
 from pathlib import Path
 
@@ -657,6 +659,40 @@ class GraphTab(QWidget):
 
 # --------------------------------------------------------------------------- #
 class GuardianTab(QWidget, JobMixin):
+    def _ssh_md(self) -> list:
+        """SSH guardian (round 3, Phase 4): process, θ, rights, blocks, sources."""
+        from .. import guardian_app as GA
+        from ..guardian import containment as C
+        from ..guardian.ssh import unit as U
+        from ..shared_lib.store import store
+        pid = GA.running_pid()
+        ok, detail = C.have_rights()
+        st = store().kv_get(U.KV_STATE, {}) or {}
+        ser = st.get("theta") or []
+        th = f"{sum(ser[-30:]) / len(ser[-30:]):.1f}" if ser else "—"
+        L = ["## SSH čuvar",
+             f"- proces: {'radi (PID ' + str(pid) + ')' if pid else '⛔ NE RADI'}",
+             f"- θ (zadnjih 30): {th} · generacija jedinice {st.get('generation', 1)}",
+             f"- pravo na povratne mjere: {'✅ ' if ok else '⛔ nema — '}{detail}"
+             + ("" if ok else " (vodič: SUDOERS-SR.md)"), ""]
+        act = C.active()
+        L += ["### Aktivne blokade (skidaju se same)", ""]
+        L += [f"- `{r['target']}` do {time.strftime('%d.%m. %H:%M', time.localtime(r['until']))}"
+              for r in act] or ["- —"]
+        srcs = store().kv_get(U.KV_SOURCES, {}) or {}
+        top = sorted(srcs.items(), key=lambda x: -x[1].get("hostile", 0))[:10]
+        L += ["", "### Izvori (SHARED_LIB)", "", "| IP | sumnjivo | neuspjelo | imena |",
+              "|---|---|---|---|"]
+        L += [f"| `{ip}` | {r.get('hostile', 0)} | {r.get('failed', 0)} | "
+              f"{', '.join(r.get('users', [])[:5])} |" for ip, r in top] or ["| — | | | |"]
+        return L + [""]
+
+    def check_rights(self):
+        from ..guardian import containment as C
+        ok, detail = C.have_rights(refresh=True)
+        self.view.set_markdown(self._md(("✅ Čuvar ima usko pravo: " if ok else
+                                         "⛔ Čuvar NEMA pravo (vodič SUDOERS-SR.md): ") + detail))
+
     def __init__(self, parent=None):
         super().__init__(parent)
         root = QVBoxLayout(self)
@@ -665,6 +701,7 @@ class GuardianTab(QWidget, JobMixin):
         bar.addWidget(button("↻ Provjeri host", self.refresh_host))
         bar.addWidget(button("Test mreže", self.preflight))
         bar.addWidget(button("Oslobodi host iz karantina", self.release))
+        bar.addWidget(button("Provjeri prava čuvara", self.check_rights))
         bar.addStretch(1)
         root.addLayout(bar)
         self.view = MarkdownView()
@@ -685,6 +722,7 @@ class GuardianTab(QWidget, JobMixin):
               f"{sc['hosts']} hostova",
               f"- intervencije: {sc['tier1']} tier-1, {sc['tier2']} tier-2",
               f"- karantin: {', '.join(sc['quarantined']) or '—'}", ""]
+        L += self._ssh_md()
         if sc["problems"]:
             L += ["## ⚠ Guardian sam nije zdrav"] + \
                  [f"- {p}" for p in sc["problems"]] + [""]
