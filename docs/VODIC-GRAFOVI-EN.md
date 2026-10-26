@@ -184,6 +184,32 @@ Offers:
 - **number of zeros in the visible rectangle**: the argument principle (the winding of f along the boundary, refined where the phase jumps); if it is still not sure after refining, it says "NESIGURNO" (unsure). For ζ on [0.1 · 0.9] × [1 · 30] it gives 3 zeros (γ = 14.13, 21.02, 25.01);
 - **residue at the point** (circle integral); for ζ at s = 1 it gives 1.
 
+### 3D and more dimensions (step 5)
+
+**The rule:** at most 3 dimensions are on screen. The 4th is colour, and the 5th and beyond are sliders or animation, always visible.
+
+| View | What you see |
+|---|---|
+| **3D** | a surface above a plane. For a complex f it is \|f(s)\| above ℂ (cut off at 6), **coloured by arg f**: zeros are pits, and the pole of ζ at s = 1 is a spike. For a surface z = f(x, y) the height is z. The built-ins "z = σ" and "z = B(ℓ) over (ℓ, σ)" together give **two surfaces that cross along the curve σ = B(ℓ)** (the yellow line) |
+| **Small multiples** | the same picture for **6 values** of the parameter chosen in "5th dim.". For the surface max_δ E over (ℓ, κ) and the parameter b you see how the boundary (yellow) moves with b: it is furthest at b ≈ 0.12 (Liu's optimum) |
+| **Parallel coordinates** | all method parameters at once: axes ℓ, b, κ, B, one polyline per method (Liu, Xu–Sang, t = 0.25 / 0.5 / 0.75, w = 0.05 / 0.15 / 0.2). The numbers above and below each axis are its maximum and minimum. Under the mouse you get the exact row. It is computed in the background (8 optima, about 10–40 s) |
+
+**Rotating in 3D:**
+- drag with the mouse;
+- the arrow keys rotate by 10° (with Shift by 30°);
+- the ◀ ▲ ▼ ▶ buttons rotate by 9°;
+- ⌂ restores the starting angle.
+
+**Colour (4th dim.):**
+- "height / arg f" is the default;
+- you can also pick another visible surface; the first surface is then coloured by the values of the second (blue < 0 < red).
+
+**5th dim. and ▶:** pick a parameter (e.g. w or b). **▶** runs it through its range (animation), and **⏸** stops it. Small multiples use the same choice.
+
+The surface max_δ E over (ℓ, κ) is computed for **b from the slider**. The b slider starts at Liu's optimum (≈ 0.1234), so the first picture matches Liu, and moving b really moves the boundary.
+
+**Grid:** 3D is 70×70 on the Dell and 40×40 on the Acer; small multiples are 60×60 and 36×36 per picture.
+
 ## 6. Export
 
 - **PNG / SVG**: the plot as on screen, on the dark background, with the level in the title.
@@ -191,9 +217,8 @@ Offers:
 
 ---
 
-## 7. Coming next (item 29, steps 5–6)
+## 7. Coming next (item 29, step 6)
 
-- 3D surfaces (|ζ| above the plane, two exponent surfaces), a 4th dimension as colour, further ones as sliders or animation, small multiples, parallel coordinates; a coarser grid on the Acer;
 - the Lab plots move to this view.
 
 This guide grows with every step.

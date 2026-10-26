@@ -184,6 +184,32 @@ Ponude:
 - **broj nula u vidljivom pravougaoniku**: princip argumenta (namotavanje f po rubu, profinjeno gdje faza skače); ako ni poslije profinjenja nije siguran, piše „NESIGURNO“. Za ζ u [0,1 · 0,9] × [1 · 30] daje 3 nule (γ = 14,13; 21,02; 25,01);
 - **rezidua u tački** (kružni integral); za ζ u s = 1 daje 1.
 
+### 3D i više dimenzija (korak 5)
+
+**Pravilo:** na ekranu su najviše 3 dimenzije. Četvrta je boja, a peta i dalje su klizači ili animacija, i uvijek se vide.
+
+| Prikaz | Šta vidiš |
+|---|---|
+| **3D** | površ iznad ravni. Za kompleksnu f to je \|f(s)\| iznad ℂ (odsječeno na 6), **obojeno po arg f**: nule su jame, a pol ζ u s = 1 je šiljak. Za površ z = f(x, y) visina je z. Ugrađene „z = σ“ i „z = B(ℓ) nad (ℓ, σ)“ zajedno daju **dvije površi koje se sijeku po krivoj σ = B(ℓ)** (žuta linija) |
+| **Male slike** | ista slika za **6 vrijednosti** parametra izabranog u „5. dim.“. Za površ max_δ E nad (ℓ, κ) i parametar b vidi se kako se granica (žuto) pomjera sa b: najdalje je kod b ≈ 0,12 (Liuov optimum) |
+| **Paralelne koordinate** | svi parametri metoda odjednom: ose ℓ, b, κ, B, jedna izlomljena linija po metodi (Liu, Xu–Sang, t = 0,25 / 0,5 / 0,75, w = 0,05 / 0,15 / 0,2). Brojevi iznad i ispod ose su njen maksimum i minimum. Pod mišem piše tačan red. Računa se u pozadini (8 optimuma, oko 10–40 s) |
+
+**Okretanje u 3D:**
+- prevuci mišem;
+- strelice okreću za 10° (sa Shift za 30°);
+- dugmad ◀ ▲ ▼ ▶ okreću za 9°;
+- ⌂ vraća početni ugao.
+
+**Boja (4. dim.):**
+- „visina / arg f“ je podrazumijevano;
+- možeš izabrati i drugu vidljivu površ, pa se prva boji vrijednostima druge (plavo < 0 < crveno).
+
+**5. dim. i ▶:** izaberi parametar (npr. w ili b). **▶** ga pušta da prolazi kroz svoj opseg (animacija), a **⏸** ga zaustavlja. Isti izbor koriste i Male slike.
+
+Površ max_δ E nad (ℓ, κ) računa se za **b sa klizača**. Klizač b počinje na Liuovom optimumu (≈ 0,1234), pa početna slika odgovara Liuu, a pomjeranje b zaista pomjera granicu.
+
+**Mreža:** 3D je 70×70 na Dellu i 40×40 na Aceru; male slike su 60×60 i 36×36 po slici.
+
 ## 6. Izvoz
 
 - **PNG / SVG**: slika grafa kakav je na ekranu, na tamnoj pozadini, sa oznakom nivoa u naslovu.
@@ -191,9 +217,8 @@ Ponude:
 
 ---
 
-## 7. Šta dolazi (stavka 29, koraci 5–6)
+## 7. Šta dolazi (stavka 29, korak 6)
 
-- 3D površi (|ζ| iznad ravni, dvije površi eksponenata), 4. dimenzija kao boja, dalje kao klizači ili animacija, male slike, paralelne koordinate; Acer dobija rjeđu mrežu;
 - Lab grafovi prelaze na ovaj prikaz.
 
 Ovaj vodič se dopunjava sa svakim korakom.

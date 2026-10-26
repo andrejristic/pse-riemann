@@ -27,7 +27,7 @@ import numpy as np
 from . import fexpr as FX
 
 KINDS = ("real", "complex", "surface", "parametric", "polar", "builtin")
-PARAMS = {"l": 1 / 6, "b": 0.0, "k": 0.75, "t": 0.0, "w": 0.25, "d": 1.0,
+PARAMS = {"l": 1 / 6, "b": 0.1234, "k": 0.75, "t": 0.0, "w": 0.25, "d": 1.0,
           "low": 3 / 16, "delta": 0.0}           # sliders (ℓ, b, κ, t, w, d, niska strana, Δ);
 #                                                 low = 3/16 gives σ* = 11/16 + 3/16 = 7/8
 RAD, OURS, USER = "RAD", "NAŠE-NERECENZIRANO", "KORISNIK"
@@ -148,10 +148,11 @@ def _path(which):
 
 
 def _vmax_lk(x, y, p):
-    """Surface over (ℓ, κ): the worst exponent max_δ E_Liu at the Liu optimum's b."""
+    """Surface over (ℓ, κ): the worst exponent max_δ E_Liu at b = the b slider
+    (it starts at the Liu optimum's b ≈ 0.1234, so moving b moves the boundary)."""
     from ..methods import core as C
-    o = _liu_opt()
-    return np.vectorize(lambda l, k: C.vmax(C.E_liu, o.b, l, k, 1 / 8))(
+    b = float(p.get("b", _liu_opt().b))
+    return np.vectorize(lambda l, k: C.vmax(C.E_liu, b, l, k, 1 / 8))(
         np.asarray(x, float), np.asarray(y, float))
 
 
@@ -183,9 +184,18 @@ BUILTINS: dict = {
     "path_w": dict(label="putanja (ℓ*(w), B*(w))", level=OURS, card="izvor-xu-sang-2610-15291",
                    fn=_path("w"), domain=[0.0, 0.25], cost=1.9, coarse=7, shape="path",
                    meaning="tačka granice metode u ravni (ℓ, B) duž težine w"),
+    # two exponent surfaces over (ℓ, σ): they cross along the curve σ = B(ℓ) (step 5)
+    "plane_sigma": dict(label="z = σ (granica poluravni)", level=OURS, card="", shape="surface",
+                        fn=lambda x, y, p: np.asarray(y, float) + 0 * np.asarray(x, float),
+                        domain=[0.0, 0.3, 0.80, 0.95], cost=1e-7,
+                        meaning="ravan z = σ nad (ℓ, σ); presjek sa z = B(ℓ) je kriva σ = B(ℓ)"),
+    "B_surface": dict(label="z = B(ℓ) nad (ℓ, σ)", level=RAD, card="izvor-openai-7-8", shape="surface",
+                      fn=lambda x, y, p: 11 / 12 - np.asarray(x, float) / 4 + 0 * np.asarray(y, float),
+                      domain=[0.0, 0.3, 0.80, 0.95], cost=1e-7,
+                      meaning="granica B(ℓ) kao površ nad (ℓ, σ)"),
     "vmax_lk": dict(label="max_δ E_Liu nad (ℓ, κ)", level=OURS, card="izvor-liu-2610-12234",
                     fn=_vmax_lk, domain=[0.10, 0.22, 0.60, 0.90], cost=1e-4, shape="surface",
-                    meaning="najgori eksponent u tački (ℓ, κ); ≤ 0 = metoda prolazi; nula = granica ℓ*(κ)"),
+                    meaning="najgori eksponent u tački (ℓ, κ) za b sa klizača; ≤ 0 = metoda prolazi; nula = granica ℓ*(κ)"),
 }
 
 

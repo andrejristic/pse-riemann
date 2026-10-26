@@ -99,6 +99,9 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.mpl_connect("motion_notify_event", self._on_motion)
         self._annot = None
         self.mode = "cartesian"
+        self.color_by = ""                # 4th dimension: colour a surface by another one
+        self.anim_param = "w"             # 5th dimension: slider for animation / small multiples
+        self.axes: list = []
         self.ax2 = None
         self._cgrid = None                # (f, extent, W) of the complex view
         self.shade = None                 # (fid, gid, a, b) after an "area" calculation
@@ -106,7 +109,14 @@ class GraphCanvas(FigureCanvasQTAgg):
 
     # ---- navigation -------------------------------------------------- #
     def pan(self, fx: float, fy: float) -> None:
-        """Move the view by a fraction of its width/height (+x right, +y up)."""
+        """Move the view by a fraction of its width/height (+x right, +y up);
+        in 3D the same buttons rotate the surface."""
+        if self.mode == "3d":
+            self.ax.view_init(elev=self.ax.elev + 90 * fy, azim=self.ax.azim + 90 * fx)
+            self.draw_idle()
+            return
+        if self.mode in ("multiples", "parallel"):
+            return
         x0, x1 = self.ax.get_xlim()
         y0, y1 = self.ax.get_ylim()
         dx, dy = (x1 - x0) * fx, (y1 - y0) * fy
@@ -115,6 +125,8 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.redraw()
 
     def zoom(self, factor: float, cx: Optional[float] = None, cy: Optional[float] = None) -> None:
+        if self.mode in ("3d", "multiples", "parallel"):
+            return
         x0, x1 = self.ax.get_xlim()
         y0, y1 = self.ax.get_ylim()
         cx = (x0 + x1) / 2 if cx is None else cx
@@ -124,6 +136,12 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.redraw()
 
     def home(self) -> None:
+        if self.mode in ("3d", "multiples", "parallel"):
+            self._layout({"3d": "3d", "multiples": "multi"}.get(self.mode, "one"))
+            if hasattr(self.ax, "view_init"):
+                self.ax.view_init(elev=30, azim=-60)
+            self.redraw()
+            return
         self.ax.set_xlim(*self.home_view[0])
         self.ax.set_ylim(*self.home_view[1])
         self.redraw()
@@ -131,6 +149,14 @@ class GraphCanvas(FigureCanvasQTAgg):
     def keyPressEvent(self, ev):
         big = PAN_BIG if ev.modifiers() & Qt.ShiftModifier else PAN_STEP
         k = ev.key()
+        if self.mode == "3d" and k in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down):
+            step = 30 if ev.modifiers() & Qt.ShiftModifier else 10     # arrows rotate in 3D
+            az, el = self.ax.azim, self.ax.elev
+            az += {Qt.Key_Left: -step, Qt.Key_Right: step}.get(k, 0)
+            el += {Qt.Key_Up: step, Qt.Key_Down: -step}.get(k, 0)
+            self.ax.view_init(elev=el, azim=az)
+            self.draw_idle()
+            return
         moves = {Qt.Key_Left: (-big, 0), Qt.Key_Right: (big, 0),
                  Qt.Key_Up: (0, big), Qt.Key_Down: (0, -big)}
         if k in moves:
@@ -145,12 +171,14 @@ class GraphCanvas(FigureCanvasQTAgg):
             super().keyPressEvent(ev)
 
     def _on_scroll(self, ev):
-        if ev.xdata is None:
+        if self.mode in ("3d", "multiples", "parallel") or ev.xdata is None:
             return
         self.zoom(0.85 if ev.button == "up" else 1 / 0.85, ev.xdata, ev.ydata)
 
     def _on_press(self, ev):
         self.setFocus()
+        if self.mode in ("3d", "multiples", "parallel"):
+            return                                    # 3D: matplotlib rotates with the mouse
         if ev.inaxes is not self.ax or ev.button != 1:
             return
         if ev.dblclick:
@@ -181,6 +209,10 @@ class GraphCanvas(FigureCanvasQTAgg):
             self.clicked_xy.emit(f.id, x, y)
 
     def _on_motion(self, ev):
+        if self.mode in ("3d", "multiples", "parallel"):
+            if self.mode == "parallel" and ev.inaxes is self.ax and ev.ydata is not None:
+                self._hover_parallel(ev)
+            return
         if self._drag is not None and ev.x is not None:
             x0p, y0p, (xa, xb), (ya, yb) = self._drag
             if abs(ev.x - x0p) + abs(ev.y - y0p) > 3:
@@ -386,23 +418,32 @@ class GraphCanvas(FigureCanvasQTAgg):
                           color=MUTED, fontsize=fs * 0.9, loc="left")
         levels.add(f.level)
 
-    def _layout(self, two: bool):
-        """One axes, or two side by side (linked views)."""
-        if two == (self.ax2 is not None):
+    def _layout(self, kind: str):
+        """one · two (linked) · 3d (rotating) · multi (small multiples, 2×3)."""
+        if kind == getattr(self, "_kind", "one"):
             return
         xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
         self.fig.clear()
-        if two:
+        self.ax2, self.axes = None, []
+        if kind == "two":
             self.ax = self.fig.add_subplot(1, 2, 1)
             self.ax2 = self.fig.add_subplot(1, 2, 2)
+        elif kind == "3d":
+            self.ax = self.fig.add_subplot(111, projection="3d")
+        elif kind == "multi":
+            self.axes = [self.fig.add_subplot(2, 3, i + 1) for i in range(6)]
+            self.ax = self.axes[0]
         else:
             self.ax = self.fig.add_subplot(111)
-            self.ax2 = None
-        self.ax.set_xlim(*xl)
-        self.ax.set_ylim(*yl)
+        self._kind = kind
+        if kind != "3d":
+            self.ax.set_xlim(*xl)
+            self.ax.set_ylim(*yl)
 
     def redraw(self, fast: bool = False):
-        self._layout(self.mode == "linked")
+        self._layout({"linked": "two", "3d": "3d", "multiples": "multi"}.get(self.mode, "one"))
+        if self.mode in ("3d", "multiples", "parallel"):
+            return self._redraw_special()
         xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
         self.ax.clear()
         fs = self._style()
@@ -583,6 +624,170 @@ class GraphCanvas(FigureCanvasQTAgg):
         ax2.set_xlabel("Re s", color=MUTED, fontsize=fs * 0.9)
         ax2.set_title(tr("Δ do nestanka oblasti: {0:+.4f}").format(1 - ss), color=MUTED, fontsize=fs * 0.85)
         levels.update({F.RAD, F.OURS})
+
+    # ---- step 5: 3D, small multiples, parallel coordinates ------------- #
+    def _grid_n(self, kind: str) -> int:
+        """The machine profile thins the grid on the Acer."""
+        big = _samples() >= 500
+        return {"3d": 70 if big else 40, "multi": 60 if big else 36}[kind]
+
+    def _surface_data(self, f, n):
+        if F.shape(f) == "complex":
+            x0, x1, y0, y1 = -1.0, 2.0, 0.0, 35.0
+            X, Y = np.meshgrid(np.linspace(x0, x1, n), np.linspace(y0, y1, n))
+            W = np.asarray(F.numeric(f, self.params)(X + 1j * Y), complex)
+            return X, Y, W
+        d = f.domain if len(f.domain) == 4 else [-2.0, 2.0, -2.0, 2.0]
+        X, Y = np.meshgrid(np.linspace(d[0], d[1], n), np.linspace(d[2], d[3], n))
+        return X, Y, np.asarray(F.numeric(f, self.params)(X, Y), float)
+
+    def _redraw_special(self):
+        from matplotlib import cm
+        fs = max(7.0, _base_pt() * 0.62)
+        self.fig.set_facecolor(BG)
+        self._lines.clear()
+        levels, waiting = set(), []
+        if self.mode == "3d":
+            ax = self.ax
+            el, az = ax.elev, ax.azim
+            ax.clear()
+            ax.set_facecolor(AX)
+            ax.view_init(elev=el, azim=az)
+            ax.tick_params(colors=MUTED, labelsize=fs * 0.85)
+            for a in (ax.xaxis, ax.yaxis, ax.zaxis):
+                a.set_pane_color((0.09, 0.11, 0.15, 1.0))
+            surfs = [f for f in self.funcs if f.visible and F.shape(f) in ("surface", "complex")]
+            if not surfs:
+                ax.text2D(0.5, 0.5, tr("3D treba vidljivu površ z = f(x, y) ili kompleksnu f(s)"),
+                          transform=ax.transAxes, ha="center", color=MUTED, fontsize=fs)
+            n = self._grid_n("3d")
+            cmode = self.color_by
+            for f in surfs[:2]:                         # at most 3 dimensions on screen + colour
+                key = ("3D", f.id, f.expr, n, tuple(sorted(self.params.items())))
+                data = self._bg(key, lambda f=f: self._surface_data(f, n))
+                if data is None:
+                    waiting.append(f.label)
+                    continue
+                X, Y, W = data
+                if F.shape(f) == "complex":
+                    Z = np.clip(np.abs(W), 0, 6)
+                    cols = cm.hsv((np.angle(W) + np.pi) / (2 * np.pi))     # 4th dim: arg f
+                    ax.plot_surface(X, Y, Z, facecolors=cols, linewidth=0, antialiased=False,
+                                    rstride=1, cstride=1, shade=False)
+                    ax.set_xlabel("Re s", color=MUTED)
+                    ax.set_ylabel("Im s", color=MUTED)
+                    ax.set_zlabel(tr("|f| (do 6)"), color=MUTED)
+                else:
+                    other = next((g for g in self.funcs if g.id == cmode and g.id != f.id), None)
+                    if other is not None and F.shape(other) == "surface":
+                        C4 = np.asarray(F.numeric(other, self.params)(X, Y), float)   # 4th dim
+                        lim = np.nanmax(np.abs(C4)) or 1.0
+                        cols = cm.RdBu_r((C4 / lim + 1) / 2)
+                        ax.plot_surface(X, Y, W, facecolors=cols, linewidth=0, shade=False, alpha=0.9)
+                    else:
+                        ax.plot_surface(X, Y, W, cmap="viridis" if f is surfs[0] else "magma",
+                                        linewidth=0, alpha=0.75)
+                levels.add(f.level)
+            ids = {f.builtin for f in surfs}
+            if {"plane_sigma", "B_surface"} <= ids:      # the two exponent surfaces cross on σ = B(ℓ)
+                ls = np.linspace(0, 0.3, 100)
+                ax.plot(ls, 11 / 12 - ls / 4, 11 / 12 - ls / 4, color="#ffc257", linewidth=3,
+                        label=tr("presjek: σ = B(ℓ)"))
+                ax.legend(loc="upper left", fontsize=fs * 0.8, facecolor=AX, labelcolor=TXT)
+        elif self.mode == "multiples":
+            self._draw_multiples(fs, levels)
+        elif self.mode == "parallel":
+            self._draw_parallel(fs, levels, waiting)
+        stamp = " · ".join(sorted(levels)) or "—"
+        title = tr("nivo: {0}").format(stamp) + (tr("   ·   računam: {0}…").format(", ".join(waiting)) if waiting else "")
+        self.fig.suptitle(title, color=MUTED, fontsize=fs, x=0.99, ha="right")
+        self.draw_idle()
+
+    def _draw_multiples(self, fs, levels):
+        """The same picture for 6 values of the chosen parameter (the 5th dimension)."""
+        p = self.anim_param
+        _lab, lo, hi = SLIDERS[p]
+        vals = np.linspace(lo, hi, 6)
+        surf = next((f for f in self.funcs if f.visible and F.shape(f) == "surface"), None)
+        curves = [f for f in self.funcs if f.visible and F.shape(f) == "curve"]
+        n = self._grid_n("multi")
+        keep = dict(self.params)
+        try:
+            for ax, v in zip(self.axes, vals):
+                ax.clear()
+                ax.set_facecolor(AX)
+                ax.tick_params(colors=MUTED, labelsize=fs * 0.7)
+                self.params = {**keep, p: float(v)}
+                if surf is not None:
+                    X, Y, Z = self._surface_data(surf, n)
+                    ax.contourf(X, Y, Z, levels=20, cmap="RdBu_r")
+                    try:
+                        ax.contour(X, Y, Z, levels=[0], colors=["#ffc257"], linewidths=1.5)
+                    except Exception:                   # noqa: BLE001
+                        pass
+                    levels.add(surf.level)
+                else:
+                    for f in curves:
+                        if f.kind == "builtin" and F.eval_cost(f) * 200 > 1.0:
+                            continue                    # too expensive for 6 small pictures
+                        xs = np.linspace(*(f.domain[:2] if f.kind == "builtin" else (0, 1)), 200)
+                        ax.plot(xs, np.asarray(F.numeric(f, self.params)(xs), float), color=f.color)
+                        levels.add(f.level)
+                ax.set_title(f"{SLIDERS[p][0]} = {v:.4g}", color=TXT, fontsize=fs * 0.85)
+        finally:
+            self.params = keep
+
+    PARALLEL_AXES = ("ℓ", "b", "κ", "B")
+
+    def _draw_parallel(self, fs, levels, waiting):
+        """All method parameters at once: one polyline per method / extension point."""
+        def rows():
+            from ..methods import core as MC
+            out = [("Liu", MC.optimum(MC.E_liu, 1 / 8), "#4fc3f7"),
+                   ("Xu–Sang", MC.optimum(MC.E_xs, 1 / 8), "#81c784")]
+            for t in (0.25, 0.5, 0.75):
+                out.append((f"t = {t}", MC.extend_t(t), "#ffb74d"))
+            for w in (0.05, 0.15, 0.2):
+                out.append((f"w = {w}", MC.extend_w(w), "#e57373"))
+            return [(name, [o.l, o.b, o.k, o.B], col) for name, o, col in out]
+        data = self._bg(("PARALLEL",), rows)
+        ax = self.ax
+        ax.clear()
+        self._style()
+        if data is None:
+            waiting.append(tr("paralelne koordinate (8 metoda)"))
+            ax.text(0.5, 0.5, tr("računam 8 optimuma metoda u pozadini (~20–40 s)…"),
+                    transform=ax.transAxes, ha="center", color=MUTED, fontsize=fs)
+            return
+        M = np.array([r[1] for r in data], float)
+        lo, hi = M.min(axis=0), M.max(axis=0)
+        span = np.where(hi - lo > 0, hi - lo, 1.0)
+        N = (M - lo) / span
+        xs = np.arange(len(self.PARALLEL_AXES))
+        self._par = (data, N)
+        for (name, vals, col), row in zip(data, N):
+            ax.plot(xs, row, "-o", color=col, linewidth=1.6, markersize=4, label=name)
+        for i, a in enumerate(self.PARALLEL_AXES):
+            ax.axvline(i, color=GRID, linewidth=1.0)
+            ax.text(i, -0.06, f"{lo[i]:.6g}", color=MUTED, ha="center", va="top", fontsize=fs * 0.75)
+            ax.text(i, 1.06, f"{hi[i]:.6g}", color=MUTED, ha="center", va="bottom", fontsize=fs * 0.75)
+        ax.set_xticks(xs, self.PARALLEL_AXES)
+        ax.set_yticks([])
+        ax.set_xlim(-0.3, len(xs) - 0.7)
+        ax.set_ylim(-0.15, 1.15)
+        ax.legend(loc="center right", fontsize=fs * 0.75, facecolor=AX, edgecolor=GRID, labelcolor=TXT)
+        levels.update({F.RAD, F.OURS})
+
+    def _hover_parallel(self, ev):
+        par = getattr(self, "_par", None)
+        if not par:
+            return
+        data, N = par
+        i = int(round(ev.xdata)) if ev.xdata is not None else 0
+        i = min(max(i, 0), N.shape[1] - 1)
+        k = int(np.argmin(np.abs(N[:, i] - ev.ydata)))
+        name, vals, _c = data[k]
+        self.hovered.emit(tr("{0}: ℓ = {1:.9g}, b = {2:.6g}, κ = {3:.6g}, B = {4:.12g}").format(name, *vals))
 
     HOMES = {"cartesian": ((0.0, 0.3), (0.80, 0.95)), "parametric": ((0.14, 0.20), (0.86, 0.885)),
              "polar": ((-2.2, 2.2), (-2.2, 2.2)), "field": ((0.10, 0.22), (0.60, 0.90)),
@@ -997,7 +1202,10 @@ class GrafoviTab(QWidget):
                          ("polar", tr("Polarni")), ("field", tr("Vektorsko polje")),
                          ("complex", tr("Kompleksni (fazni portret)")),
                          ("slice", tr("Presjek duž prave Re s = 1/2")),
-                         ("linked", tr("Povezani: ravan eksponenata ↔ ℂ"))):
+                         ("linked", tr("Povezani: ravan eksponenata ↔ ℂ")),
+                         ("3d", tr("3D (rotira se mišem ili strelicama)")),
+                         ("multiples", tr("Male slike (6 vrijednosti parametra)")),
+                         ("parallel", tr("Paralelne koordinate (metode)"))):
             self.mode.addItem(txt, key)
         self.mode.currentIndexChanged.connect(self._mode_changed)
         self.cb_t = QCheckBox(tr("ciljevi"))
@@ -1005,6 +1213,19 @@ class GrafoviTab(QWidget):
         self.cb_w = QCheckBox(tr("zidovi"))
         self.cb_w.setChecked(True)
         self.b_expand = button(tr("⤢ raširi"), self.toggle_expand)
+        # 4th dimension = colour, 5th = a slider (animation / small multiples)
+        self.cb_color = QComboBox()
+        self.cb_color.currentIndexChanged.connect(self._color_changed)
+        self.cb_anim = QComboBox()
+        for name, (lab, _lo, _hi) in SLIDERS.items():
+            self.cb_anim.addItem(tr(lab), name)
+        self.cb_anim.setCurrentIndex(self.cb_anim.findData("w"))
+        self.cb_anim.currentIndexChanged.connect(self._anim_param_changed)
+        self.b_play = button("▶", self.toggle_anim)
+        self.b_play.setToolTip(tr("animacija: izabrani parametar prolazi kroz svoj opseg"))
+        from PySide6.QtCore import QTimer as _QT
+        self._anim = _QT(self)
+        self._anim.timeout.connect(self._anim_step)
         v.addWidget(flow_row(
             QLabel(tr("<b>Grafovi</b>")), QLabel(tr("prikaz:")), self.mode, self.cb_t, self.cb_w,
             button("◀", lambda: self.canvas.pan(-PAN_STEP, 0)), button("▲", lambda: self.canvas.pan(0, PAN_STEP)),
@@ -1012,7 +1233,8 @@ class GrafoviTab(QWidget):
             button("+", lambda: self.canvas.zoom(0.8)), button("−", lambda: self.canvas.zoom(1.25)),
             button("⌂", lambda: self.canvas.home()),
             button(tr("PNG"), lambda: self.export("png")), button(tr("SVG"), lambda: self.export("svg")),
-            button(tr("CSV"), self.export_csv), self.b_expand, button("?", self.guide)))
+            button(tr("CSV"), self.export_csv), self.b_expand, button("?", self.guide),
+            QLabel(tr("boja (4. dim.):")), self.cb_color, QLabel(tr("5. dim.:")), self.cb_anim, self.b_play))
         self.split = QSplitter(Qt.Horizontal)
         self.split.setObjectName("grafovi")
         self.funcs = FunctionsPanel()
@@ -1068,11 +1290,45 @@ class GrafoviTab(QWidget):
             self.split.setSizes([int(w * 0.22), int(w * 0.50), int(w * 0.28)])
 
     def redraw(self):
+        if hasattr(self, "cb_color"):
+            self._refresh_color_choices()
         self.canvas.funcs = self.funcs.funcs
         self.canvas.params = dict(self.funcs.params)
         self.canvas.show_targets = self.cb_t.isChecked()
         self.canvas.show_walls = self.cb_w.isChecked()
         self.canvas.redraw()
+
+    def _refresh_color_choices(self):
+        cur = self.cb_color.currentData()
+        self.cb_color.blockSignals(True)
+        self.cb_color.clear()
+        self.cb_color.addItem(tr("visina / arg f"), "")
+        for f in self.funcs.funcs:
+            if F.shape(f) == "surface":
+                self.cb_color.addItem(f.label, f.id)
+        self.cb_color.setCurrentIndex(max(0, self.cb_color.findData(cur)))
+        self.cb_color.blockSignals(False)
+
+    def _color_changed(self):
+        self.canvas.color_by = self.cb_color.currentData() or ""
+        self.canvas.redraw()
+
+    def _anim_param_changed(self):
+        self.canvas.anim_param = self.cb_anim.currentData()
+        if self.canvas.mode == "multiples":
+            self.canvas.redraw()
+
+    def toggle_anim(self):
+        if self._anim.isActive():
+            self._anim.stop()
+            self.b_play.setText("▶")
+        else:
+            self._anim.start(250 if _samples() >= 500 else 500)
+            self.b_play.setText("⏸")
+
+    def _anim_step(self):
+        s = self.funcs.sliders[self.cb_anim.currentData()]
+        s.setValue((s.value() + 25) % 1001)
 
     def _mode_changed(self):
         self.canvas.set_mode(self.mode.currentData())

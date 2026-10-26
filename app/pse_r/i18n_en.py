@@ -651,5 +651,18 @@ EN = {
 "Snimak ekrana — sada (F12)": "Screenshot — now (F12)",
 "Snimak nije uspio: {0}": "Screenshot failed: {0}",
 "Snimci ekrana idu u: {0}": "Screenshots go to: {0}",
-"📷 Snimak: {0}": "📷 Screenshot: {0}"
+"📷 Snimak: {0}": "📷 Screenshot: {0}",
+"3D (rotira se mišem ili strelicama)": "3D (rotate with the mouse or arrows)",
+"3D treba vidljivu površ z = f(x, y) ili kompleksnu f(s)": "3D needs a visible surface z = f(x, y) or a complex f(s)",
+"5. dim.:": "5th dim.:",
+"Male slike (6 vrijednosti parametra)": "Small multiples (6 parameter values)",
+"Paralelne koordinate (metode)": "Parallel coordinates (methods)",
+"animacija: izabrani parametar prolazi kroz svoj opseg": "animation: the chosen parameter runs through its range",
+"boja (4. dim.):": "colour (4th dim.):",
+"paralelne koordinate (8 metoda)": "parallel coordinates (8 methods)",
+"presjek: σ = B(ℓ)": "crossing: σ = B(ℓ)",
+"računam 8 optimuma metoda u pozadini (~20–40 s)…": "computing 8 method optima in the background (~20–40 s)…",
+"visina / arg f": "height / arg f",
+"{0}: ℓ = {1:.9g}, b = {2:.6g}, κ = {3:.6g}, B = {4:.12g}": "{0}: ℓ = {1:.9g}, b = {2:.6g}, κ = {3:.6g}, B = {4:.12g}",
+"|f| (do 6)": "|f| (up to 6)"
 }

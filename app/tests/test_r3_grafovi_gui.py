@@ -186,3 +186,64 @@ def test_slice_and_linked_follow_the_sliders():
     app.processEvents()
     assert t.canvas._sigma_star() > 1 and "nestala" in t.funcs.sigma.text()
     assert CX.sigma_star(3 / 16, 1 / 8) == 1.0                # Δ that 7/8 tolerates: 1/8
+
+
+# ---- step 5: 3D, 4th dimension as colour, 5th as slider/animation, small multiples, parallel #
+def _wait_bg(app, t, pred, sec=90):
+    import time
+    t0 = time.time()
+    while not pred() and time.time() - t0 < sec:
+        app.processEvents()
+        time.sleep(0.05)
+    t.canvas.redraw()
+    app.processEvents()
+
+
+def test_3d_rotates_and_shows_both_exponent_surfaces():
+    app, t = _tab()
+    t.funcs.funcs = [F.builtin("plane_sigma"), F.builtin("B_surface")]
+    t.redraw()
+    _mode(app, t, "3d")
+    _wait_bg(app, t, lambda: sum(1 for k, v in t.canvas._coarse.items() if k[0] == "3D" and v is not None) >= 2)
+    assert hasattr(t.canvas.ax, "view_init")
+    az = t.canvas.ax.azim
+    t.canvas.pan(0.1, 0)                                      # ▶ rotates in 3D
+    assert abs(t.canvas.ax.azim - az - 9) < 1e-9
+    labels = [l.get_label() for l in t.canvas.ax.get_lines()]
+    assert any("σ = B(ℓ)" in s for s in labels)              # the crossing curve is drawn
+    _mode(app, t, "cartesian")
+    assert not hasattr(t.canvas.ax, "view_init")              # back to a 2D plot
+
+
+def test_fifth_dimension_moves_the_boundary_in_small_multiples():
+    app, t = _tab()
+    t.funcs.funcs = [F.builtin("vmax_lk")]
+    t.redraw()
+    t.cb_anim.setCurrentIndex(t.cb_anim.findData("b"))
+    _mode(app, t, "multiples")
+    assert len(t.canvas.axes) == 6
+    titles = [a.get_title() for a in t.canvas.axes]
+    assert titles[0].startswith("b = 0") and titles[-1].startswith("b = 0.3")
+    f = F.builtin("vmax_lk")
+    z0 = F.numeric(f, {"b": 0.0})(np.array([0.165]), np.array([0.75]))[0]
+    z1 = F.numeric(f, {"b": 0.1234})(np.array([0.165]), np.array([0.75]))[0]
+    assert z0 != z1                                          # b really is a dimension now
+
+
+def test_animation_steps_the_chosen_slider():
+    app, t = _tab()
+    t.cb_anim.setCurrentIndex(t.cb_anim.findData("w"))
+    v0 = t.funcs.sliders["w"].value()
+    t._anim_step()
+    assert t.funcs.sliders["w"].value() == (v0 + 25) % 1001
+
+
+def test_parallel_coordinates_have_all_methods():
+    app, t = _tab()
+    _mode(app, t, "parallel")
+    _wait_bg(app, t, lambda: t.canvas._coarse.get(("PARALLEL",)) is not None, 180)
+    data, N = t.canvas._par
+    names = [d[0] for d in data]
+    assert names[:2] == ["Liu", "Xu–Sang"] and len(names) == 8
+    assert abs(data[0][1][3] - 0.874957019420) < 1e-9          # B of Liu
+    assert N.min() >= 0 and N.max() <= 1
