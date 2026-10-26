@@ -100,9 +100,13 @@ def candidates() -> list[dict]:
         guide = {"+": pr.better, "-": pr.worse} if pr and pr.better else GUIDANCE.get(p, {})
         out.append({"id": p, "kind": "cloud", "label": pr.label if pr else p,
                     "guide": guide, "billing": P.billing_advice(p)["text"]})
+    from .. import machine as M
     for gid in gguf_available():
-        out.append({"id": gid, "kind": "gguf", "label": gid,
-                    "guide": GUIDANCE["gguf"]})
+        g = dict(GUIDANCE["gguf"])
+        w = M.gguf_warning(gid)
+        if w:
+            g["-"] = g["-"] + " · " + w
+        out.append({"id": gid, "kind": "gguf", "label": gid, "guide": g, "warning": w})
     return out
 
 

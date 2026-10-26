@@ -160,6 +160,13 @@ class ModelPicker(QWidget):
             row.addWidget(self.g_path, 1)
             row.addWidget(button(tr("Izaberi…"), self._pick_gguf))
             rw = QWidget(); rw.setLayout(row); d.addWidget(rw)
+            from .. import machine as MCH
+            mp = MCH.profile()
+            d.addWidget(small(tr("Ova mašina: {0} · niti {1} · kontekst {2} · rok {3:.0f} s{4}").format(
+                tr(mp.label), mp.threads, mp.n_ctx, mp.call_timeout_s,
+                "" if mp.measured else tr(" · brojke su procjena")), "#9aa4b5"))
+            for note in mp.notes:
+                d.addWidget(small("⚠ " + tr(note), "#ffc257"))
             from ..llm import gguf as G
             for m in G.list_models():
                 d.addWidget(button(tr("iz models/: {0} ({1} GB)").format(m['name'], m['gb']),

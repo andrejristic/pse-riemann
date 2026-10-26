@@ -1,5 +1,5 @@
 """
-Reversible containment with automatic undo (round 3, item 16; Svarog S3).
+Reversible containment with automatic undo (round 3, item 15; Svarog S3).
 
 Automatic (declared reversible in core/actions.py):
   ssh.kill-session   end one sshd session (the source may connect again)
@@ -10,7 +10,7 @@ Never automatic (irreversible → a proposal to the operator WITH the exact comm
 
 Root work goes through ONE validated helper (packaging/pse-guard-helper) that a
 narrow sudoers rule allows; without that rule nothing is done silently — a
-DANGER alarm is raised instead (item 17). Protected targets are refused before
+DANGER alarm is raised instead (item 16). Protected targets are refused before
 the helper is ever called: loopback, unspecified, this machine's own addresses,
 the default gateway, multicast and broadcast.
 """

@@ -1,4 +1,4 @@
-"""Round 3, item 20: the guardian as its own process, single instance, start at
+"""Round 3, item 19: the guardian as its own process, single instance, start at
 login (XDG autostart or a hardened systemd user unit)."""
 import os
 import signal

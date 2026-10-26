@@ -32,7 +32,7 @@ def reproduce_out(res: dict) -> dict:
 
 @decider("heal.plan", v=2)
 def heal_plan(inp: dict) -> dict:
-    """v2 (round 3, item 22): form-specific steps wait while hypotheses compete."""
+    """v2 (round 3, item 21): form-specific steps wait while hypotheses compete."""
     from ..guardian import harms as HRM
     from ..guardian.healing import Healer
     from . import actions as A

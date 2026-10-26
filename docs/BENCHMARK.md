@@ -1,4 +1,4 @@
-# PSE Riemann — mjereni benchmark čuvara i liječenja (runda 3, stavka 23)
+# PSE Riemann — mjereni benchmark čuvara i liječenja (runda 3, stavka 22)
 
 **Šta je mjereno:** odluke aplikacije kroz **iste puteve** kojima ona stvarno odlučuje:
 - **tri zla:** detektori i dijagnoza 3-od-3;
@@ -7,7 +7,7 @@
 
 Pokretanje: `pse-riemann --bench`, a iz aplikacije Guardian → „Benchmark → izvještaj“. Benchmark uvijek radi u privremenom vaultu, a brojke idu u zapečaćen izvještaj.
 
-> **Iskreno ograničenje:** korpus (`app/bench/corpus.json`) je **sintetički**. Napisao ga je Claude (16+1 scenarija za tri zla, 9 SSH, 6 za prekidač) i nisu to stvarni napadi ni stvarni razgovori. Detektori su **popravljani na osnovu ovog istog korpusa**, pa nula promašaja ispod **ne znači** nula u stvarnom svijetu. Znači samo da su poznate slabosti zatvorene i da test (`tests/test_r3_bench.py`) čuva da se ne vrate. Prava mjera traži stvarne podatke (živi test, stavka 26).
+> **Iskreno ograničenje:** korpus (`app/bench/corpus.json`) je **sintetički**. Napisao ga je Claude (16+1 scenarija za tri zla, 9 SSH, 6 za prekidač) i nisu to stvarni napadi ni stvarni razgovori. Detektori su **popravljani na osnovu ovog istog korpusa**, pa nula promašaja ispod **ne znači** nula u stvarnom svijetu. Znači samo da su poznate slabosti zatvorene i da test (`tests/test_r3_bench.py`) čuva da se ne vrate. Prava mjera traži stvarne podatke (živi test, stavka 33).
 
 ## Prvo mjerenje, prije izmjena (2026-10-25)
 

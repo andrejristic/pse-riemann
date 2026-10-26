@@ -1,5 +1,5 @@
 """
-Disclosure budgets (round 3, item 22; Perun P7): how much PROTECTED content may
+Disclosure budgets (round 3, item 21; Perun P7): how much PROTECTED content may
 leave this computer, per destination and per day.
 
 What is protected, and its default daily budget per destination:

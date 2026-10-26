@@ -272,7 +272,7 @@ def main() -> int:
     args = sys.argv[1:]
     if args and args[0] == "--selftest":
         return selftest()
-    if args and args[0] == "--bench":                  # round 3, item 23
+    if args and args[0] == "--bench":                  # round 3, item 22
         # always in a throwaway vault: the SSH part resets source records
         import json as _json, os as _os, tempfile
         if not _os.environ.get("PSE_RIEMANN_BENCH_VAULT"):
@@ -298,7 +298,7 @@ def main() -> int:
         from pse_r import bench as BN
         print(_json.dumps(BN.run(), ensure_ascii=False))
         return 0
-    if args and args[0] == "--guardian":              # round 3, item 20
+    if args and args[0] == "--guardian":              # round 3, item 19
         _boot()
         from pse_r import guardian_app as GA
         if "--headless" in args:
@@ -398,7 +398,7 @@ def main() -> int:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(None, "Ime operatera", str(e))
 
-    # the SSH guardian runs as its own process, always (round 3, item 20)
+    # the SSH guardian runs as its own process, always (round 3, item 19)
     try:
         from pse_r import guardian_app as GA
         GA.ensure_running()

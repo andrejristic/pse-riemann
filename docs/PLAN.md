@@ -185,16 +185,16 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 23. SR/EN prekidač za cijeli interfejs.
 24. Automatski profil mašine (Dell i5-6600 / Acer i3, oba 16 GB): ograničenja se sama prilagode, kartice „kad birati“ upozore da je DeepSeek spor na Aceru, testovi rade i sa simuliranim Acerom.
 
-### Faza 6b · Druga misija, inspiracije, grafovi (dodato 2026-10-25, radi se prije Faze 7)
+### Faza 6b · Druga misija, inspiracije, grafovi (dodato 2026-10-25; radi se prije Faze 7 — izdanje je uvijek posljednje)
 Sve iz ove faze mora biti u završnom .deb i .exe.
 
-30. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
-31. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 30 završi; ništa od 32 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25.
-32. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori. Dodatna polja (Andrej, 2026-10-25, iz skeletona „tri pravca“):
+25. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
+26. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 25 završi; ništa od 27 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25.
+27. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori. Dodatna polja (Andrej, 2026-10-25, iz skeletona „tri pravca“):
     - **vrsta rezultata**: poluravan bez nula (npr. 7/8) · gustina nula · udio nula na kritičnoj pravoj (npr. 2/3) — aplikacija nikad ne poredi niti crta zajedno ono što se ne može porediti;
     - **pretpostavke** (npr. „funkcionalnost do GL(3)“, „pod RH“): kapija odbija bezuslovnu tvrdnju koja se oslanja na nedokazanu pretpostavku, kao što sada traži „pod RH“.
-33. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
-34. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
+28. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
+29. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
     **Uzor: Android aplikacija „Calculus Tools“** (Andy McSherry, `com.andymc.derivative`; skinuta sa Google Playa 2018). Po izvorima je imala izvode, određene integrale, dužinu luka, Taylorove redove i grafove (kartezijanski, polarni, parametarski, vektorska polja). Interakciju je potvrdio Andrej (ispod). Prevod za naš tab:
     - kartezijanski: funkcije eksponenata E(δ), prava B(ℓ) = 11/12 − ℓ/4, presjeci;
     - parametarski: putanje (ℓ(t), B(t)) za proširenja t i w;
@@ -215,16 +215,16 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     - između dvije funkcije: osjenčana površina („rezerva“);
     - za misiju: kuda proširenje (t, w, kasnije d) pomjera tačku — bliže ili dalje od cilja.
     Pravila: računa Python deterministički (AI samo objašnjava, i to na zahtjev); red u pozadini sa „prekini“, poštuje limitere (RAM, CPU, „→ ∞“) i profil mašine; rezultat se kešira i bilježi kao lab run u SHARED_LIB-u sa oznakom NAŠE-NERECENZIRANO.
-35. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
-36. **Adversarijalni mod** (iz skeletona „tri pravca“, Andrej, 2026-10-25): deterministička potraga po prostoru parametara (ℓ, b, κ, t, w…) jedne metode traži (a) tačku koja daje **bolje B** od tvrđenog (tvrdnja nije optimum) i (b) tačku u kojoj se **krši zid ili uslov**. Računska dopuna skeptiku (skeptik napada riječima, ovo brojevima). Uz to **certifikat praznine** (pravac A): za datu metodu strogi interval da iznad B* nema dopustivih parametara. Rezultati: „Čeka tvoju odluku“, tab Grafovi (tačka kontraprimjera), lab run NAŠE-NERECENZIRANO; poštuje limitere. Ne ulazi: apstraktna „mašina“ bez implementacije, „Langlands transfer“ kao konstanta (samo kao otvoreno pitanje / INSPIRACIJA, stavka 33), Lean.
+30. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
+31. **Adversarijalni mod** (iz skeletona „tri pravca“, Andrej, 2026-10-25): deterministička potraga po prostoru parametara (ℓ, b, κ, t, w…) jedne metode traži (a) tačku koja daje **bolje B** od tvrđenog (tvrdnja nije optimum) i (b) tačku u kojoj se **krši zid ili uslov**. Računska dopuna skeptiku (skeptik napada riječima, ovo brojevima). Uz to **certifikat praznine** (pravac A): za datu metodu strogi interval da iznad B* nema dopustivih parametara. Rezultati: „Čeka tvoju odluku“, tab Grafovi (tačka kontraprimjera), lab run NAŠE-NERECENZIRANO; poštuje limitere. Ne ulazi: apstraktna „mašina“ bez implementacije, „Langlands transfer“ kao konstanta (samo kao otvoreno pitanje / INSPIRACIJA, stavka 28), Lean.
 
 ### Faza 7 · Dokumentacija i izdanje
-25. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
-26. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
-27. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
-28. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
-29. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
+32. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
+33. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
+34. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
+35. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
+36. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4) + oko 36–55 sati za Fazu 6b (sa stavkom 36 i poljima uz 32) = **oko 98–147 sati**, kalendarski oko 8–12 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4) + oko 36–55 sati za Fazu 6b (sa stavkom 31 i poljima uz 27) = **oko 98–147 sati**, kalendarski oko 8–12 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.

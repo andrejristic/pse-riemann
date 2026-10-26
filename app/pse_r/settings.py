@@ -29,7 +29,9 @@ DEFAULTS: dict[str, Any] = {
     "splits": {},           # name -> [sizes]
     "daily_cap": 5.0,
     # "→ ∞" ceilings L, set by the operator (master §5)
-    "limits_L": {"s_per_token": 2.0, "rss_gb": 12.0, "queue": 8},
+    # s/token comes from the machine profile unless the operator sets it here
+    "limits_L": {"rss_gb": 12.0, "queue": 8},
+    "machine_profile": "auto",
     # journal retention (archive + anchor, never plain delete)
     "journal_keep_days": 90, "journal_keep_min": 20000, "journal_max_live": 200000,
 }

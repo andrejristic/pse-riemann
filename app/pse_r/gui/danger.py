@@ -1,5 +1,5 @@
 """
-DANGER alert (round 3, item 17): a big window, a red pill, a SHARED_LIB record
+DANGER alert (round 3, item 16): a big window, a red pill, a SHARED_LIB record
 and a beep that keeps going — every 2 seconds — until the operator clicks
 "U redu". Used when the SSH guardian must remove an attacker and has no right
 to (no narrow sudoers rule), or a login succeeded after an attack. The text is

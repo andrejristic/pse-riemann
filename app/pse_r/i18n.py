@@ -1,5 +1,5 @@
 """
-SR/EN for the whole interface (round 3, item 24).
+SR/EN for the whole interface (round 3, item 23).
 
 Serbian (ijekavian, Latin) is the source language. `tr(text)` returns the
 English translation when the interface language is "en", otherwise the text

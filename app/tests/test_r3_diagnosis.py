@@ -1,4 +1,4 @@
-"""Round 3, item 21: 3-of-3 diagnosis — fewer false infections, real ones at once."""
+"""Round 3, item 20: 3-of-3 diagnosis — fewer false infections, real ones at once."""
 from pse_r.guardian import diagnosis as DG
 from pse_r.guardian import harms as HRM
 

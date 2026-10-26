@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Collect every interface string that goes through tr() into
-app/pse_r/i18n_strings.py (round 3, item 24). Run after GUI text changes."""
+app/pse_r/i18n_strings.py (round 3, item 23). Run after GUI text changes."""
 import ast, json, sys
 from pathlib import Path
 

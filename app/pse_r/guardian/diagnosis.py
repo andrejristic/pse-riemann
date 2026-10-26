@@ -1,5 +1,5 @@
 """
-Statistically stronger diagnosis (round 3, item 21; Svarog S5 — Perun CUSUM +
+Statistically stronger diagnosis (round 3, item 20; Svarog S5 — Perun CUSUM +
 Morana posterior, as Svarog combined them).
 
 Round 2 called an agent infected on ANY finding. A healthy model trips the soft
@@ -67,7 +67,7 @@ class Verdict:
     cusum: float
     confirmed: bool
     reasons: list = field(default_factory=list)
-    # competing hypotheses (item 22, P7): every unhealthy form with its weight,
+    # competing hypotheses (item 21, P7): every unhealthy form with its weight,
     # strongest first; "decided" only when the leader clearly beats the runner-up
     hypotheses: list = field(default_factory=list)
     decided: bool = False

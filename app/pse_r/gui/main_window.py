@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------ #
     def toggle_language(self):
-        """SR/EN for the whole interface (round 3, item 24): saved, then the
+        """SR/EN for the whole interface (round 3, item 23): saved, then the
         window is reopened in the new language (one restart, no half-translated UI)."""
         import sys
         from PySide6.QtCore import QProcess
@@ -430,7 +430,7 @@ class MainWindow(QMainWindow):
     def refresh_status(self):
         try:
             from .danger import show_if_pending
-            show_if_pending(self)                       # item 17: never silent
+            show_if_pending(self)                       # item 16: never silent
         except Exception:                               # noqa: BLE001
             pass
         if hasattr(self, "topbar"):
@@ -479,7 +479,7 @@ class MainWindow(QMainWindow):
                                 "ponovnog pokretanja."))
 
     def closeEvent(self, e):
-        # round 3, item 20: the guardian is a separate process — ask what to close
+        # round 3, item 19: the guardian is a separate process — ask what to close
         if not getattr(self, "_closing_confirmed", False):
             from PySide6.QtWidgets import QMessageBox
             from .. import guardian_app as GA

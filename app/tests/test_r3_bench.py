@@ -1,4 +1,4 @@
-"""Round 3, item 23: the measured benchmark runs through the app's own decision
+"""Round 3, item 22: the measured benchmark runs through the app's own decision
 paths and its numbers are a regression guard (synthetic corpus — see note)."""
 from pse_r import bench as BN
 

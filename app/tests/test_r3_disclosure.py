@@ -1,4 +1,4 @@
-"""Round 3, item 22 (Perun P7): disclosure budgets + competing hypotheses."""
+"""Round 3, item 21 (Perun P7): disclosure budgets + competing hypotheses."""
 import pytest
 
 from pse_r.guardian import diagnosis as DG

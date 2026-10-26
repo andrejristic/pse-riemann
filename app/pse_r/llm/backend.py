@@ -141,7 +141,7 @@ class StreamingBackend(Backend):
         except L.Aborted as a:
             raise EgressBlocked(f"{self.provider}: {a}") from None
         payload = self._payload(messages, system, max_tokens, effort)
-        from ..guardian import disclosure as DISC          # item 22: measured BEFORE sending
+        from ..guardian import disclosure as DISC          # item 21: measured BEFORE sending
         try:
             DISC.check_and_spend(self.host, DISC.payload_text(payload),
                                  actor=f"model:{self.provider}")

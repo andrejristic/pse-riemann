@@ -1,5 +1,5 @@
 """
-The guardian as its own process (round 3, item 20).
+The guardian as its own process (round 3, item 19).
 
 `pse-riemann --guardian` runs the SSH guardian (and the reversible-containment
 undo timer) without the main window, with an icon in the system tray:

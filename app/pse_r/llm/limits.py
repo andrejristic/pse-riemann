@@ -46,6 +46,8 @@ def cpu_count() -> int:
 
 @dataclass
 class Limits:
+    # CPU threads for llama-cpp; 0 = cores − reserve
+    n_threads: int = 0
     # RAM (GiB)
     ram_headroom_gb: float = 2.0       # need model_size + this free to load
     ram_floor_gb: float = 1.5          # below this: unload immediately
@@ -69,8 +71,16 @@ class Limits:
 
     @classmethod
     def from_settings(cls) -> "Limits":
-        """Defaults plus the operator's "→ ∞" ceilings from settings.json."""
+        """The machine profile (item 24), then the operator's "→ ∞" ceilings."""
         lim = cls()
+        try:
+            from .. import machine as M
+            p = M.profile()
+            lim.n_threads, lim.n_ctx = p.threads, p.n_ctx
+            lim.think_budget, lim.max_output = p.think_budget, p.max_output
+            lim.call_timeout_s, lim.L_latency_s = p.call_timeout_s, p.s_per_token_L
+        except Exception:                           # noqa: BLE001
+            pass
         try:
             from .. import settings as S
             Ls = S.load().get("limits_L") or {}
@@ -82,6 +92,8 @@ class Limits:
         return lim
 
     def threads(self) -> int:
+        if self.n_threads:
+            return max(1, min(self.n_threads, cpu_count()))
         return max(1, cpu_count() - self.reserve_cores)
 
     def can_load(self, model_gb: float) -> bool:

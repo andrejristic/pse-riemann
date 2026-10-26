@@ -681,7 +681,7 @@ class GuardianTab(QWidget, JobMixin):
         return L + [""]
 
     def run_bench(self):
-        """Round 3, item 23: measured FP/FN in a throwaway vault; the numbers go
+        """Round 3, item 22: measured FP/FN in a throwaway vault; the numbers go
         into a sealed final report in the real one."""
         import subprocess
         import sys

@@ -92,7 +92,7 @@ class Healer:
         return case
 
     def hold(self, agent: str, findings: list) -> Case:
-        """Reversible containment only (item 21: posterior + CUSUM, NOT confirmed
+        """Reversible containment only (item 20: posterior + CUSUM, NOT confirmed
         by a hard sign) — no treatment ladder, released by the operator."""
         case = Case(agent=agent, findings=list(findings), signature=_signature(findings))
         self.cases[agent] = case
@@ -117,7 +117,7 @@ class Healer:
         case.patient_zero = self._patient_zero(case.agent)
         extra = {}
         if verdict is not None and verdict.hypotheses:
-            # competing hypotheses (item 22): keep all of them until one is decided
+            # competing hypotheses (item 21): keep all of them until one is decided
             case.attractor = (self._FORM_NAME[verdict.form] if verdict.decided else
                               "neodlučeno: " + " / ".join(
                                   f"{self._FORM_NAME[f]} {p:.2f}" for f, p in verdict.hypotheses[:2]))

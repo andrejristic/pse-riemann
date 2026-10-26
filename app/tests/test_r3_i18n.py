@@ -1,4 +1,4 @@
-"""Round 3, item 24: SR/EN for the whole interface."""
+"""Round 3, item 23: SR/EN for the whole interface."""
 import re
 
 from pse_r import i18n

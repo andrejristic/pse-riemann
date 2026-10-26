@@ -1,4 +1,4 @@
-"""English for the interface (round 3, item 24). Keys = the Serbian source text."""
+"""English for the interface (round 3, item 23). Keys = the Serbian source text."""
 EN = {
 "  ⛔  OPASNOST  ": "  ⛔  DANGER  ",
 "(prazan — model vidi samo tvoje pitanje)": "(empty — the model only sees your question)",
@@ -475,5 +475,10 @@ EN = {
 "radi (PID {0})": "running (PID {0})",
 "⛔ NE RADI": "⛔ NOT RUNNING",
 "⛔ nema — ": "⛔ none — ",
-"pomoćni program nije instaliran kao root (/usr/lib/pse-riemann/pse-guard-helper) — instaliraj .deb": "the helper is not installed as root (/usr/lib/pse-riemann/pse-guard-helper) — install the .deb"
+"pomoćni program nije instaliran kao root (/usr/lib/pse-riemann/pse-guard-helper) — instaliraj .deb": "the helper is not installed as root (/usr/lib/pse-riemann/pse-guard-helper) — install the .deb",
+" · brojke su procjena": " · the numbers are an estimate",
+"Ova mašina: {0} · niti {1} · kontekst {2} · rok {3:.0f} s{4}": "This machine: {0} · threads {1} · context {2} · time limit {3:.0f} s{4}",
+"Dell OptiPlex · i5-6600 · 4 jezgra / 16 GB": "Dell OptiPlex · i5-6600 · 4 cores / 16 GB",
+"Acer · i3 · 2 jezgra / 4 niti / 16 GB": "Acer · i3 · 2 cores / 4 threads / 16 GB",
+"DeepSeek-R1-8B je na Aceru spor (procjena ~1 s po tokenu, dug <think>) — za brz rad izaberi cloud glavni AI, a DeepSeek ostavi kao skeptika.": "DeepSeek-R1-8B is slow on the Acer (estimate ~1 s per token, long <think>) — for fast work choose a cloud main AI and keep DeepSeek as the skeptic."
 }

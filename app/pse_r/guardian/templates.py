@@ -1,5 +1,5 @@
 """
-Template-only messages for critical things (round 3, item 18; Perun P6).
+Template-only messages for critical things (round 3, item 17; Perun P6).
 
 Alarms, healing steps and warnings are NEVER model text: each is one of the
 fixed sentences below, and every slot is checked against its type before it is

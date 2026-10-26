@@ -169,7 +169,7 @@ class SSHGuardian:
         return rec
 
     def _alarm(self, tid: str, **slots) -> str:
-        """DANGER (item 17): a template message, in SHARED_LIB, until acknowledged."""
+        """DANGER (item 16): a template message, in SHARED_LIB, until acknowledged."""
         text = T.render(tid, **slots)
         cur = _store().kv_get(KV_ALARM) or {}
         if not cur or cur.get("acknowledged"):

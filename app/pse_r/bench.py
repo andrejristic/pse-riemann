@@ -1,5 +1,5 @@
 """
-Measured benchmark (round 3, item 23; Svarog S7).
+Measured benchmark (round 3, item 22; Svarog S7).
 
 Labelled, SYNTHETIC scenarios (bench/corpus.json — written for this purpose,
 not real attacks or real conversations) are run through the SAME decision
