@@ -88,6 +88,8 @@ class MainWindow(QMainWindow):
         self.tab_board = WhiteboardTab()
         self.tab_editor = EditorTab()
         self.tab_graph = GraphTab()
+        from .grafovi import GrafoviTab
+        self.tab_grafovi = GrafoviTab()                 # round 3, item 29
         self.tab_guard = GuardianTab()
         from .qrh_tabs import MissionsTab, QueueTab
         from .overview import OverviewTab
@@ -109,6 +111,7 @@ class MainWindow(QMainWindow):
         for w, name in ((self.tab_overview, tr("Pregled")),
                         (self.tab_missions, tr("Misije")), (self.tab_queue, tr("Čeka tvoju odluku")),
                         (self.tab_ideas, tr("Ideje")),
+                        (self.tab_grafovi, tr("Grafovi")),
                         (self.tab_plan, tr("Plan")), (self.tab_lab, tr("Lab")),
                         (self.tab_corpus, tr("Corpus")),
                         (self.tab_board, tr("Tabla")), (self.tab_editor, tr("Editor")),
@@ -147,6 +150,7 @@ class MainWindow(QMainWindow):
         self.tab_corpus.to_context.connect(self.chat.add_context)
         self.tab_corpus.open_card.connect(self.open_card)
         self.tab_graph.open_card.connect(self.open_card)
+        self.tab_grafovi.open_card.connect(self.open_card)
         self.chat.open_card.connect(self.open_card)
         for sig in (self.tab_lab.card_written, self.chat.card_written,
                     self.tab_editor.card_written, self.tab_board.card_written):

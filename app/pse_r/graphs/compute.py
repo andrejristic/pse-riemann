@@ -231,9 +231,9 @@ def offers(f: F.Function, info: dict, others: list = ()) -> list:
     c = F.eval_cost(f)
     o = []
 
-    def add(key, title, evals, why=""):
-        o.append({"key": key, "title": title, "est_s": round(evals * c, 3), "why": why,
-                  "ask": evals * c > CHEAP_S})
+    def add(key, title, evals, why="", args=()):
+        o.append({"key": key, "title": title, "args": list(args), "est_s": round(evals * c, 3),
+                  "why": why, "ask": evals * c > CHEAP_S})
     flags = " ".join(info.get("flags", []))
     if "presjek" in flags:
         add("intersection", "tačan presjek (+ interval-certifikat)", 220, "tačka je presjek")
@@ -242,8 +242,8 @@ def offers(f: F.Function, info: dict, others: list = ()) -> list:
     if "stacionarna" in flags:
         add("second", "drugi izvod — da li je optimum i koliko je oštar", 6, "f′ ≈ 0")
     if info.get("nearest_target") and f.builtin in B_FUNCS:
-        add("to_target", f"pomak parametra do cilja {info['nearest_target']['name']} "
-            "(ili dokaz da ga zid sprečava)", 220, "tačka je blizu cilja")
+        add("to_target", "pomak parametra do cilja {0} (ili dokaz da ga zid sprečava)", 220,
+            "tačka je blizu cilja", (info["nearest_target"]["name"],))
     if f.builtin in ("ext_t", "ext_w"):
         add("mission", "kuda proširenje pomjera B — bliže ili dalje od cilja", 4,
             "misija 1: srž pitanja")
