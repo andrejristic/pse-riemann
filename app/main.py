@@ -42,6 +42,8 @@ def _boot() -> None:
     except Exception as e:                              # noqa: BLE001
         print("langlands seed:", e)
     MIS.seed_second()                 # mission 2: higher degree (round 3, item 27)
+    from pse_r.shared_lib import ideas as IDEAS
+    IDEAS.seed_geometric_langlands()  # geometric Langlands only as INSPIRACIJA (item 28)
     J.log(J.SYSTEM, "app", {"event": "start", "version": config.VERSION,
                             "profile": config.PROFILE})
 
@@ -368,8 +370,12 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setApplicationName(config.APP_NAME)
+    from pse_r import screen as SCR
+    _prof = SCR.detect(app)              # measure the screen and fit to it
+    set_base_pt(S.base_font_pt())
     J.log(J.SYSTEM, "app", {"ui_scale": applied,
-                            "desktop_scale": S.detect_desktop_scale()})
+                            "desktop_scale": S.detect_desktop_scale(),
+                            "screen": _prof.as_dict() if _prof else None})
 
     if not seed.is_seeded():
         seed.seed_all()

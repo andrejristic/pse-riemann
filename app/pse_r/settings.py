@@ -146,4 +146,8 @@ def base_font_pt() -> float:
     """Point size for the app stylesheet. Independent of ui_scale on purpose:
     ui_scale resizes everything, this nudges only text."""
     v = float(get("font_pt", 0) or 0)
-    return v if v > 0 else DEFAULT_FONT_PT
+    if v > 0:
+        return v                                  # the operator's own size always wins
+    from . import screen as SCR                   # else: measured from this screen
+    prof = SCR.current()
+    return prof.font_pt if prof else DEFAULT_FONT_PT

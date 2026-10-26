@@ -220,6 +220,12 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
                             payload, proposer="arxiv")
         new.append(rid)
     store().kv_set("arxiv_seen", sorted(seen))
+    try:                              # item 28: what was read may inspire (never a claim)
+        from . import ideas as IDEAS
+        IDEAS.consider(items, ask_main=False)
+    except Exception as e:                              # noqa: BLE001
+        J.log(J.INGEST, "ideas", {"event": "consider_failed", "error": str(e)[:200]},
+              verdict="failed")
     J.log(J.INGEST, "arxiv", {"event": "qrh_watch", "found": len(items), "new": new},
           verdict="watched")
     return {"skipped": False, "found": len(items), "new": new, "quiet": quiet}
@@ -359,4 +365,14 @@ def tick(online: Optional[bool] = None) -> dict:
             out["arxiv"] = arxiv_round()
         except Exception as e:                          # noqa: BLE001
             out["arxiv"] = {"error": str(e)[:200]}
+        try:                                            # item 28: weekly inspiration round
+            from . import ideas as IDEAS
+            out["ideas"] = IDEAS.ideas_round()
+        except Exception as e:                          # noqa: BLE001
+            out["ideas"] = {"error": str(e)[:200]}
+    try:
+        from . import ideas as IDEAS
+        out["ideas_publish"] = IDEAS.publish_async()
+    except Exception as e:                              # noqa: BLE001
+        out["ideas_publish"] = {"error": str(e)[:200]}
     return out

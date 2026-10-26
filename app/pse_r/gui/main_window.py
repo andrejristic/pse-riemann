@@ -13,7 +13,7 @@ from ..i18n import tr
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtWidgets import (QDialog, QInputDialog, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QApplication, QDialog, QInputDialog, QLabel, QLineEdit,
                                QListWidget, QMainWindow, QMessageBox,
                                QSplitter, QStatusBar, QTabWidget, QVBoxLayout,
                                QWidget)
@@ -69,7 +69,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{config.APP_NAME} {config.VERSION}")
-        self.resize(1420, 900)
+        from .. import screen as SCR
+        _prof = SCR.current() or SCR.detect()
+        self.resize(_prof.win_w, _prof.win_h) if _prof else self.resize(1420, 900)
         self.font_pt = S.base_font_pt()
         set_base_pt(self.font_pt)
         self.setStyleSheet(dark_qss(self.font_pt))
@@ -91,13 +93,19 @@ class MainWindow(QMainWindow):
         self.tab_overview = OverviewTab()
         self.tab_missions = MissionsTab()
         self.tab_queue = QueueTab()
+        from .ideas import IdeasTab
+        self.tab_ideas = IdeasTab()                     # round 3, item 28
         self.tab_queue.decided.connect(self.tab_missions.refresh)
         self.tab_queue.decided.connect(self.tab_overview.refresh)
         self.tab_missions.switched.connect(lambda: self.topbar.refresh())
+        self.tab_missions.switched.connect(lambda: self.tab_ideas.refresh())
+        self.tab_ideas.changed.connect(self.tab_missions.refresh)
+        self.tab_ideas.changed.connect(self._ideas_badge)
         self.tab_queue.decided.connect(lambda: self.topbar.refresh())
         self.tab_overview.open_queue.connect(lambda: self.tabs.setCurrentWidget(self.tab_queue))
         for w, name in ((self.tab_overview, tr("Pregled")),
                         (self.tab_missions, tr("Misije")), (self.tab_queue, tr("Čeka tvoju odluku")),
+                        (self.tab_ideas, tr("Ideje")),
                         (self.tab_plan, tr("Plan")), (self.tab_lab, tr("Lab")),
                         (self.tab_corpus, tr("Corpus")),
                         (self.tab_board, tr("Tabla")), (self.tab_editor, tr("Editor")),
@@ -109,7 +117,7 @@ class MainWindow(QMainWindow):
         split.addWidget(self.chat)
         split.setStretchFactor(0, 7)
         split.setStretchFactor(1, 3)
-        split.setSizes([int(1420 * 0.7), int(1420 * 0.3)])
+        split.setSizes([int(self.width() * 0.7), int(self.width() * 0.3)])
         # Svarog layout: top bar with status pills above everything
         from .topbar import TopBar
         self.topbar = TopBar(self.font_pt)
@@ -306,11 +314,27 @@ class MainWindow(QMainWindow):
     def _restore_layout(self):
         from PySide6.QtCore import QByteArray
         g = S.get("geometry", "")
+        restored = False
         if g:
             try:
                 self.restoreGeometry(QByteArray.fromBase64(g.encode()))
+                restored = True
             except Exception:                            # noqa: BLE001
                 pass
+        # the remembered window must still fit THIS screen (laptop ↔ monitor)
+        from .. import screen as SCR
+        scr = self.screen() or QApplication.primaryScreen()
+        if scr is not None:
+            av = scr.availableGeometry()
+            fg = self.frameGeometry()
+            if not restored or not SCR.fits(fg.width(), fg.height(), fg.x(), fg.y(), av):
+                if self.isMaximized():
+                    self.showNormal()
+                prof = SCR.current()
+                w = min(prof.win_w if prof else 1420, av.width())
+                h = min(prof.win_h if prof else 900, av.height())
+                self.resize(w, h)
+                self.move(av.x() + (av.width() - w) // 2, av.y() + (av.height() - h) // 2)
         splits = S.get("splits", {}) or {}
         for sp in self.findChildren(QSplitter):
             name = sp.objectName()
@@ -392,6 +416,17 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(tr("SHARED_LIB otkucaj: {0}").format(e), 8000)
         self.tab_overview.refresh()
         self.topbar.refresh()
+        self._ideas_badge()
+
+    def _ideas_badge(self):
+        """Item 28: a small badge on the tab instead of pop-ups."""
+        try:
+            from ..shared_lib import ideas as IDEAS
+            n = IDEAS.badge()
+        except Exception:                               # noqa: BLE001
+            n = 0
+        i = self.tabs.indexOf(self.tab_ideas)
+        self.tabs.setTabText(i, tr("Ideje") + (f" ({n})" if n else ""))
 
     def _check_net(self):
         from PySide6.QtCore import QThread, QObject, Signal as _Sig
