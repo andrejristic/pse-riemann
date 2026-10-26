@@ -794,6 +794,52 @@ CATALOG: list[Experiment] = [
         _run_qrh_licence, "spor"),
 ]
 
+def _run_qrh_adversary(family: int, eps_exp: int) -> Result:
+    """Item 31: the adversarial mode as a lab run (PNG + card + NAŠE-NERECENZIRANO)."""
+    from ..methods import adversary as A
+    name = "liu" if int(family) == 0 else "xs"
+    rep = A.run(name, eps=10.0 ** (-int(eps_exp)))
+    A._LAST[name] = rep
+    c = rep.certificate
+    r = Result()
+    r.numbers = {"metoda": name, "tvrđeno B": rep.claimed_B, "najbolje B uz uslove": rep.best_B,
+                 "bolje od tvrdnje": rep.better_than_claim, "b*": round(rep.best_at["b"], 9),
+                 "ℓ*": rep.best_at["l"], "κ*": rep.best_at["k"],
+                 "tačaka bolje uz kršenje": len(rep.breaks),
+                 "certifikat: B od": c.get("B_low"), "certifikat: B do": c.get("B_high"),
+                 "certifikat: ćelija": c.get("cells"), "certifikat: neodlučeno": c.get("undecided"),
+                 "certifikat kompletan": c.get("complete"), "sekundi": round(rep.seconds + c.get("seconds", 0), 2)}
+    r.series = {"B_licence(b)": [(b, B) for b, B in rep.curve],
+                "kršenja": [(br["b"], br["B"]) for br in rep.breaks]}
+    r.plots = [{"kind": "line", "series": "B_licence(b)", "marks": "kršenja",
+                "title": f"{name}: najbolje B po b uz licencu (crveno: bolje, ali krši uslov)",
+                "xlabel": "b", "ylabel": "B", "hline": rep.claimed_B}]
+    worst = rep.breaks[0] if rep.breaks else None
+    r.reading = (
+        f"**{rep.summary()}**\n\n"
+        f"(a) Uz uslove metode (licenca κ = 2B − 1, x = 1/2, δ ∈ [dlo, 5/6]) pretraga po b daje "
+        f"najbolje B = {rep.best_B:.12f} kod b = {rep.best_at['b']:.6f}; tvrdnja {rep.claimed_B:.12f} "
+        + ("**nije optimum**." if rep.better_than_claim else "odolijeva u tačnosti pretrage.") + "\n\n"
+        f"(b) Sa slobodnim κ, {len(rep.breaks)} tačaka daje bolje B od tvrdnje — svaka krši bar jedan uslov"
+        + (f"; najniže B = {worst['B']:.9f} krši: {', '.join(worst['krši'])}." if worst else ".") + "\n\n"
+        f"(c) Certifikat praznine (intervalna aritmetika, mpmath.iv): za B ∈ [{c.get('B_low', 0):.6f}, "
+        f"{c.get('B_high', 0):.12f}] NEMA dopustivih parametara u {c.get('cells', 0)} ćelija"
+        + ("" if c.get("complete") else f" — **DJELIMIČNO**: {c.get('undecided')} ćelija neodlučeno") + ". "
+        "Pretpostavke: " + "; ".join(c.get("assumptions", [])) + ". Certifikat važi za E kako je "
+        "implementiran u `methods/core.py` (konstante u double preciznosti). NAŠE-NERECENZIRANO.")
+    if not c.get("complete", True):
+        r.warnings.append("certifikat je djelimičan — povećaj budžet ćelija ili ε")
+    return r
+
+
+CATALOG.append(Experiment(
+    "qrh_adversary", "QRH: adversarijalni mod",
+    "Da li je tvrđeno B zaista optimum metode, šta treba prekršiti za bolje, i da li je prostor iznad B* prazan?",
+    "Skeptik napada riječima, ovo brojevima: potraga po parametrima + strogi certifikat praznine.",
+    [Param("family", "int", 0, 0, 1, "0=Liu, 1=Xu–Sang"),
+     Param("eps_exp", "int", 6, 4, 7, "ε = 10^−n: koliko blizu B* certifikat ide")],
+    _run_qrh_adversary, "srednji"))
+
 BY_KEY = {e.key: e for e in CATALOG}
 
 # Which ontology branch each experiment belongs to. This is what links a lab
@@ -806,7 +852,7 @@ BRANCH_OF = {
     "gue": "rmt",
     "robin": "equivalences", "mertens": "equivalences",
     "qrh_line": "quasi-rh", "qrh_poly": "quasi-rh", "qrh_transform": "quasi-rh",
-    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh",
+    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh", "qrh_adversary": "quasi-rh",
 }
 
 

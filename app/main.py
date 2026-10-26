@@ -35,6 +35,8 @@ def _boot() -> None:
     M.install_hooks()                 # method-pack door: approval → register + card
     MIS.seed_first()                  # the standing QRH mission
     MIS.install_hooks()               # goal proposals → operator (round 3, item 27)
+    from pse_r.methods import adversary as _ADV
+    _ADV.install_hooks()              # adversarial findings → mission step (item 31)
     try:
         from pse_r.vault import langlands_seed as _LS
         if not _LS.is_seeded():

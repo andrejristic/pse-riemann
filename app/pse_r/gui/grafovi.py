@@ -464,6 +464,7 @@ class GraphCanvas(FigureCanvasQTAgg):
             self._draw_shade(xl)
         if mode in ("cartesian", "parametric"):
             self._draw_overlays(xl, yl, fs)
+            self._draw_adversary(xl, yl, fs)
         if mode == "complex":
             self._draw_complex(xl, yl, levels, waiting, fs)
         if mode == "slice":
@@ -493,6 +494,24 @@ class GraphCanvas(FigureCanvasQTAgg):
         y2 = np.asarray(F.numeric(g, self.params)(xs), float)
         self.ax.fill_between(xs, y1, y2, color="#ffc257", alpha=0.22, linewidth=0,
                              label=tr("rezerva: {0} − {1}").format(f.label, g.label))
+
+    def _draw_adversary(self, xl, yl, fs):
+        """Item 31: points the adversarial mode found, on the (ℓ, B) plane."""
+        try:
+            from ..shared_lib.store import store
+            pts = store().kv_get("adversary_points") or []
+        except Exception:                               # noqa: BLE001
+            return
+        if not any(F.shape(f) in ("curve", "path") and f.builtin in ("B_line", "path_t", "path_w")
+                   for f in self.funcs if f.visible):
+            return                                      # only where the plane is (ℓ, B)
+        for p in pts:
+            if p.get("l") is None or not (xl[0] <= p["l"] <= xl[1] and yl[0] <= p["B"] <= yl[1]):
+                continue
+            red = p["kind"].startswith("krši") or p["kind"] == "kontraprimjer"
+            self.ax.plot([p["l"]], [p["B"]], "X" if red else "D", color="#f49090" if red else "#74d79a",
+                         markersize=8, zorder=5)
+            self.ax.annotate(f" {p['method']}: {p['kind']}", (p["l"], p["B"]), color=TXT, fontsize=fs * 0.75)
 
     def _draw_overlays(self, xl, yl, fs):
         if self.show_targets:

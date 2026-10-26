@@ -148,6 +148,13 @@ class MainWindow(QMainWindow):
         self.chat.expand_toggled.connect(self.toggle_chat_expand)
         QShortcut(QKeySequence("Escape"), self, self._unexpand_chat)
         self._restore_layout()
+        # screen fitting: a combo box must not grow with its longest entry (a long queue
+        # title widened the whole tab); the full text is shown when the list opens
+        from PySide6.QtWidgets import QComboBox
+        for cb in self.findChildren(QComboBox):
+            if cb.sizeAdjustPolicy() != QComboBox.AdjustToMinimumContentsLengthWithIcon:
+                cb.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                cb.setMinimumContentsLength(16)
 
         # wiring
         self.tab_corpus.to_context.connect(self.chat.add_context)
@@ -413,6 +420,8 @@ class MainWindow(QMainWindow):
         DOOR.install_hooks()
         from ..shared_lib import missions as _MIS
         _MIS.install_hooks()
+        from ..methods import adversary as _ADV
+        _ADV.install_hooks()
         self._online = None
         self._rt_timer = QTimer(self)
         self._rt_timer.timeout.connect(self._tick)

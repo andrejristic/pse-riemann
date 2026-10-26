@@ -43,6 +43,7 @@ class MissionsTab(QWidget):
         v.addWidget(flow_row(QLabel(tr("<b>Misije</b>")),
                              button(tr("Provjeri arXiv sada"), self._arxiv_now),
                              button(tr("Izvezi izvještaj misije"), self._export_report),
+                             button(tr("Adversarijalni mod…"), self._adversary),
                              button(tr("Osvježi"), self.refresh)))
         # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
         self.cb_mission = QComboBox()
@@ -148,6 +149,29 @@ class MissionsTab(QWidget):
             QMessageBox.warning(self, tr("Cilj misije"), str(e))
             return
         self.refresh()
+
+    def _adversary(self):
+        """Item 31: attack a method's claim with numbers (background; result in the queue)."""
+        from PySide6.QtWidgets import QInputDialog
+        from ..methods import adversary as ADV
+        from ..methods import registry as R
+        names = []
+        for m in R.KNOWN:
+            try:
+                ADV.family(m.name)
+                names.append(m.name)
+            except (KeyError, ValueError):
+                continue
+        if not names:
+            QMessageBox.information(self, tr("Adversarijalni mod"), tr("Nema metode sa funkcijom eksponenta."))
+            return
+        name, ok = QInputDialog.getItem(self, tr("Adversarijalni mod"),
+                                        tr("Koju tvrdnju da napadnem brojevima? (~5–15 s u pozadini; rezultat ide u „Čeka tvoju odluku“, na Grafove i u Lab)"),
+                                        names, 0, False)
+        if ok and name:
+            ADV.attack_in_background(name)
+            QMessageBox.information(self, tr("Adversarijalni mod"),
+                                    tr("Pokrenuto za „{0}“. Nalaz stiže u „Čeka tvoju odluku“.").format(name))
 
     def _arxiv_now(self):
         from ..shared_lib import runtime as RT

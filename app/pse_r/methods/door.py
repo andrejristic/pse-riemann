@@ -90,6 +90,11 @@ def _on_decision(item: dict, approved: bool) -> None:
         pass                                   # already registered — idempotent
     who = item.get("decided_by", "operator")
     _write_method_card(pack, item["payload"].get("result", {}), who)
+    try:                                       # item 31: numbers attack every new claim too
+        from . import adversary as ADV
+        ADV.attack_in_background(pack.name)
+    except Exception:                          # noqa: BLE001 — never blocks the approval
+        pass
     mission_id = item["payload"].get("mission_id")
     if mission_id and pack.result_kind != "poluravan":
         # a proportion on the line or a density bound is NOT a point of the
