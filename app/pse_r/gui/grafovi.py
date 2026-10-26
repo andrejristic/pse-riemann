@@ -69,7 +69,8 @@ class _Bridge(QObject):
 # --------------------------------------------------------------------------- #
 class GraphCanvas(FigureCanvasQTAgg):
     hovered = Signal(str)
-    clicked = Signal(str, float)          # function id, x
+    clicked = Signal(str, float)          # function id, x            (curves)
+    clicked_xy = Signal(str, float, float)  # function id, x, y       (paths, polar, field)
     card = Signal(str)
 
     def __init__(self, parent=None):
@@ -97,6 +98,9 @@ class GraphCanvas(FigureCanvasQTAgg):
         self.mpl_connect("button_release_event", self._on_release)
         self.mpl_connect("motion_notify_event", self._on_motion)
         self._annot = None
+        self.mode = "cartesian"
+        self.shade = None                 # (fid, gid, a, b) after an "area" calculation
+        self._field = None                # (f, X, Y, Z) of the field mode
 
     # ---- navigation -------------------------------------------------- #
     def pan(self, fx: float, fy: float) -> None:
@@ -157,11 +161,19 @@ class GraphCanvas(FigureCanvasQTAgg):
 
     def _on_release(self, ev):
         drag, self._drag = self._drag, None
-        if drag is None or self._moved:
+        if drag is None or self._moved or ev.xdata is None:
+            return
+        if self.mode == "field" and self._field is not None:
+            self.clicked_xy.emit(self._field[0].id, float(ev.xdata), float(ev.ydata))
             return
         hit = self.nearest(ev)
-        if hit:
-            self.clicked.emit(hit[0].id, hit[1])
+        if not hit:
+            return
+        f, x, y = hit
+        if F.shape(f) == "curve":
+            self.clicked.emit(f.id, x)
+        else:
+            self.clicked_xy.emit(f.id, x, y)
 
     def _on_motion(self, ev):
         if self._drag is not None and ev.x is not None:
@@ -177,6 +189,13 @@ class GraphCanvas(FigureCanvasQTAgg):
             return
         if ev.inaxes is not self.ax:
             return
+        if self.mode == "field" and self._field is not None:
+            f, X, Y, Z = self._field
+            i = int(np.clip(np.searchsorted(Y[:, 0], ev.ydata), 0, Z.shape[0] - 1))
+            j = int(np.clip(np.searchsorted(X[0], ev.xdata), 0, Z.shape[1] - 1))
+            self.hovered.emit(tr("{0} · ({1:.6g}, {2:.6g}) · vrijednost ≈ {3:.6g} · {4} — klik = sve o tački")
+                              .format(f.label, ev.xdata, ev.ydata, Z[i, j], f.level))
+            return
         hit = self.nearest(ev)
         if hit is None:
             self.hovered.emit(tr("x = {0:.6g}, y = {1:.6g}").format(ev.xdata, ev.ydata))
@@ -187,28 +206,23 @@ class GraphCanvas(FigureCanvasQTAgg):
                           .format(f.label, x, y, f.level, tgt[0], tgt[2]))
 
     def nearest(self, ev, px: float = 12.0):
-        """The function curve nearest to the mouse (within px pixels): (f, x, y)."""
+        """The drawn curve/path point nearest to the mouse (within px pixels): (f, x, y)."""
         if ev.xdata is None:
             return None
         best = None
-        inv = self.ax.transData
-        for f in self.funcs:
-            if f.id not in self._lines:
+        by_id = {f.id: f for f in self.funcs}
+        for fid, (xs, ys) in self._lines.items():
+            f = by_id.get(fid)
+            if f is None or len(xs) == 0:
                 continue
-            xs, ys = self._lines[f.id]
-            if len(xs) == 0:
-                continue
-            i = int(np.clip(np.searchsorted(xs, ev.xdata), 1, len(xs) - 1))
-            for j in (i - 1, i):
-                if not np.isfinite(ys[j]):
-                    continue
-                sx, sy = inv.transform((xs[j], ys[j]))
-                d = float(np.hypot(sx - ev.x, sy - ev.y))
-                if d <= px and (best is None or d < best[0]):
-                    best = (d, f, float(xs[j]), float(ys[j]))
+            pts = self.ax.transData.transform(np.column_stack([xs, ys]))
+            d = np.hypot(pts[:, 0] - ev.x, pts[:, 1] - ev.y)
+            d[~np.isfinite(d)] = np.inf
+            k = int(np.argmin(d))
+            if d[k] <= px and (best is None or d[k] < best[0]):
+                best = (float(d[k]), f, float(xs[k]), float(ys[k]))
         return None if best is None else best[1:]
 
-    # ---- drawing ----------------------------------------------------- #
     def _style(self):
         fs = max(7.0, _base_pt() * 0.62)
         ax = self.ax
@@ -253,16 +267,26 @@ class GraphCanvas(FigureCanvasQTAgg):
             ys = np.full(n, np.nan)
         return xs, ys
 
-    def redraw(self, fast: bool = False):
-        xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
-        self.ax.clear()
-        fs = self._style()
-        self.ax.set_xlim(*xl)
-        self.ax.set_ylim(*yl)
-        self._lines.clear()
-        levels, waiting = set(), []
+    def _bg(self, key, fn):
+        """Expensive work in the background, once per key; None until it is ready."""
+        if key in self._coarse:
+            return self._coarse[key]
+        if key not in self._pending:
+            self._pending.add(key)
+
+            def work():
+                try:
+                    self._coarse[key] = fn()
+                except Exception:                       # noqa: BLE001
+                    self._coarse[key] = None
+                self._pending.discard(key)
+                self.bridge.coarse_done.emit()
+            threading.Thread(target=work, name="grafovi-bg", daemon=True).start()
+        return None
+
+    def _draw_curves(self, xl, levels, waiting):
         for f in self.funcs:
-            if not f.visible or f.kind not in ("real", "builtin"):
+            if not f.visible or F.shape(f) != "curve":
                 continue
             xs, ys = self._sample(f, *xl)
             if len(xs) == 0:
@@ -273,6 +297,128 @@ class GraphCanvas(FigureCanvasQTAgg):
             self.ax.plot(xs, ys, color=f.color, linewidth=1.8, label=f.label,
                          marker="o" if len(xs) < 30 else None, markersize=3)
             levels.add(f.level)
+
+    def _draw_paths(self, levels, waiting):
+        for f in self.funcs:
+            if not f.visible or F.shape(f) != "path":
+                continue
+            lo, hi = float(f.domain[0]), float(f.domain[1])
+            if f.kind == "builtin":
+                k = F.BUILTINS[f.builtin].get("coarse", 7)
+                res = self._bg((f.id, tuple(sorted(self.params.items()))),
+                               lambda f=f, k=k: F.numeric(f, self.params)(np.linspace(lo, hi, k)))
+                if res is None:
+                    waiting.append(f.label)
+                    continue
+                xs, ys = (np.asarray(a, float) for a in res)
+            else:
+                xs, ys = (np.asarray(a, float) for a in F.numeric(f, self.params)(np.linspace(lo, hi, 400)))
+            self._lines[f.id] = (xs, ys)
+            self.ax.plot(xs, ys, color=f.color, linewidth=1.8, label=f.label,
+                         marker="o" if len(xs) < 30 else None, markersize=4)
+            if len(xs) > 1:                     # direction of the parameter
+                self.ax.annotate("", xy=(xs[-1], ys[-1]), xytext=(xs[-2], ys[-2]),
+                                 arrowprops=dict(arrowstyle="->", color=f.color))
+            levels.add(f.level)
+
+    def _draw_polar(self, levels):
+        for f in self.funcs:
+            if not f.visible or F.shape(f) != "polar":
+                continue
+            lo, hi = float(f.domain[0]), float(f.domain[1])
+            if hi - lo < 1e-9 or (lo, hi) == (0.0, 1.0):
+                lo, hi = 0.0, 2 * np.pi
+            th = np.linspace(lo, hi, 720)
+            r = np.asarray(F.numeric(f, self.params)(th), float)
+            xs, ys = r * np.cos(th), r * np.sin(th)
+            self._lines[f.id] = (xs, ys)
+            self.ax.plot(xs, ys, color=f.color, linewidth=1.8, label=f.label)
+            levels.add(f.level)
+        self.ax.set_aspect("equal", adjustable="datalim")
+
+    def _draw_field(self, xl, yl, levels, fs):
+        f = next((g for g in self.funcs if g.visible and F.shape(g) == "surface"), None)
+        self._field = None
+        if f is None:
+            self.ax.text(0.5, 0.5, tr("Vektorsko polje treba vidljivu površ z = f(x, y)\n(npr. ugrađena „max_δ E_Liu nad (ℓ, κ)“)."),
+                         transform=self.ax.transAxes, ha="center", va="center", color=MUTED, fontsize=fs)
+            return
+        n = 40 if _samples() >= 500 else 24
+        X, Y = np.meshgrid(np.linspace(*xl, n), np.linspace(*yl, n))
+        Z = np.asarray(F.numeric(f, self.params)(X, Y), float)
+        self._field = (f, X, Y, Z)
+        lim = np.nanmax(np.abs(Z)) or 1.0
+        self.ax.contourf(X, Y, Z, levels=24, cmap="RdBu_r", vmin=-lim, vmax=lim, alpha=0.55)
+        try:
+            cs = self.ax.contour(X, Y, Z, levels=[0.0], colors=["#ffc257"], linewidths=2.0)
+            self.ax.clabel(cs, fmt={0.0: "0"}, fontsize=fs * 0.8)
+        except Exception:                               # noqa: BLE001 — no zero in view
+            pass
+        m = max(8, n // 3)
+        Xs, Ys = np.meshgrid(np.linspace(*xl, m), np.linspace(*yl, m))
+        h = 1e-4 * max(xl[1] - xl[0], yl[1] - yl[0])
+        fn = F.numeric(f, self.params)
+        gx = (np.asarray(fn(Xs + h, Ys), float) - np.asarray(fn(Xs - h, Ys), float)) / (2 * h)
+        gy = (np.asarray(fn(Xs, Ys + h), float) - np.asarray(fn(Xs, Ys - h), float)) / (2 * h)
+        # arrows: steepest DESCENT (toward the method passing), scaled to the axes
+        # direction −∇f in data coordinates, drawn with a fixed on-screen length
+        sx, sy = (xl[1] - xl[0]), (yl[1] - yl[0])
+        un, vn = -gx / sx, -gy / sy
+        nrm = np.hypot(un, vn)
+        nrm[~np.isfinite(nrm) | (nrm == 0)] = 1.0
+        L = 0.45 / m
+        self.ax.quiver(Xs, Ys, un / nrm * sx * L, vn / nrm * sy * L, color=TXT, alpha=0.8,
+                       angles="xy", scale_units="xy", scale=1, width=0.003)
+        self.ax.set_title(tr("strelice: smjer najbržeg pada (prema E ≤ 0); žuto: E = 0 (granica)"),
+                          color=MUTED, fontsize=fs * 0.9, loc="left")
+        levels.add(f.level)
+
+    def redraw(self, fast: bool = False):
+        xl, yl = self.ax.get_xlim(), self.ax.get_ylim()
+        self.ax.clear()
+        fs = self._style()
+        self.ax.set_xlim(*xl)
+        self.ax.set_ylim(*yl)
+        self._lines.clear()
+        levels, waiting = set(), []
+        mode = self.mode
+        if mode in ("cartesian", "parametric"):
+            self._draw_curves(xl, levels, waiting)
+        if mode == "parametric":
+            self._draw_paths(levels, waiting)
+        if mode == "polar":
+            self._draw_polar(levels)
+        if mode == "field":
+            self._draw_field(xl, yl, levels, fs)
+        if mode == "cartesian" and self.shade:
+            self._draw_shade(xl)
+        if mode in ("cartesian", "parametric"):
+            self._draw_overlays(xl, yl, fs)
+        if self._lines:
+            leg = self.ax.legend(loc="lower left", fontsize=fs * 0.85, facecolor=AX,
+                                 edgecolor=GRID, labelcolor=TXT)
+            leg.set_draggable(True)
+        stamp = " · ".join(sorted(levels)) or "—"
+        self.ax.set_title(tr("nivo: {0}").format(stamp) + (tr("   ·   računam: {0}…").format(", ".join(waiting)) if waiting else ""),
+                          color=MUTED, fontsize=fs, loc="right")
+        self.draw_idle()
+
+    def _draw_shade(self, xl):
+        fid, gid, a, b = self.shade
+        by = {f.id: f for f in self.funcs}
+        f, g = by.get(fid), by.get(gid)
+        if not (f and g):
+            return
+        lo, hi = max(a, xl[0]), min(b, xl[1])
+        if hi <= lo:
+            return
+        xs = np.linspace(lo, hi, 400)
+        y1 = np.asarray(F.numeric(f, self.params)(xs), float)
+        y2 = np.asarray(F.numeric(g, self.params)(xs), float)
+        self.ax.fill_between(xs, y1, y2, color="#ffc257", alpha=0.22, linewidth=0,
+                             label=tr("rezerva: {0} − {1}").format(f.label, g.label))
+
+    def _draw_overlays(self, xl, yl, fs):
         if self.show_targets:
             for name, v in F.TARGETS.items():
                 if yl[0] <= v <= yl[1]:
@@ -288,14 +434,19 @@ class GraphCanvas(FigureCanvasQTAgg):
                     self.ax.axvline(v, color="#f49090", linewidth=0.9, linestyle=":")
                     self.ax.text(v, yl[1], f" {name}", color="#f49090", fontsize=fs * 0.8,
                                  va="top", rotation=90)
-        if self._lines:
-            leg = self.ax.legend(loc="lower left", fontsize=fs * 0.85, facecolor=AX,
-                                 edgecolor=GRID, labelcolor=TXT)
-            leg.set_draggable(True)
-        stamp = " · ".join(sorted(levels)) or "—"
-        self.ax.set_title(tr("nivo: {0}").format(stamp) + (tr("   ·   računam: {0}…").format(", ".join(waiting)) if waiting else ""),
-                          color=MUTED, fontsize=fs, loc="right")
-        self.draw_idle()
+
+    HOMES = {"cartesian": ((0.0, 0.3), (0.80, 0.95)), "parametric": ((0.14, 0.20), (0.86, 0.885)),
+             "polar": ((-2.2, 2.2), (-2.2, 2.2)), "field": ((0.10, 0.22), (0.60, 0.90))}
+
+    def set_mode(self, mode: str):
+        self.mode = mode
+        self.ax.set_aspect("auto")
+        self.home_view = self.HOMES.get(mode, self.home_view)
+        if mode == "field":
+            f = next((g for g in self.funcs if g.visible and F.shape(g) == "surface"), None)
+            if f is not None and len(f.domain) == 4:
+                self.home_view = ((f.domain[0], f.domain[1]), (f.domain[2], f.domain[3]))
+        self.home()
 
     def visible_data(self) -> dict:
         return {fid: (xs.tolist(), ys.tolist()) for fid, (xs, ys) in self._lines.items()}
@@ -507,6 +658,13 @@ def info_md(info: dict) -> str:
     out = [tr("### Sve o tački"), "",
            f"**{info['function']}** · {info['level']}" + (f" · [[{info['card']}]]" if info.get("card") else ""),
            "", f"x = `{info['x']:.12g}`, y = `{info['y']:.12g}`" if F.is_finite(info["y"]) else f"x = `{info['x']:.12g}`"]
+    if info.get("z") is not None:
+        out += ["", tr("**Vrijednost površi:** `{0:.9g}`").format(info["z"])]
+    if info.get("grad") is not None:
+        out += ["", tr("**Gradijent:** ({0:.6g}, {1:.6g}) · **Hesijan:** {2}").format(
+            info["grad"][0], info["grad"][1], info.get("hess_kind", "?"))]
+    if info.get("B_if_boundary") is not None:
+        out += ["", tr("**Ako je ovo granica:** B = 11/12 − ℓ/4 = `{0:.9g}`").format(info["B_if_boundary"])]
     if info.get("meaning"):
         out += ["", tr("**Značenje:** {0}").format(info["meaning"])]
     if info.get("flags"):
@@ -540,6 +698,7 @@ def result_md(title: str, res: dict) -> str:
 class CalcPanel(QWidget):
     open_card = Signal(str)
     expand = Signal()
+    shade = Signal(str, str, float, float)      # an "area" result → shade it on the plot
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -593,6 +752,15 @@ class CalcPanel(QWidget):
             if not o["ask"] and o["key"] in ("tangent",):
                 self._run(o)
 
+    def show_xy(self, f: F.Function, x: float, y: float, params: dict, z=None):
+        """A path / polar / surface point: everything known, no curve-only offers."""
+        info = C.point_info_xy(f, x, y, params, z)
+        self._ctx = None
+        self._results = []
+        self._info_md = info_md(info)
+        self.view.set_markdown(self._info_md)
+        self.offers.clear()
+
     def _offer_text(self, o) -> str:
         est = o["est_s"]
         dur = tr("odmah") if not o["ask"] else (tr("~{0:.0f} s").format(est) if est < 120 else tr("~{0:.0f} min").format(est / 60))
@@ -629,6 +797,8 @@ class CalcPanel(QWidget):
 
     def _job_done(self, title: str, res: dict):
         self.status.setText(tr("{0}: {1}").format(title, res.get("status", "")))
+        if res.get("with_id") and self._ctx and res.get("a") is not None:
+            self.shade.emit(self._ctx[0].id, res["with_id"], float(res["a"]), float(res["b"]))
         self._results.append(result_md(title, res))
         self.view.set_markdown(self._info_md + "\n\n" + "\n\n".join(self._results))
 
@@ -643,7 +813,10 @@ class GrafoviTab(QWidget):
         super().__init__(parent)
         v = QVBoxLayout(self)
         self.mode = QComboBox()
-        self.mode.addItem(tr("Kartezijanski"), "cartesian")
+        for key, txt in (("cartesian", tr("Kartezijanski")), ("parametric", tr("Parametarski")),
+                         ("polar", tr("Polarni")), ("field", tr("Vektorsko polje"))):
+            self.mode.addItem(txt, key)
+        self.mode.currentIndexChanged.connect(self._mode_changed)
         self.cb_t = QCheckBox(tr("ciljevi"))
         self.cb_t.setChecked(True)
         self.cb_w = QCheckBox(tr("zidovi"))
@@ -692,6 +865,8 @@ class GrafoviTab(QWidget):
         self.cb_w.toggled.connect(self.redraw)
         self.canvas.hovered.connect(self.hover.setText)
         self.canvas.clicked.connect(self._clicked)
+        self.canvas.clicked_xy.connect(self._clicked_xy)
+        self.calc.shade.connect(self._shade)
         self.canvas.card.connect(self.open_card.emit)
         self.calc.open_card.connect(self.open_card.emit)
         self._expanded = None
@@ -715,6 +890,24 @@ class GrafoviTab(QWidget):
         self.canvas.show_targets = self.cb_t.isChecked()
         self.canvas.show_walls = self.cb_w.isChecked()
         self.canvas.redraw()
+
+    def _mode_changed(self):
+        self.canvas.set_mode(self.mode.currentData())
+        self.canvas.shade = None
+        self.redraw()
+
+    def _shade(self, fid: str, gid: str, a: float, b: float):
+        self.canvas.shade = (fid, gid, a, b)
+        self.canvas.redraw()
+
+    def _clicked_xy(self, fid: str, x: float, y: float):
+        f = next((g for g in self.funcs.funcs if g.id == fid), None)
+        if f is None:
+            return
+        z = None
+        if F.shape(f) == "surface":
+            z = float(np.asarray(F.numeric(f, self.funcs.params)(np.array([x]), np.array([y])))[0])
+        self.calc.show_xy(f, x, y, dict(self.funcs.params), z)
 
     def _clicked(self, fid: str, x: float):
         f = next((g for g in self.funcs.funcs if g.id == fid), None)

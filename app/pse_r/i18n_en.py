@@ -611,5 +611,15 @@ EN = {
 "osjenčana površina između dvije funkcije („rezerva“)": "shaded area between two functions (the “reserve”)",
 "pomak parametra do cilja {0} (ili dokaz da ga zid sprečava)": "parameter shift to the target {0} (or proof that a wall prevents it)",
 "raširi ovaj panel preko cijelog taba (ponovo = vrati)": "spread this panel over the whole tab (again = back)",
-"<b>Graf</b>": "<b>Plot</b>"
+"<b>Graf</b>": "<b>Plot</b>",
+"**Ako je ovo granica:** B = 11/12 − ℓ/4 = `{0:.9g}`": "**If this is the boundary:** B = 11/12 − ℓ/4 = `{0:.9g}`",
+"**Gradijent:** ({0:.6g}, {1:.6g}) · **Hesijan:** {2}": "**Gradient:** ({0:.6g}, {1:.6g}) · **Hessian:** {2}",
+"**Vrijednost površi:** `{0:.9g}`": "**Surface value:** `{0:.9g}`",
+"Parametarski": "Parametric",
+"Polarni": "Polar",
+"Vektorsko polje": "Vector field",
+"Vektorsko polje treba vidljivu površ z = f(x, y)\n(npr. ugrađena „max_δ E_Liu nad (ℓ, κ)“).": "A vector field needs a visible surface z = f(x, y)\n(e.g. the built-in “max_δ E_Liu over (ℓ, κ)”).",
+"rezerva: {0} − {1}": "reserve: {0} − {1}",
+"strelice: smjer najbržeg pada (prema E ≤ 0); žuto: E = 0 (granica)": "arrows: steepest descent (toward E ≤ 0); yellow: E = 0 (the boundary)",
+"{0} · ({1:.6g}, {2:.6g}) · vrijednost ≈ {3:.6g} · {4} — klik = sve o tački": "{0} · ({1:.6g}, {2:.6g}) · value ≈ {3:.6g} · {4} — click = everything about the point"
 }

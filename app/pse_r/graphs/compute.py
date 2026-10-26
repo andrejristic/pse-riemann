@@ -224,6 +224,34 @@ def point_info(f: F.Function, x: float, others: list = (), params=None,
     return info
 
 
+def point_info_xy(f: F.Function, x: float, y: float, params=None, z=None) -> dict:
+    """"Sve o tački" for a point that is not y = f(x): a path point (ℓ, B), a polar
+    point, or a point of a surface over a parameter plane (with its value z)."""
+    info = {"x": x, "y": y, "function": f.label, "kind": F.shape(f), "level": f.level,
+            "card": f.card, "meaning": f.meaning, "params": {**F.PARAMS, **(params or {})},
+            "flags": [], "targets": {}}
+    if F.shape(f) == "path":
+        info["targets"] = {k: y - v for k, v in F.TARGETS.items()}
+        n, v, dist = nearest_target(y)
+        info["nearest_target"] = {"name": n, "value": v, "distance": dist}
+        if y < 0.87 - 1e-12:
+            info["flags"].append("ispod zida B ≥ 0.87")
+        if x > 0.2:
+            info["flags"].append("preko zida ℓ ≤ 1/5")
+    if z is not None:
+        info["z"] = z
+        if f.builtin == "vmax_lk":
+            info["flags"].append("E ≤ 0: metoda prolazi" if z <= 0 else "E > 0: metoda NE prolazi")
+            info["B_if_boundary"] = 11 / 12 - x / 4
+        try:
+            fn = F.numeric(f, params)
+            gh = grad_hess(lambda a, b: float(np.asarray(fn(np.array([a]), np.array([b])))[0]), x, y)
+            info["grad"], info["hess_kind"] = gh["grad"], gh["kind"]
+        except Exception:                               # noqa: BLE001
+            pass
+    return info
+
+
 # --------------------------------------------------------------------------- #
 # offers — at most 4 that fit the kind of point
 # --------------------------------------------------------------------------- #
@@ -326,7 +354,7 @@ def calculate(key: str, f: F.Function, x: float, others: list = (), params=None,
         a, b = max(lo, float(g.domain[0])), min(hi, float(g.domain[1]))   # common domain
         if b <= a:
             return {"error": "funkcije nemaju zajednički domen"}
-        return {**area_between(f1, _f1(g, params), a, b, cancel), "with": g.label}
+        return {**area_between(f1, _f1(g, params), a, b, cancel), "with": g.label, "with_id": g.id}
     if key == "mission":
         d = derivative(f1, x, h=1e-3 * span)
         n, v, dist = nearest_target(f1(x))

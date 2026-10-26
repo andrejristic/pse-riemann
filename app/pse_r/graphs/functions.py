@@ -136,6 +136,24 @@ def _ext(which):
     return f
 
 
+def _path(which):
+    """Parametric: the method boundary point (ℓ*, B*) along an extension (t or w)."""
+    def f(u, p):
+        from ..methods import core as C
+        g = C.extend_t if which == "t" else C.extend_w
+        pts = [g(float(v)) for v in np.atleast_1d(u)]
+        return np.array([o.l for o in pts]), np.array([o.B for o in pts])
+    return f
+
+
+def _vmax_lk(x, y, p):
+    """Surface over (ℓ, κ): the worst exponent max_δ E_Liu at the Liu optimum's b."""
+    from ..methods import core as C
+    o = _liu_opt()
+    return np.vectorize(lambda l, k: C.vmax(C.E_liu, o.b, l, k, 1 / 8))(
+        np.asarray(x, float), np.asarray(y, float))
+
+
 BUILTINS: dict = {
     "B_line": dict(label="B(ℓ) = 11/12 − ℓ/4", level=RAD, card="izvor-openai-7-8",
                    fn=_b_line, domain=[0.0, 0.3], cost=1e-6,
@@ -157,7 +175,25 @@ BUILTINS: dict = {
     "ext_w": dict(label="B*(w) — proširenje w", level=OURS, card="izvor-xu-sang-2610-15291",
                   fn=_ext("w"), domain=[0.0, 0.25], cost=1.9, coarse=9,
                   meaning="granica metode duž težine w (w=0.25 je Xu–Sang)"),
+    # parametric paths and a surface (round 3, item 29, step 3)
+    "path_t": dict(label="putanja (ℓ*(t), B*(t))", level=OURS, card="", fn=_path("t"),
+                   domain=[0.0, 1.0], cost=4.0, coarse=7, shape="path",
+                   meaning="tačka granice metode u ravni (ℓ, B) dok t ide od Liu (0) do Xu–Sang (1)"),
+    "path_w": dict(label="putanja (ℓ*(w), B*(w))", level=OURS, card="izvor-xu-sang-2610-15291",
+                   fn=_path("w"), domain=[0.0, 0.25], cost=1.9, coarse=7, shape="path",
+                   meaning="tačka granice metode u ravni (ℓ, B) duž težine w"),
+    "vmax_lk": dict(label="max_δ E_Liu nad (ℓ, κ)", level=OURS, card="izvor-liu-2610-12234",
+                    fn=_vmax_lk, domain=[0.10, 0.22, 0.60, 0.90], cost=1e-4, shape="surface",
+                    meaning="najgori eksponent u tački (ℓ, κ); ≤ 0 = metoda prolazi; nula = granica ℓ*(κ)"),
 }
+
+
+def shape(f: "Function") -> str:
+    """curve · path · surface · complex · polar — what kind of picture f makes."""
+    if f.kind == "builtin":
+        return BUILTINS[f.builtin].get("shape", "curve")
+    return {"real": "curve", "parametric": "path", "surface": "surface",
+            "complex": "complex", "polar": "polar"}[f.kind]
 
 
 def builtin(key: str, color: Optional[str] = None) -> Function:
@@ -181,6 +217,8 @@ def numeric(f: Function, params: Optional[dict] = None) -> Callable:
     p = _params(params)
     if f.kind == "builtin":
         fn = BUILTINS[f.builtin]["fn"]
+        if BUILTINS[f.builtin].get("shape") == "surface":
+            return lambda x, y: fn(x, y, p)
         return lambda x: fn(x, p)
     names = var_names(f.kind)
     allp = list(PARAMS)

@@ -133,16 +133,35 @@ Ispod „sve o tački“ stoje **najviše 4 ponude** koje odgovaraju vrsti tačk
 
 ---
 
-## 5. Izvoz
+## 5. Prikazi (padajući meni „prikaz“)
+
+| Prikaz | Šta crta | Primjer |
+|---|---|---|
+| **Kartezijanski** | y = f(x): realne i ugrađene krive, ciljevi, zidovi, osjenčana rezerva | B(ℓ), E_Liu(δ), E_XS(δ) |
+| **Parametarski** | putanje (x(u), y(u)) i krive y = f(x) zajedno | ugrađene putanje (ℓ\*(t), B\*(t)) i (ℓ\*(w), B\*(w)): kako se granica metode kreće po pravoj B(ℓ) dok raste proširenje. Strelica na kraju pokazuje smjer parametra |
+| **Polarni** | r = f(θ), u jednakoj razmjeri osa | `1 + cos(th)`, `cos(3*th)` |
+| **Vektorsko polje** | površ z = f(x, y) kao boja (plavo < 0 < crveno), žuta linija z = 0 i strelice smjera najbržeg pada (−∇f) | ugrađena „max_δ E_Liu nad (ℓ, κ)“ |
+
+**Vektorsko polje nad (ℓ, κ):**
+- boja je najgori eksponent;
+- **žuta linija E = 0 je granica metode** ℓ\*(κ); u Liu familiji leži na ℓ ≈ 0,1668 skoro nezavisno od κ;
+- strelice pokazuju kuda treba ići da metoda prođe (E ≤ 0).
+
+Klik na polje daje vrijednost, gradijent, vrstu tačke po Hesijanu (minimum, maksimum ili sedlo) i „ako je ovo granica: B = 11/12 − ℓ/4“.
+
+**Putanje proširenja** su skupe: oko 7 tačaka po 2–4 s, računaju se u pozadini, a u naslovu za to vrijeme piše „računam …“.
+
+**Rezerva.** Kada u Kartezijanskom prikazu izračunaš „osjenčana površina između dvije funkcije“, površina između njih (na zajedničkom domenu) ostaje osjenčana na grafu. Promjena prikaza briše sjenčenje.
+
+## 6. Izvoz
 
 - **PNG / SVG**: slika grafa kakav je na ekranu, na tamnoj pozadini, sa oznakom nivoa u naslovu.
 - **CSV**: tačke svih vidljivih krivih u trenutnom pogledu, kolone `function, level, x, y`.
 
 ---
 
-## 6. Šta dolazi (stavka 29, koraci 3–6)
+## 7. Šta dolazi (stavka 29, koraci 4–6)
 
-- parametarske putanje (ℓ(t), B(t)), vektorsko polje nad ravni parametara (kuda proširenje gura B), osjenčana „rezerva“, polarni graf;
 - kompleksne funkcije: fazni portret, krive Re f = 0 i Im f = 0, presjeci duž prave (|ζ(1/2+it)|, Z(t)), oblasti, nule u pravougaoniku, rezidui; povezani prikazi (σ, eksponent) ↔ kompleksna ravan; klizač „niska strana + Δ“;
 - 3D površi (|ζ| iznad ravni, dvije površi eksponenata), 4. dimenzija kao boja, dalje kao klizači ili animacija, male slike, paralelne koordinate; Acer dobija rjeđu mrežu;
 - Lab grafovi prelaze na ovaj prikaz.

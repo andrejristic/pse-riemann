@@ -90,3 +90,52 @@ def test_unsafe_function_is_refused_before_drawing():
     t.redraw()                                                           # NaN at 0 is a gap, not a crash
     xs, ys = t.canvas._lines["u"]
     assert np.isfinite(ys).sum() > 100
+
+
+# ---- step 3: parametric, polar, vector field, shaded reserve ---------------- #
+def _mode(app, t, m):
+    t.mode.setCurrentIndex(t.mode.findData(m))
+    app.processEvents()
+
+
+def test_parametric_and_polar_are_drawn_and_clickable():
+    app, t = _tab()
+    t.funcs.funcs = [F.Function("c", "krug", "parametric", "cos(u); sin(u)", domain=[0, 6.283]),
+                     F.Function("p", "kardioida", "polar", "1 + cos(th)")]
+    t.redraw()
+    _mode(app, t, "parametric")
+    xs, ys = t.canvas._lines["c"]
+    assert np.allclose(xs ** 2 + ys ** 2, 1)
+    _mode(app, t, "polar")
+    xs, ys = t.canvas._lines["p"]
+    assert abs(xs.max() - 2) < 1e-3                         # r(0) = 2
+    t._clicked_xy("p", 2.0, 0.0)
+    assert "kardioida" in t.calc._info_md
+
+
+def test_vector_field_over_l_kappa_finds_the_boundary():
+    app, t = _tab()
+    t.funcs.funcs = [F.builtin("vmax_lk")]
+    t.redraw()
+    _mode(app, t, "field")
+    f, X, Y, Z = t.canvas._field
+    row = Z[Z.shape[0] // 2]
+    cross = X[0][np.where(np.diff(np.sign(row)) != 0)[0][0]]
+    assert abs(cross - 0.1668) < 0.01                        # zero of max_δ E ≈ ℓ*
+    t._clicked_xy("bi-vmax_lk", 0.15, 0.75)
+    assert "prolazi" in t.calc._info_md and "Gradijent" in t.calc._info_md
+
+
+def test_area_result_shades_the_reserve():
+    app, t = _tab()
+    t.funcs.funcs = [F.Function("a", "a", "real", "x", domain=[0, 1]),
+                     F.Function("b", "b", "real", "x**2", domain=[0, 1])]
+    t.redraw()
+    t._clicked("a", 0.5)
+    from pse_r.graphs import compute as C
+    jid = C.JOBS.submit("area", t.funcs.funcs[0], 0.5, t.funcs.funcs, dict(t.funcs.params))
+    res = C.JOBS.wait(jid)
+    assert abs(res["area"] - 1 / 6) < 1e-12 and res["with_id"] == "b"
+    t.calc._job_done("površina", dict(res))
+    app.processEvents()
+    assert t.canvas.shade == ("a", "b", 0.0, 1.0)

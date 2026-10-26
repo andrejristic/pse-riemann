@@ -133,16 +133,35 @@ Anything cheap (up to 0.3 s) is computed at once. Anything more expensive is onl
 
 ---
 
-## 5. Export
+## 5. Views (the "view" drop-down)
+
+| View | What it draws | Example |
+|---|---|---|
+| **Cartesian** | y = f(x): real and built-in curves, targets, walls, the shaded reserve | B(ℓ), E_Liu(δ), E_XS(δ) |
+| **Parametric** | paths (x(u), y(u)) together with curves y = f(x) | the built-in paths (ℓ\*(t), B\*(t)) and (ℓ\*(w), B\*(w)): how the method boundary moves along the line B(ℓ) as the extension grows. An arrow at the end shows the direction of the parameter |
+| **Polar** | r = f(θ), with equal axes | `1 + cos(th)`, `cos(3*th)` |
+| **Vector field** | a surface z = f(x, y) as colour (blue < 0 < red), the yellow line z = 0, and arrows of steepest descent (−∇f) | the built-in "max_δ E_Liu over (ℓ, κ)" |
+
+**The vector field over (ℓ, κ):**
+- the colour is the worst exponent;
+- **the yellow line E = 0 is the method boundary** ℓ\*(κ); in the Liu family it lies at ℓ ≈ 0.1668, almost independent of κ;
+- the arrows show which way to go for the method to pass (E ≤ 0).
+
+A click on the field gives the value, the gradient, the kind of point by the Hessian (minimum, maximum or saddle), and "if this is the boundary: B = 11/12 − ℓ/4".
+
+**Extension paths** are expensive: about 7 points at 2–4 s each, computed in the background; meanwhile the title shows "računam …" (computing).
+
+**Reserve.** When you compute "shaded area between two functions" in the Cartesian view, the area between them (on their common domain) stays shaded on the plot. Changing the view clears the shading.
+
+## 6. Export
 
 - **PNG / SVG**: the plot as on screen, on the dark background, with the level in the title.
 - **CSV**: the points of every visible curve in the current view, columns `function, level, x, y`.
 
 ---
 
-## 6. Coming next (item 29, steps 3–6)
+## 7. Coming next (item 29, steps 4–6)
 
-- parametric paths (ℓ(t), B(t)), a vector field over the parameter plane (which way an extension pushes B), the shaded "reserve", polar plots;
 - complex functions: phase portrait, the curves Re f = 0 and Im f = 0, slices along a line (|ζ(1/2+it)|, Z(t)), regions, zeros in a rectangle, residues; linked views (σ, exponent) ↔ complex plane; the "low side + Δ" slider;
 - 3D surfaces (|ζ| above the plane, two exponent surfaces), a 4th dimension as colour, further ones as sliders or animation, small multiples, parallel coordinates; a coarser grid on the Acer;
 - the Lab plots move to this view.
