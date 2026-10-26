@@ -217,8 +217,20 @@ The surface max_δ E over (ℓ, κ) is computed for **b from the slider**. The b
 
 ---
 
-## 7. Coming next (item 29, step 6)
+## 7. Lab plots (step 6)
 
-- the Lab plots move to this view.
+The plots in the **Lab** tab are now interactive, with the same movement as here:
+- the wheel, + and − zoom;
+- dragging, the arrow keys (Shift = bigger step) and ◀ ▲ ▼ ▶ move the view;
+- ⌂ resets it;
+- the value under the mouse is shown below the plot;
+- **⤢** gives the plot the whole output area;
+- if a run has several plots, you pick one in the "graf:" (plot) menu.
 
-This guide grows with every step.
+**The PNG stays.** Every run still writes its PNG next to its result, and cards refer to it. The **"Sačuvaj PNG"** (Save PNG) button saves the plot exactly as you see it now (zoomed, moved). **SVG** and **CSV** (the points in view) are there too.
+
+Old runs, made before this step, have no stored plot description, so their PNG is shown.
+
+## 8. What next
+
+Item 29 is complete. This guide becomes part of the full SR/EN guides of the app, written after the .deb and .exe are built.

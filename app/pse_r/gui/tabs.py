@@ -150,12 +150,10 @@ class LabTab(QWidget, JobMixin):
         outsplit.setChildrenCollapsible(False)
         self.out = MarkdownView()
         outsplit.addWidget(self.out)
-        self.image = QLabel()
-        self.image.setAlignment(Qt.AlignCenter)
-        sc = QScrollArea()
-        sc.setWidgetResizable(True)
-        sc.setWidget(self.image)
-        outsplit.addWidget(sc)
+        from .lab_plot import LabPlotView           # round 3, item 29 step 6: interactive
+        self.plot = LabPlotView()
+        self.plot.expand.connect(lambda: self._lab_expand(outsplit))
+        outsplit.addWidget(self.plot)
         outsplit.setSizes([300, 300])
         rv.addWidget(outsplit, 1)
         split.addWidget(right)
@@ -221,18 +219,14 @@ class LabTab(QWidget, JobMixin):
             md += ["", (tr("✅ kartica upisana: `%s`") % res["card_id"]) if v.ok
                    else (tr("⛔ kapija odbila karticu: ") + v.reason)]
         self.out.set_markdown("\n".join(md))
-        self._show_png(Path(res["dir"]), rec.get("plots") or [])
+        self.plot.show_record(rec, Path(res["dir"]))
         self.refresh_runs()
         self.card_written.emit()
 
-    def _show_png(self, d: Path, plots: list):
-        if not plots:
-            self.image.clear()
-            return
-        pm = QPixmap(str(d / plots[0]))
-        if not pm.isNull():
-            self.image.setPixmap(pm.scaledToWidth(
-                min(760, pm.width()), Qt.SmoothTransformation))
+    def _lab_expand(self, outsplit):
+        """⤢ on the plot: the plot takes the whole output area (again = back)."""
+        self.out.setVisible(not self.out.isVisible())
+        self.plot.b_expand.setText("⤢" if self.out.isVisible() else "⤡")
 
     def refresh_runs(self):
         self.runs.clear()
@@ -249,7 +243,7 @@ class LabTab(QWidget, JobMixin):
               "", tr("| veličina | vrijednost |"), "|---|---|"]
         md += [f"| `{k}` | {v} |" for k, v in rec["numbers"].items()]
         self.out.set_markdown("\n".join(md))
-        self._show_png(config.DIR_LAB / rec["run_id"], rec.get("plots") or [])
+        self.plot.show_record(rec, config.DIR_LAB / rec["run_id"])
 
 
 # --------------------------------------------------------------------------- #

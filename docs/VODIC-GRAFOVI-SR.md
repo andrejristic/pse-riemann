@@ -217,8 +217,20 @@ Površ max_δ E nad (ℓ, κ) računa se za **b sa klizača**. Klizač b počinj
 
 ---
 
-## 7. Šta dolazi (stavka 29, korak 6)
+## 7. Lab grafovi (korak 6)
 
-- Lab grafovi prelaze na ovaj prikaz.
+Grafovi u tabu **Lab** su sada interaktivni, sa istim kretanjem kao ovdje:
+- točkić, + i − za zum;
+- prevlačenje, strelice (Shift = veći korak) i ◀ ▲ ▼ ▶ za pomjeranje;
+- ⌂ vraća pogled;
+- ispod grafa stoji vrijednost pod mišem;
+- **⤢** daje grafu cijelo izlazno polje;
+- ako run ima više grafova, biraš ih u meniju „graf:“.
 
-Ovaj vodič se dopunjava sa svakim korakom.
+**PNG ostaje.** Svaki run i dalje zapisuje svoj PNG pored rezultata, i kartice se pozivaju na njega. Dugme **„Sačuvaj PNG“** snima graf onako kako ga trenutno vidiš (zumiran, pomjeren). Tu su i **SVG** i **CSV** (tačke u vidljivom dijelu).
+
+Stari runovi, nastali prije ovog koraka, nemaju zapisan opis grafa, pa se za njih prikazuje njihov PNG.
+
+## 8. Šta dalje
+
+Stavka 29 je završena. Ovaj vodič ulazi u kompletne SR/EN vodiče aplikacije, koji se pišu posle izgradnje .deb i .exe.

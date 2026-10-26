@@ -128,6 +128,9 @@ def run(key: str, params: Optional[dict] = None, make_card: bool = True
         "run_id": run_id, "experiment": key, "title": exp.title,
         "params": p, "numbers": res.numbers, "reading": res.reading,
         "warnings": res.warnings, "plots": png_paths,
+        # the specs too, so the Lab tab can redraw them interactively (item 29, step 6);
+        # the PNGs stay — cards link to them and "Sačuvaj PNG" is always there
+        "plot_specs": list(res.plots),
         "elapsed_s": round(elapsed, 3),
         "script_sha256": sha,
         "mpmath": mp.__version__, "python": platform.python_version(),

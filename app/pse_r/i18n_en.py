@@ -664,5 +664,8 @@ EN = {
 "računam 8 optimuma metoda u pozadini (~20–40 s)…": "computing 8 method optima in the background (~20–40 s)…",
 "visina / arg f": "height / arg f",
 "{0}: ℓ = {1:.9g}, b = {2:.6g}, κ = {3:.6g}, B = {4:.12g}": "{0}: ℓ = {1:.9g}, b = {2:.6g}, κ = {3:.6g}, B = {4:.12g}",
-"|f| (do 6)": "|f| (up to 6)"
+"|f| (do 6)": "|f| (up to 6)",
+"graf:": "plot:",
+"Sačuvaj PNG": "Save PNG",
+"Sačuvaj graf": "Save plot"
 }
