@@ -99,9 +99,10 @@ class _VoiceWorker(QObject):
                 return (m.group(1) if m else txt).strip()
 
             def compose(question, ctx):
-                prompt = ("Odgovori drugarski ali hladno, SAMO iz ovih redova; svaku "
-                          "tvrdnju veži za [id] iz citata; ne dodaj brojeve kojih "
-                          "nema u redovima.\n" + json.dumps(ctx, ensure_ascii=False,
+                prompt = ("Odgovori kao kolega na poslu koji zna bazu: obraćaš se sa "
+                          "„ti“, kratko, prirodnim rečenicama, bez nabrajanja kolona. "
+                          "Činjenice SAMO iz ovih redova; svaku tvrdnju veži za [id] "
+                          "iz citata; ne dodaj brojeve kojih nema u redovima.\n" + json.dumps(ctx, ensure_ascii=False,
                                                             default=str)[:12000] +
                           "\n\nPitanje: " + question)
                 r = PATH.ask("voice", [B.Msg("user", prompt)], max_tokens=900, role=B.CHAT,
@@ -347,7 +348,7 @@ class ChatPanel(QWidget):
                 + "\n\n---\n\n".join(chunks))
 
     # ------------------------------------------------------------------ #
-    def _say(self, who: str, text: str, proposals=None):
+    def _say(self, who: str, text: str, proposals=None, details: str = ""):
         box = QFrame()
         box.setStyleSheet(
             "QFrame{background:%s;border:1px solid #262d3a;border-radius:12px;}" %
@@ -364,6 +365,20 @@ class ChatPanel(QWidget):
         h = int(md.document().size().height()) + 16
         md.setFixedHeight(max(30, min(h, 4000)))
         v.addWidget(md)
+        if details:                                  # 33e: "prikaži odakle", collapsed
+            dv = MarkdownView(on_card=self.open_card.emit)
+            dv.set_markdown(details)
+            dv.document().setTextWidth(self.width() - 60)
+            dv.setFixedHeight(max(30, min(int(dv.document().size().height()) + 16, 4000)))
+            dv.hide()
+            tg = button(tr("▸ prikaži odakle"))
+
+            def _toggle(_=False, dv=dv, tg=tg):
+                dv.setVisible(not dv.isVisible())
+                tg.setText(tr("▾ sakrij odakle") if dv.isVisible() else tr("▸ prikaži odakle"))
+            tg.clicked.connect(_toggle)
+            v.addWidget(tg)
+            v.addWidget(dv)
         for meta in (proposals or []):
             v.addWidget(ProposalWidget(meta, on_written=self.card_written.emit))
         self.vbox.insertWidget(self.vbox.count() - 1, box)
@@ -447,11 +462,8 @@ class ChatPanel(QWidget):
             self._say("error", err)
             return
         md = []
-        if ans.get("unknown"):
-            md.append(tr("**Nema u biblioteci (UNKNOWN).**"))
-        elif ans.get("answer"):
-            md.append(ans["answer"])
-        md += ["", tr("SQL (jedino što je izvršeno):"), "```sql", ans["sql"], "```"]
+        say = ans.get("answer") or (tr("Toga nema u biblioteci (UNKNOWN).") if ans.get("unknown") else "")
+        md += [tr("SQL (jedino što je izvršeno):"), "```sql", ans["sql"], "```"]
         cols, rows = ans.get("columns", []), ans.get("rows", [])
         if cols and rows:
             md.append("| " + " | ".join(map(str, cols)) + " |")
@@ -460,7 +472,6 @@ class ChatPanel(QWidget):
                 md.append("| " + " | ".join(str(v)[:60].replace("|", "/") for v in r) + " |")
             if len(rows) > 15:
                 md.append(tr("_… još {0} redova_").format(len(rows) - 15))
-        for w in ans.get("warnings", []):
-            md.append(f"> ⚠ {w}")
-        self._say("assistant", "\n".join(md))
+        warn = "\n".join(f"> ⚠ {w}" for w in ans.get("warnings", []))
+        self._say("assistant", say + ("\n\n" + warn if warn else ""), details="\n".join(md))
 
