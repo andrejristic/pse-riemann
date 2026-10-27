@@ -20,12 +20,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from ..core import theta as TH
 from ..guardian import secrets as SEC
-from ..guardian.egress import EgressBlocked
 from . import backend as B
 from . import psel
-from .budget import BudgetExceeded, budget
+from .budget import budget
 
 # role -> ordered provider preference. First one with a key wins.
 ROUTES: dict[str, list[str]] = {
@@ -95,14 +93,29 @@ class Router:
         return Route(mid, self.models.get(mid, cls.default_model), role)
 
     # ------------------------------------------------------------------ #
-    def call(self, role: str, messages: list[B.Msg], *, system_extra: str = "",
-             max_tokens: int = 0, avoid: str = "") -> B.Reply:
-        """
-        The single entry point for every model call in the application.
-        Applies the PSE-L system prompt, the budget check, the theta accounting
-        and the output scrub — none of which callers should have to remember.
-        """
-        route = self.resolve(role, avoid=avoid)
+    def unit_call(self, unit, role: str, messages: list[B.Msg], *, system_extra: str = "",
+                  max_tokens: int = 0) -> B.Reply:
+        """A model call on a PSE unit's path (`pse.path.ask` is the only
+        caller). Applies the generator (PSE-L system prompt + scrub), the
+        budget under "→ ∞", the kill-switch self-trip; disclosure, egress and
+        the CallGuard run inside the backend. θ is NOT touched here: the move
+        is measured by SHARED_LIB's meter after the call."""
+        if unit is None:
+            raise NoProvider("poziv modela mimo PSE jedinice nije dozvoljen")
+        return self._call(role, messages, system_extra=system_extra, max_tokens=max_tokens,
+                          who=f"{unit.unit_id}")
+
+    def sensor_call(self, role: str, prompt: str, max_tokens: int = 200) -> str:
+        """The language reader (a sensor, §0.5.4, not an agent): twelve numbers
+        and nothing else. Same brakes; no generator register."""
+        r = self._call(role, [B.Msg("user", prompt)], max_tokens=max_tokens, who="čitač",
+                       system="Return only the JSON object requested.", raw=True)
+        return r.text or ""
+
+    def _call(self, role: str, messages: list[B.Msg], *, system_extra: str = "",
+              max_tokens: int = 0, who: str = "", system: str = "",
+              raw: bool = False) -> B.Reply:
+        route = self.resolve(role)
         tune = ROLE_TUNING.get(role, ROLE_TUNING[B.CHAT])
         if route.provider == "gguf":
             from . import selection as SEL
@@ -114,28 +127,26 @@ class Router:
             bk = B.make(route.provider, route.model)
             budget().check(route.provider)
 
-        system = psel.system_prompt(role, system_extra)
+        system = system or psel.system_prompt(role, system_extra)
         reply = bk.chat(messages, system=system,
                         max_tokens=max_tokens or tune["max_tokens"],
-                        effort=tune["effort"])
+                        effort="low" if raw else tune["effort"])
 
         if route.provider != "gguf":                  # a local model costs nothing
-            raw = reply.raw or {}
+            rw = reply.raw or {}
             out = budget().worst_case_out(route.provider, reply.out_tokens,
-                                          int(raw.get("max_tokens", 0)),
-                                          bool(raw.get("cut")),
-                                          bool(raw.get("usage_reported", True)))
-            budget().record(route.provider, reply.model, role,
+                                          int(rw.get("max_tokens", 0)),
+                                          bool(rw.get("cut")),
+                                          bool(rw.get("usage_reported", True)))
+            budget().record(route.provider, reply.model, f"{role}:{who}",
                             reply.in_tokens, out, worst_case=(out != reply.out_tokens))
             from ..guardian import killswitch as KS
             KS.observe_cloud_call(route.provider, reply.in_tokens + out,
                                   budget().price(reply.model, reply.in_tokens, out,
                                                  route.provider))
-        # model output is other-directed work: it moves theta toward "other"
-        TH.record("model_output", max(reply.out_tokens, 1) / 500.0,
-                  source=f"{route.provider}:{role}")
         self._last_provider[role] = route.provider
-
+        if raw:
+            return reply
         if reply.refused:
             reply.text = (
                 "⛔ Model je odbio ovaj zahtjev (safety klasifikator). "
@@ -144,38 +155,6 @@ class Router:
             return reply
         reply.text = psel.scrub(reply.text)
         return reply
-
-    # ------------------------------------------------------------------ #
-    def skeptic(self, claim: str, context: str = "") -> dict:
-        """
-        Attack a claim with a provider other than the one that produced it.
-        Returns {"survives": bool, "severity": str, "attack": str}; on any
-        failure it returns survives=True with a note — a broken skeptic must
-        never silently mark good cards as suspect.
-        """
-        import json as _json
-        avoid = ""                      # v2: the skeptic role IS the other model
-        prompt = f"TVRDNJA:\n{claim}\n"
-        if context:
-            prompt += f"\nKONTEKST:\n{context[:4000]}\n"
-        try:
-            r = self.call(B.SKEPTIC, [B.Msg("user", prompt)], avoid=avoid)
-        except (NoProvider, BudgetExceeded, EgressBlocked) as e:
-            return {"survives": True, "severity": "low",
-                    "attack": f"(skeptik nije mogao da radi: {e})", "ran": False}
-        txt = (r.text or "").strip()
-        start, end = txt.find("{"), txt.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                d = _json.loads(txt[start:end + 1])
-                return {"survives": bool(d.get("survives", True)),
-                        "severity": str(d.get("severity", "low")),
-                        "attack": str(d.get("attack", "")).strip(),
-                        "ran": True, "by": r.provider}
-            except _json.JSONDecodeError:
-                pass
-        return {"survives": True, "severity": "low",
-                "attack": f"(neparsabilan odgovor skeptika: {txt[:120]})", "ran": False}
 
     def _ping_once(self, provider: str, model: str):
         bk = B.make(provider, model)

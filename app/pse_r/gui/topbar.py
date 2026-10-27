@@ -99,7 +99,6 @@ class TopBar(QFrame):
         lb.setToolTip(tip)
 
     def refresh(self) -> None:
-        from ..core import theta as TH
         from ..guardian.unit import guardian
         from ..llm.budget import budget
         from ..shared_lib import operator as OP
@@ -122,11 +121,20 @@ class TopBar(QFrame):
         op = OP.current()
         self._set("op", tr("operater: {0}").format(op or '—'), "plain" if op else "danger",
                   tr("registrovani operater ove sesije — glas SHARED_LIB-a govori samo njemu"))
-        h = TH.meter().health()
-        kind = {"healthy": "ok", "enmeshment": "warn", "withdrawal": "warn",
-                "schizoid": "danger"}.get(h["status"], "plain")
-        self._set("theta", tr("θ {0:.1f}").format(h['theta']), kind,
-                  tr("Ravnoteža izvor/izvođenje: {0} (zdravo {1:.0f}–{2:.0f}, σ {3:.3f})").format(h['message'], h['band'][0], h['band'][1], h['sigma']))
+        from ..shared_lib.pse_registry import pse
+        sw = pse().swarm()
+        kind = {"healthy": "ok", "sick": "warn", "measure": "warn",
+                "frozen": "danger"}.get(sw["status"], "plain")
+        txt = tr("roj {0} · θ {1:.1f}").format(sw["units"], sw["theta_mean"])
+        if sw["frozen"]:
+            txt += tr(" · ❄ {0}").format(len(sw["frozen"]))
+        if sw["measures"]:
+            txt += tr(" · Doktor {0}").format(sw["measures"])
+        self._set("theta", txt, kind,
+                  tr("PSE jedinice: {0} živih; obrasci {1}; zamrznute: {2}; "
+                     "Doktorove mjere čekaju: {3}. Detalji u tabu Laboratorija.").format(
+                         sw["units"], ", ".join(f"{a}={n}" for a, n in sw["attractors"].items()) or "—",
+                         ", ".join(sw["frozen"]) or "—", sw["measures"]))
         st = VS.stats()
         self._set("vault", tr("kartice {0}/{1}").format(st.verified, st.total), "plain",
                   tr("provjerene / ukupno kartica"))

@@ -40,7 +40,7 @@ Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Cl
 - `research/qrh-2026-10/` (REPORT.md, skripte, rezultati, slike). `papers-local/` je gitignored (licence), samo lokalno.
 - Misija: postoji li kontinualna funkcija transformacije između QRH metoda (Liu → Xu–Sang: E_XS = E_Liu + T, provjereno) i vodi li njeno proširenje bliže ili dalje od ciljeva?
 - XS optimum = korijen 133488B⁴−376596B³+384534B²−167541B+26231 (B = 0.8748866470399641); cjevovod validiran reprodukcijom Liuovog kubnog polinoma.
-- Master arhitektura (van repoa, samo za čitanje): `~/Desktop/PSE_MASTER_ARCHITECTURE_v4 (2).pdf` (SHARED_LIB §3, PSE-L §5, Fizičar §8, Guardian §10).
+- Master arhitektura (van repoa, samo za čitanje): `~/Desktop/PSE_MASTER_ARCHITECTURE_v4 (2).pdf` (SHARED_LIB §3, PSE-L §5, Doktor §8, Guardian §10).
 
 ## Autonomni rad
 - Brava: `tools/worklock.sh beat|check|release`. Alarm: `tools/alert.py`.

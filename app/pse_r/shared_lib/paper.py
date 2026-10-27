@@ -190,15 +190,30 @@ def assemble(runs: Optional[dict] = None) -> str:
 def build(ask_skeptic=None, runs: Optional[dict] = None) -> dict:
     """Assemble → gate → sources check → skeptic; then seal + queue. Raises PaperRefused
     when the gate or the source check fails (nothing is written)."""
+    from ..pse import measure as PM
+    from ..pse import path as PATH
+    ok, why = PATH.may_act("paper")
+    if not ok:                                          # Faza 6d: a frozen unit does not act
+        raise PaperRefused(f"sastavljač rada: {why}")
     md = assemble(runs)
     claims = proof_claims(md)
     if claims:
+        PATH.work("paper", [PM.Action("sastavlja tekst", "f"),
+                            PM.Action("odbija tekst koji tvrdi dokaz", "s", justified=True)],
+                  note="kapija")
         raise PaperRefused("kapija: tekst tvrdi dokaz — " + "; ".join(w for _p, w in claims[:3]))
     bad = unsourced(md)
     if bad:
+        PATH.work("paper", [PM.Action("sastavlja tekst", "f"),
+                            PM.Action("odbija brojeve bez izvora", "s", justified=True)],
+                  note="izvori")
         raise PaperRefused("brojevi bez izvora/lab run-a u redovima: " + ", ".join(str(i) for i, _ in bad[:10]))
     from ..llm import skeptic as SK
-    r = SK.attack("Radni tekst (misije 2 i 3)", md[:12000], subject="paper", ask=ask_skeptic, queue=False)
+    try:
+        r = SK.attack("Radni tekst (misije 2 i 3)", md[:12000], subject="paper",
+                      ask=ask_skeptic, queue=False)
+    except PATH.Refused as e:
+        r = {"available": True, "objections": [], "error": str(e)}
     sk = ["", "## Prigovori skeptika (prije operatera)", ""]
     if not r["available"]:
         sk.append("- _skeptik nedostupan (nema drugog modela) — samo determinističke provjere: kapija, izvori, adversarijalni mod_")
@@ -215,6 +230,9 @@ def build(ask_skeptic=None, runs: Optional[dict] = None) -> dict:
     pid = store().propose(KIND, f"Radni tekst (misije 2 i 3) spreman — pročitaj ({LABEL})",
                           {"path": str(path), "skeptic": r["available"],
                            "objections": len(r["objections"])}, proposer="paper")
+    PATH.work("paper", [PM.Action("sastavlja tekst", "f"), PM.Action("kapija i izvori", "f"),
+                        PM.Action("šalje radni tekst operateru", "o")],
+              entity=("operater", "human"), note=Path(path).name)
     J.log(J.REPORT, "paper", {"event": "draft", "path": str(path), "label": LABEL,
                               "objections": len(r["objections"])}, subject=Path(path).name, verdict="draft")
     return {"path": str(path), "pid": pid, "markdown": md, "objections": len(r["objections"]),

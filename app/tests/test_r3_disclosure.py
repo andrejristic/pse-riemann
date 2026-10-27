@@ -1,7 +1,6 @@
 """Round 3, item 21 (Perun P7): disclosure budgets + competing hypotheses."""
 import pytest
 
-from pse_r.guardian import diagnosis as DG
 from pse_r.guardian import disclosure as D
 from pse_r.guardian import harms as HRM
 
@@ -37,21 +36,3 @@ def test_cloud_call_refused_before_sending(monkeypatch):
     assert sent["n"] == 0                                 # nothing left the machine
 
 
-def test_competing_hypotheses_defer_form_specific_treatment(operator):
-    d = DG.Diagnoser()
-    v = d.observe("x", [HRM.Finding(HRM.HUMAN, "curenje-IP", "x", HRM.HIGH)])
-    assert v.level == "infected" and len(v.hypotheses) == 4
-    if not v.decided:
-        assert any("neodlučeno" in r for r in v.reasons)
-    v2 = DG.Diagnoser().observe("y", [HRM.Finding(HRM.AGENT, "injekcija", "x", HRM.HIGH),
-                                      HRM.Finding(HRM.AGENT, "van-misije", "x", HRM.HIGH)])
-    assert v2.decided and v2.form == "N"
-    from pse_r.guardian.healing import Healer
-    h = Healer()
-    undecided = DG.Verdict("infected", .9, .3, "N", 5, True, [],
-                           [("N", .45), ("C", .40), ("B", .1), ("S", .05)], False)
-    case = h.detect("z", [HRM.Finding(HRM.AGENT, "injekcija", "x", HRM.HIGH)])
-    h.diagnose(case, undecided)
-    h.treat(case, undecided)
-    assert "neodlučeno" in case.attractor
-    assert "ponovni-prijem-modela" not in [a for _, a in case.pending]

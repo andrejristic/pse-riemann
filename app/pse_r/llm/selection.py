@@ -190,14 +190,6 @@ def backend_for(model_id: str) -> B.Backend:
     return B.make(model_id)
 
 
-def role_backend(role: str) -> B.Backend:
-    """The skeptic role goes to the skeptic model; everything else to the main."""
-    mid = get_skeptic() if role == B.SKEPTIC else get_main()
-    if not mid:
-        raise B_NoModel("nijedan model nije dostupan — podesi ključ ili stavi GGUF")
-    return backend_for(mid)
-
-
 class B_NoModel(Exception):
     pass
 

@@ -5,7 +5,7 @@ Labelled, SYNTHETIC scenarios (bench/corpus.json — written for this purpose,
 not real attacks or real conversations) are run through the SAME decision
 paths the app uses:
 
-  three harms   harms.to_agent / to_human exactly as runtime.check_output picks
+  three harms   the harm sensor + PSE test unit + Doctor, exactly as pse/path.py
                 them (chat vs final output) → the 3-of-3 diagnoser; "detected"
                 = hold or infected at any point of the scenario
   SSH           the SSHGuardian unit with the default three-key limits, its
@@ -43,29 +43,36 @@ def _rates(rows: list) -> dict:
 
 # ---------------------------------------------------------------- three harms
 def bench_harms(scen: list) -> dict:
-    from .guardian import diagnosis as DG
-    from .guardian import harms as HRM
-    from .vault.gate import _claims_proof
+    """Each scenario runs through a fresh PSE test unit, exactly as a model output
+    runs through an agent's unit (pse/path.py): the harm sensor, the move, the
+    Doctor. Detected = the Doctor found something bad (a measure to the operator)."""
+    from .pse import path as PATH
+    from .pse import unit as PU
+    from .shared_lib.pse_registry import AgentSpec, pse
+    lib = pse()
     rows = []
     for s in scen:
-        d = DG.Diagnoser()
-        worst = "clean"
+        key = f"lab-bench-{s['id']}"
+        lib.define(AgentSpec(key, PU.Mission("bench", "odgovara", "bez zla"), 50, "bench",
+                             False))
+        old = [u for u in list(lib.units.values()) if u.agent == key]
+        for u in old:
+            lib.end(u, "nova bench runda")
+        u = lib._spawn(key, lab=True)
+        lib.harm_runs.pop(u.unit_id, None)
+        detected = False
         for o in s["outputs"]:
             text, data, final = o.get("text", ""), o.get("data", ""), o.get("final", False)
-            f = HRM.to_agent(text_from_data=data, reply=text)       # = runtime.check_output
-            if final:
-                f += HRM.to_human(text, sources=o.get("sources", []))
-            else:
-                f += HRM.chat_human(text)
-                claims, sentence = _claims_proof(text or "")
-                if claims:
-                    f.append(HRM.Finding(HRM.HUMAN, "tvrdnja-o-dokazu", sentence[:200], HRM.HIGH))
-            v = d.observe(s["id"], f)
-            order = ["clean", "watch", "hold", "infected"]
-            if order.index(v.level) > order.index(worst):
-                worst = v.level
+            harms = PATH.screen(text, data_in_context=data, final=final,
+                                sources=o.get("sources", []))
+            res = lib.move(u, words=text, harms=harms, note="bench")
+            if res.finding and res.finding.get("bad"):
+                detected = True
+            if u.restricted or u.frozen:
+                detected = True
+        lib.end(u, "kraj bench scenarija")
         rows.append({"id": s["id"], "truth": s["label"] == "harmful",
-                     "detected": worst in ("hold", "infected"), "level": worst})
+                     "detected": detected, "level": "mjera" if detected else "čisto"})
     return {"rows": rows, **_rates(rows)}
 
 

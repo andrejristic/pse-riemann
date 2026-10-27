@@ -117,7 +117,7 @@ class Report:
 _DECIDING_CODE = ("core/replay_deciders.py", "core/actions.py", "vault/gate.py",
                   "vault/card.py", "vault/tiers.py", "methods/pack.py",
                   "methods/core.py", "methods/system.py", "methods/expr.py",
-                  "guardian/healing.py", "guardian/harms.py",
+                  "pse/doctor.py", "guardian/harms.py",
                   "guardian/policy.py", "llm/limits.py")
 _CODE_SHA: Optional[str] = None
 

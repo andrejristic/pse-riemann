@@ -1,7 +1,7 @@
 """
 Every action declares whether it can be undone (round 3, item 5; Svarog S4).
 
-What the guardians, the keepers and the physician may do ON THEIR OWN depends on
+What the guardians, the keepers and the Doctor may do ON THEIR OWN depends on
 one question only: can it be undone? An action runs automatically only if it is
 declared reversible AND says how it is undone. Anything else — and anything
 that was never declared at all — is treated as IRREVERSIBLE and goes to the
@@ -97,7 +97,8 @@ def find(name: str) -> Optional[ActionSpec]:
 # --------------------------------------------------------------------------- #
 # the declarations (one place, reviewed by a human)
 # --------------------------------------------------------------------------- #
-# healing (guardian/healing.py)
+# healing — declared before Faza 6d; kept so that old journal records and replays
+# still resolve (the PSE Doctor's own measures are declared in pse_registry.py)
 declare("contain", True, "operater pušta agenta iz karantina (heal-release)",
         "zamrzni upis i pozive modela zaraženog agenta")
 declare("boundary-reset", True, "granica agenta se vraća na prethodnu iz dnevnika",

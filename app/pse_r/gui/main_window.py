@@ -22,7 +22,6 @@ from .. import config
 from .. import settings as S
 from ..core import briefing as BR
 from ..core import journal as J
-from ..core import theta as TH
 from ..guardian.unit import guardian
 from ..llm.budget import budget
 from ..vault import index as IX
@@ -100,6 +99,9 @@ class MainWindow(QMainWindow):
         self.tab_queue = QueueTab()
         from .ideas import IdeasTab
         self.tab_ideas = IdeasTab()                     # round 3, item 28
+        from .pse_lab import LabTab as PseLabTab
+        self.tab_pselab = PseLabTab()                   # Faza 6d, rule 26
+        self.tab_pselab.changed.connect(lambda: self.topbar.refresh())
         self.tab_queue.decided.connect(self.tab_missions.refresh)
         self.tab_queue.decided.connect(self.tab_overview.refresh)
         self.tab_missions.switched.connect(lambda: self.topbar.refresh())
@@ -117,7 +119,8 @@ class MainWindow(QMainWindow):
                         (self.tab_plan, tr("Plan")), (self.tab_lab, tr("Lab")),
                         (self.tab_corpus, tr("Corpus")),
                         (self.tab_board, tr("Tabla")), (self.tab_editor, tr("Editor")),
-                        (self.tab_graph, tr("Graf")), (self.tab_guard, tr("Guardian"))):
+                        (self.tab_graph, tr("Graf")), (self.tab_guard, tr("Guardian")),
+                        (self.tab_pselab, tr("Laboratorija"))):
             self._wraps[w] = scroll_wrap(w)              # a narrow screen scrolls the page
             self.tabs.addTab(self._wraps[w], tr(name))
         # item 33c: the last "tab" is the setup (provider, keys, models, skeptic) — it opens
@@ -274,6 +277,9 @@ class MainWindow(QMainWindow):
         acts = {
             "Online AI — isključi / uključi (Ctrl+K)": self.toggle_online_ai,
             "Podešavanje — operater, glavni AI, skeptik, čuvar": self.open_setup,
+            "SHARED_LIB → Težine glasova": self.open_weights,
+            "Laboratorija — PSE jedinice (utiče na prave agente)":
+                lambda: self.tabs.setCurrentWidget(self._tab(self.tab_pselab)),
             "Lab — pokreni eksperiment": lambda: self.tabs.setCurrentWidget(self._tab(self.tab_lab)),
             "Corpus — pretraga": lambda: (self.tabs.setCurrentWidget(self._tab(self.tab_corpus)),
                                           self.tab_corpus.q.setFocus()),
@@ -412,6 +418,13 @@ class MainWindow(QMainWindow):
             self.open_setup()
         else:
             self._last_tab = i
+            if self.tabs.widget(i) is self._wraps.get(self.tab_pselab):
+                self.tab_pselab.opened()
+
+    def open_weights(self):
+        from .pse_lab import WeightsDialog
+        WeightsDialog(self).exec()
+        self.refresh_status()
 
     def open_setup(self):
         from .setup import SetupDialog
@@ -591,13 +604,14 @@ class MainWindow(QMainWindow):
             pass
         if hasattr(self, "topbar"):
             self.topbar.refresh()
-        h = TH.meter().health()
-        colour = {"healthy": "#7bc67b", "enmeshment": "#ffb74d",
-                  "withdrawal": "#ffb74d", "schizoid": "#e07070"}[h["status"]]
+        from ..shared_lib.pse_registry import pse
+        sw = pse().swarm()
+        colour = {"healthy": "#7bc67b", "sick": "#ffb74d", "measure": "#ffb74d",
+                  "frozen": "#e07070"}[sw["status"]]
         self.lb_theta.setText(
-            tr("<span style='color:{0}'>⚖ {1:.1f}</span> <span style='color:#777'>σ{2:.3f}</span>").format(colour, h['theta'], h['sigma']))
+            tr("<span style='color:{0}'>⚖ roj {1}</span> <span style='color:#777'>θ̄ {2:.1f}</span>").format(colour, sw['units'], sw['theta_mean']))
         self.lb_theta.setToolTip(
-            tr("Ravnoteža izvor/izvođenje: {0}\nZdrav opseg {1:.0f}–{2:.0f}. Iznad = čitaš tuđe; ispod = spekulišeš bez provjere.").format(h['message'], h['band'][0], h['band'][1]))
+            tr("Svaki agent je PSE jedinica sa svojim θ (zdravo 30 ± 5).\nZamrznute: {0} · Doktorove mjere čekaju: {1}").format(", ".join(sw["frozen"]) or "—", sw["measures"]))
         st = VS.stats()
         self.lb_vault.setText(f"📚 {st.verified}/{st.total}")
         self.lb_vault.setToolTip(tr("provjerene / ukupno kartica"))
@@ -659,7 +673,6 @@ class MainWindow(QMainWindow):
             th.wait(3000)
         try:
             self._save_layout()
-            TH.meter().save()
             J.log(J.SYSTEM, "app", {"event": "shutdown"})
         except Exception:                               # noqa: BLE001
             pass

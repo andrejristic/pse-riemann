@@ -555,8 +555,6 @@ class EditorTab(QWidget):
             return
         try:
             self.path.write_text(self.edit.toPlainText(), encoding="utf-8")
-            from ..core import theta as TH
-            TH.record("user_write", 1.0, source="editor")
             J.log(J.GATE, "user", {"path": str(self.path), "direct_edit": True},
                   subject=self.path.stem, verdict="edit")
             self.info.setText(tr("✅ sačuvano {0}").format(self.path))

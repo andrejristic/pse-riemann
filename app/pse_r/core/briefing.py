@@ -21,7 +21,6 @@ from .. import config
 from ..vault import store as VS
 from ..vault.card import COMPUTED, CITED, FOLKLORE, SPECULATION, SUSPECT
 from . import journal as J
-from . import theta as TH
 
 PLAN = config.VAULT / "PLAN.md"
 QUESTIONS = config.VAULT / "OPEN_QUESTIONS.md"
@@ -96,11 +95,21 @@ def yesterday_summary(hours: float = 30.0) -> dict:
     }
 
 
+def _swarm() -> dict:
+    """The swarm's health in one line (Faza 6d: θ is per unit)."""
+    from ..shared_lib.pse_registry import pse
+    sw = pse().swarm()
+    msg = {"healthy": "svi zdravi", "sick": f"{sw['sick']} van zdravog obrasca",
+           "measure": f"Doktorove mjere čekaju: {sw['measures']}",
+           "frozen": "zamrznute: " + ", ".join(sw["frozen"])}[sw["status"]]
+    return {**sw, "message": msg}
+
+
 def briefing() -> str:
     """The markdown shown on launch."""
     y = yesterday_summary()
     st = VS.stats()
-    h = TH.meter().health()
+    h = _swarm()
     attention = VS.needs_attention()
     plan = _plan_today()
     q = _open_questions()
@@ -133,7 +142,7 @@ def briefing() -> str:
           f"{st.by_status.get(FOLKLORE,0)} FOLKLORE, "
           f"{st.by_status.get(SPECULATION,0)} SPECULATION, "
           f"{st.by_status.get(SUSPECT,0)} SUSPECT",
-          f"- Ravnoteža izvor/izvođenje: {h['theta']:.1f} — {h['message']}", ""]
+          f"- PSE roj: {h['units']} jedinica, prosječan θ {h['theta_mean']:.1f} — {h['message']}", ""]
 
     if attention:
         L.append("## Traži pažnju")
@@ -202,7 +211,7 @@ def weekly_report(days: int = 7) -> str:
             s["threats"] += 1
 
     st = VS.stats()
-    h = TH.meter().health()
+    h = _swarm()
     L = [f"# Izvještaj — posljednjih {days} dana",
          f"_generisano {datetime.now().astimezone().isoformat(timespec='minutes')} "
          f"iz journala; ne uređuj ručno_", "",
@@ -223,7 +232,7 @@ def weekly_report(days: int = 7) -> str:
           f"{st.unverified} neprovjerenih",
           f"- po tipu: " + ", ".join(f"{v}× {k}" for k, v in
                                      sorted(st.by_type.items())),
-          f"- ravnoteža izvor/izvođenje {h['theta']:.1f} (σ {h['sigma']:.3f}) — "
+          f"- PSE roj: {h['units']} jedinica, prosječan θ {h['theta_mean']:.1f} — "
           f"{h['message']}", ""]
 
     ok, bad = J.journal().verify_chain()

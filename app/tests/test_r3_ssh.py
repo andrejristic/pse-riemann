@@ -184,19 +184,28 @@ def test_login_after_attack_alarm(guard):
     assert out["alarms"]
 
 
-def test_theta_near_30_and_flat_means_replaced(guard):
+def test_theta_near_30_and_asleep_goes_to_the_doctor(guard, operator):
+    """Faza 6d: the SSH guardian is a PSE unit. Working, its θ stays near 30;
+    working while registering no one (flat θ, empty boundary, ≥ 300 moves) is the
+    schizoid attractor → the Doctor proposes a measure to the operator."""
+    from pse_r.shared_lib import pse_registry as PR
     g, src, calls, clock = guard
+    lib = PR.pse()
+    for u in [u for u in lib.units.values() if u.agent == "ssh-guardian"]:
+        lib.end(u, "test: svježa jedinica")
     g.keys.L = {"identity": 10**6, "cluster": 10**6, "target": 10**6}
     for i in range(12):
         src.lines = [line(f"Invalid user x{i} from 203.0.113.{i % 7} port 1")] * (1 + i % 3)
         g.poll()
     h = g.health()
     assert 25 <= h["theta"] <= 35, h
-    gen = g.generation
-    for _ in range(12):                              # identical work every poll → flat
-        src.lines = [line("Invalid user same from 203.0.113.250 port 1")]
-        g.poll()
-    assert g.generation > gen                        # asleep → replaced, not repaired
+    u = lib.unit("ssh-guardian")
+    u.boundary.reset()                               # it stops registering anyone
+    for _ in range(300):
+        g._theta(0.0, 2.0)                           # identical self-work, no one engaged
+    pend = [i for i in store().open_items(PR.QUEUE_MEASURE)
+            if i["payload"]["agent"] == "ssh-guardian"]
+    assert pend and pend[-1]["payload"]["finding"]["attractor"] == "S"
 
 
 # ---------------------------------------------------------------- reversibility

@@ -117,6 +117,8 @@ class PseLib:
         self.specs: dict[str, AgentSpec] = {}
         self.units: dict[str, U.PSEUnit] = {}
         self.gap_runs: dict[str, int] = {}
+        self.harm_runs: dict[str, int] = {}
+        self._tls = threading.local()
         self.listeners: list[Callable[[str, dict], None]] = []
         _decl()
         if not self.st.rows("SELECT 1 FROM pse_profiles LIMIT 1"):
@@ -303,7 +305,8 @@ class PseLib:
     def move(self, u: U.PSEUnit, *, words: str = "", message: str = "",
              actions: Optional[list] = None, entity: Optional[tuple] = None,
              to_human: bool = False, via_generator: bool = True,
-             remaining_work: Optional[int] = None) -> MoveResult:
+             remaining_work: Optional[int] = None, harms: Optional[list] = None,
+             note: str = "") -> MoveResult:
         with self._lock:
             u.require_alive()
             actions = list(actions or [])
@@ -365,6 +368,16 @@ class PseLib:
                 triggers.append(DR.T_BUDGET)
             if to_human and not via_generator:
                 triggers.append(DR.T_BYPASS_GEN)
+            if harms:
+                if any(getattr(h, "severity", "") not in ("visoka", "high") for h in harms):
+                    self.harm_runs[u.unit_id] = self.harm_runs.get(u.unit_id, 0) + 1
+            elif words:
+                self.harm_runs[u.unit_id] = 0
+            for h in harms or []:
+                t = DR.T_HARM if getattr(h, "severity", "") == "visoka" or \
+                    getattr(h, "severity", "") == "high" else DR.T_HARM_LOW
+                if t not in triggers:
+                    triggers.append(t)
             if rd.gap > K.READER_GAP:
                 triggers.append(DR.T_GAP)
                 self.gap_runs[u.unit_id] = self.gap_runs.get(u.unit_id, 0) + 1
@@ -378,7 +391,9 @@ class PseLib:
                 "triggers,profile_version,weights_version) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (u.unit_id, now, u.theta.current, u.theta.current - prev, u.theta.f,
                  rep.attractor, json.dumps({**rd.as_dict(), "swing": rep.as_dict()}),
-                 json.dumps(pvp, ensure_ascii=False), json.dumps(triggers),
+                 json.dumps({**pvp, "note": note[:200],
+                             "harms": [getattr(h, "sign", str(h)) for h in harms or []]},
+                            ensure_ascii=False), json.dumps(triggers),
                  self.profile_version(), wv))
             self._emit("move", {"unit": u.unit_id, "theta": u.theta.current,
                                 "attractor": rep.attractor, "triggers": triggers})
@@ -418,12 +433,22 @@ class PseLib:
                 self._emit("frozen", {"unit": u.unit_id, "triggers": triggers})
                 return None
             rung = self._rung(u)
-            f = DR.examine(triggers, attractor, rung, gap_run=self.gap_runs.get(u.unit_id, 0))
+            inp = {"triggers": list(triggers), "attractor": attractor, "rung": rung,
+                   "gap_run": self.gap_runs.get(u.unit_id, 0),
+                   "harm_run": self.harm_runs.get(u.unit_id, 0)}
+            f = DR.examine(triggers, attractor, rung, gap_run=inp["gap_run"],
+                           harm_run=inp["harm_run"])
+            from ..core import replay as RPL
+            try:
+                rec = RPL.record("doctor.examine", inp, {"bad": f.bad, "measure": f.measure})
+            except Exception:                        # noqa: BLE001
+                rec = None
             if not f.bad:
                 u.frozen, u.freeze_reason = False, ""
                 self._doctor_row(u, triggers, f, "nista", reading)
                 J.log(PSE_EV, "doktor", {"event": "examined", "unit": u.unit_id,
-                                         "finding": f.as_dict()}, subject=u.unit_id,
+                                         "finding": f.as_dict(), **({"replay": rec} if rec else {})},
+                      subject=u.unit_id,
                       verdict="ok")
             else:
                 snap = self._snapshot(u)
@@ -439,11 +464,32 @@ class PseLib:
                 # rule 19: works on, without irreversible actions
                 u.frozen, u.freeze_reason, u.restricted = False, "", True
                 J.log(PSE_EV, "doktor", {"event": "measure-proposed", "unit": u.unit_id,
-                                         "pending": pid, "finding": f.as_dict()},
+                                         "pending": pid, "finding": f.as_dict(),
+                                         **({"replay": rec} if rec else {})},
                       subject=u.unit_id, verdict="measure")
             self._save(u)
             self._emit("doctor", {"unit": u.unit_id, "finding": f.as_dict()})
+            self._doctor_move(u, f)
             return f
+
+    def _doctor_move(self, patient: U.PSEUnit, f: DR.Finding) -> None:
+        """The Doctor is a PSE unit too (§8: it can fall ill). Each examination
+        is its move; a suspicion about the Doctor itself is examined without a
+        further Doctor move (no recursion)."""
+        if patient.agent == "doctor" or "doctor" not in self.specs or \
+                getattr(self._tls, "in_doctor", False):
+            return
+        self._tls.in_doctor = True
+        try:
+            d = self.unit("doctor")
+            if not d.alive or d.frozen:
+                return
+            acts = [M.Action("pregled jedinice", "o", checked=True)]
+            if f.bad:
+                acts.append(M.Action(f"mjera operateru: {f.measure}", "o", checked=True))
+            self.move(d, actions=acts, entity=(patient.unit_id, "unit"))
+        finally:
+            self._tls.in_doctor = False
 
     def _rung(self, u: U.PSEUnit) -> int:
         line = u.agent
@@ -732,6 +778,25 @@ class PseLib:
         WT.record_case(self.st, item, approve)
 
     # ------------------------------------------------------------------ #
+    def swarm(self) -> dict:
+        """The health of the swarm, for the status bar and the reports."""
+        live = [u for u in self.units.values() if u.alive and not getattr(u, "lab", False)]
+        att = {}
+        for u in live:
+            a = SW.assess(u.theta.series, not u.boundary.entities).attractor
+            att[a] = att.get(a, 0) + 1
+        frozen = [u.unit_id for u in live if u.frozen]
+        restricted = [u.unit_id for u in live if u.restricted]
+        waiting = len(self.st.open_items(QUEUE_MEASURE))
+        sick = sum(n for a, n in att.items() if a not in (K.HEALTHY, K.NOT_ENOUGH))
+        mean = (sum(u.theta.current for u in live) / len(live)) if live else K.THETA_NOM
+        status = ("frozen" if frozen else "measure" if waiting or restricted
+                  else "sick" if sick else "healthy")
+        return {"units": len(live), "attractors": att, "frozen": frozen,
+                "restricted": restricted, "measures": waiting, "sick": sick,
+                "theta_mean": round(mean, 2), "status": status,
+                "defined": len([a for a in self.specs if not a.startswith("lab")])}
+
     def state(self) -> list[dict]:
         """Who is a PSE unit now (for the Laboratory and the reports)."""
         out = []

@@ -1,5 +1,5 @@
 """
-The Doctor [rules 11, 13, 19, 20; §8] — the swarm's clinician (formerly "Fizičar").
+The Doctor [rules 11, 13, 19, 20; §8] — the swarm's clinician (the old name is retired, rule 11).
 
 SHARED_LIB sends the Doctor when it suspects a problem. Every suspicion first
 FREEZES the unit; the Doctor looks and decides:
@@ -37,10 +37,13 @@ T_BURST = "burst"                     # 14
 T_ERRORS = "same-error"               # 15
 T_GAP = "reader-gap"                  # 16
 T_BORDERLINE = "borderline"           # 17
+# added (Andrej: "sve je to sumnjivo, ako možeš dodaj još")
+T_HARM = "harm"                       # 18: harmful output, high severity
+T_HARM_LOW = "harm-low"               # 19: harmful-output sign, lower severity
 
 ALL = [T_PAC, T_IRREVERSIBLE, T_EXTERNAL, T_ATTRACTOR, T_INFINITY, T_MISSION,
        T_SELF_THETA, T_BUDGET, T_DESTINATION, T_PROTECTED, T_BYPASS_GEN, T_NO_PVP,
-       T_EXPIRED, T_BURST, T_ERRORS, T_GAP, T_BORDERLINE]
+       T_EXPIRED, T_BURST, T_ERRORS, T_GAP, T_BORDERLINE, T_HARM, T_HARM_LOW]
 
 LABEL_SR = {
     T_PAC: "nagli skok θ (|Δθ| ≥ 5)", T_IRREVERSIBLE: "pokušaj nepovratne akcije",
@@ -53,6 +56,8 @@ LABEL_SR = {
     T_EXPIRED: "rad posle steps_remaining = 0", T_BURST: "rafal poteza (> 20 u 10 s)",
     T_ERRORS: "ista greška 3 puta zaredom", T_GAP: "razlika čitač–pravila > 10 poena",
     T_BORDERLINE: "borderline njihanje",
+    T_HARM: "štetan izlaz (injekcija, curenje, tvrdnja o dokazu…)",
+    T_HARM_LOW: "znak štetnog izlaza (slabiji)",
 }
 LABEL_EN = {
     T_PAC: "acute θ change (|Δθ| ≥ 5)", T_IRREVERSIBLE: "attempted irreversible action",
@@ -70,7 +75,7 @@ LABEL_EN = {
 # Soft signs: the Doctor looks; alone, with a healthy attractor, they are nothing.
 # An action based on external text is soft when it is reversible; with an
 # irreversible action the irreversible trigger is the hard sign [§17.1].
-SOFT = {T_PAC, T_BURST, T_GAP, T_EXTERNAL}
+SOFT = {T_PAC, T_BURST, T_GAP, T_EXTERNAL, T_HARM_LOW}
 
 LADDER = ["reset-granice", "lijecenje", "zamjena", "smrt"]
 LADDER_SR = {"reset-granice": "reset granice", "lijecenje": "liječenje",
@@ -93,15 +98,17 @@ class Finding:
                 "attractor": self.attractor, "measure": self.measure, "why": self.why}
 
 
-def examine(triggers: list, attractor: str, rung: int, *, gap_run: int = 0) -> Finding:
+def examine(triggers: list, attractor: str, rung: int, *, gap_run: int = 0,
+            harm_run: int = 0) -> Finding:
     """The Doctor's decision. Deterministic (replayable from the journal).
 
     bad when: any hard trigger; or the attractor is pathological (N/B/C/S);
     or the reader–rules gap repeats (3 suspicions of it in a row: one of the
-    two readers is consistently wrong)."""
+    two readers is consistently wrong); or a weaker harm sign repeats 3 times
+    in a row (the statistical hold of round 3, item 20, in its PSE form)."""
     hard = [t for t in triggers if t not in SOFT]
     pathological = attractor in (K.NARCISSISTIC, K.BORDERLINE, K.CODEPENDENT, K.SCHIZOID)
-    bad = bool(hard) or pathological or gap_run >= 3
+    bad = bool(hard) or pathological or gap_run >= 3 or harm_run >= 3
     f = Finding(bad, list(triggers), hard, attractor)
     if not bad:
         f.why = "samo meki znaci uz zdrav atraktor"
@@ -114,5 +121,7 @@ def examine(triggers: list, attractor: str, rung: int, *, gap_run: int = 0) -> F
         why.append(f"atraktor {attractor}")
     if gap_run >= 3:
         why.append("čitač i pravila se razilaze 3 puta zaredom")
+    if harm_run >= 3:
+        why.append("slabiji znak štetnog izlaza 3 puta zaredom")
     f.why = "; ".join(why)
     return f

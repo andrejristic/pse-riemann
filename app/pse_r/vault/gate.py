@@ -38,7 +38,6 @@ from typing import Optional
 
 from .. import config
 from ..core import journal as J
-from ..core import theta as TH
 from .card import (Card, CITED, COMPUTED, FOLKLORE, SPECULATION, SUSPECT, REFUTED,
                    STATUSES, TYPES, VERIFIED_STATUSES, is_resolvable_source,
                    source_hint, now_iso)
@@ -232,14 +231,11 @@ class Gate:
             return self._reject(card, actor, f"put izlazi iz vaulta: {path}")
 
         card.updated = now_iso()
-        card.theta_at_write = round(TH.meter().state.current, 2)
+        card.theta_at_write = _unit_theta(actor)
         target_dir.mkdir(parents=True, exist_ok=True)
         self._atomic_write(path, card.to_markdown())
 
         self.accepts[actor] = self.accepts.get(actor, 0) + 1
-        if card.status in VERIFIED_STATUSES:
-            TH.record("own_derivation" if actor in ("user", "lab") else "citation",
-                      1.0, source=actor, note=card.id)
         J.log(J.GATE, actor,
               {"card": card.id, "title": card.title, "status": card.status,
                "type": card.type, "tier": T.card_tier(card),
@@ -342,20 +338,20 @@ class Gate:
         tmp.write_text(text, encoding="utf-8")
         os.replace(tmp, path)
 
-    # Below this many theta events the ratio is noise, not a diagnosis — a fresh
-    # session would otherwise reject the first model card for a theta of 0.
-    THETA_WARMUP = 20
-
     def _contribution_check(self, actor: str) -> tuple[bool, str]:
-        h = TH.meter().health()
-        lo, hi = config.THETA_HEALTHY
-        if h["n"] < self.THETA_WARMUP:
-            return True, ""
-        if not (lo <= h["theta"] <= hi):
-            return False, (f"θ={h['theta']} van zdravog opsega [{lo},{hi}] — "
-                           f"{h['message']}. Doprinos modela odbijen dok se ne vrati.")
-        if h["status"] == "schizoid":
-            return False, "θ je ravna (σ<0.01) — model je prestao da uči; doprinos odbijen"
+        """A model's contribution is refused while the contributing agent's PSE
+        unit is frozen, waits for a Doctor's measure, or sits in a pathological
+        attractor (Faza 6d: θ is per unit, not one global meter)."""
+        from ..pse import swing as SW
+        u = _unit_for(actor)
+        if u is not None:
+            if u.frozen or u.restricted:
+                return False, (f"jedinica {u.unit_id} je pod Doktorom — doprinos odbijen "
+                               f"dok operater ne odluči o mjeri")
+            att = SW.assess(u.theta.series, not u.boundary.entities).attractor
+            if att not in ("H", "?"):
+                return False, (f"jedinica {u.unit_id} je u obrascu {att} — doprinos "
+                               f"odbijen dok se ne vrati u zdravo")
         rej, acc = self.rejects.get(actor, 0), self.accepts.get(actor, 0)
         if rej >= 5 and acc == 0:
             return False, (f"{actor}: 5 uzastopnih odbijanja bez ijednog prihvatanja — "
@@ -366,6 +362,24 @@ class Gate:
         J.log(J.GATE, actor, {"card": card.id, "reason": reason},
               subject=card.id, verdict="reject")
         return Verdict(False, reason)
+
+
+def _unit_for(actor: str):
+    """The PSE unit behind a contributing actor ("model:<agent>")."""
+    try:
+        from ..shared_lib.pse_registry import pse
+        lib = pse()
+        key = actor.split(":", 1)[1] if ":" in actor else actor
+        return lib.unit(key if key in lib.specs else "chat")
+    except Exception:                                   # noqa: BLE001
+        return None
+
+
+def _unit_theta(actor: str) -> float:
+    if not actor.startswith("model:"):
+        return 0.0
+    u = _unit_for(actor)
+    return round(u.theta.current, 2) if u is not None else 0.0
 
 
 _GATE: Optional[Gate] = None

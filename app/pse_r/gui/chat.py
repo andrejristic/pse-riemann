@@ -34,7 +34,9 @@ from .. import config
 from ..llm import backend as B
 from ..llm import psel
 from ..llm.budget import BudgetExceeded
-from ..llm.router import NoProvider, router
+from ..llm.router import NoProvider
+from ..pse import measure as PM
+from ..pse import path as PATH
 from ..vault import store as VS
 from ..vault.card import (Card, CITED, COMPUTED, FOLKLORE, SPECULATION,
                           STATUSES, TYPES)
@@ -52,10 +54,11 @@ class _Worker(QObject):
 
     def run(self):
         try:
-            r = router().call(self.role, self.messages,
-                              system_extra=self.system_extra)
+            r = PATH.ask("chat", self.messages, system_extra=self.system_extra,
+                         role=self.role, to_human=True,
+                         data_in_context=self.system_extra)
             self.done.emit(r, "")
-        except (NoProvider, BudgetExceeded) as e:
+        except (NoProvider, BudgetExceeded, PATH.Refused) as e:
             self.done.emit(None, str(e))
         except Exception as e:                          # noqa: BLE001
             self.done.emit(None, f"{type(e).__name__}: {e}")
@@ -79,34 +82,40 @@ class _VoiceWorker(QObject):
         try:
             if q.lower().startswith(("select", "with")):
                 res = V.query(q)                        # operator typed SQL directly
+                PATH.work("voice", [PM.Action("SELECT operatera nad pogledima", "o")],
+                          entity=("operater", "human"))
                 self.done.emit({"sql": res["sql"], "columns": res["columns"],
                                 "rows": res["rows"], "answer": "", "unknown":
                                 not res["rows"], "warnings": []}, "")
                 return
 
             def translate(question, schema):
-                from ..llm.router import router
                 cols = "\n".join(f"- {t}({', '.join(c)})" for t, c in schema.items())
                 prompt = ("Prevedi pitanje u JEDAN SQLite SELECT nad ovim pogledima. "
                           "Vrati samo SQL, bez objašnjenja.\n" + cols +
                           "\n\nPitanje: " + question)
-                txt = router().call(B.MATH, [B.Msg("user", prompt)], max_tokens=600).text
+                txt = PATH.ask("voice", [B.Msg("user", prompt)], max_tokens=600).text
                 m = re.search(r"```(?:sql)?\s*(.*?)```", txt, re.S)
                 return (m.group(1) if m else txt).strip()
 
             def compose(question, ctx):
-                from ..llm.router import router
                 prompt = ("Odgovori drugarski ali hladno, SAMO iz ovih redova; svaku "
                           "tvrdnju veži za [id] iz citata; ne dodaj brojeve kojih "
                           "nema u redovima.\n" + json.dumps(ctx, ensure_ascii=False,
                                                             default=str)[:12000] +
                           "\n\nPitanje: " + question)
-                return router().call(B.CHAT, [B.Msg("user", prompt)], max_tokens=900).text
+                r = PATH.ask("voice", [B.Msg("user", prompt)], max_tokens=900, role=B.CHAT,
+                             to_human=True, final=True,
+                             sources=[f"view:{k}" for k in (ctx or {})][:20])
+                return r.text
 
             try:
                 ans = VO.ask(q, translate=translate, compose=compose)
-            except (NoProvider, BudgetExceeded):
+            except (NoProvider, BudgetExceeded, PATH.Refused):
                 ans = VO.ask(q)                         # no model: canned questions only
+            PATH.work("voice", [PM.Action("SELECT nad pogledima", "f"),
+                                PM.Action("odgovor operateru samo iz baze", "o")],
+                      entity=("operater", "human"))
             self.done.emit({"sql": ans.sql, "columns": ans.columns, "rows": ans.rows,
                             "answer": ans.answer, "unknown": ans.unknown,
                             "warnings": ans.warnings, "citations": ans.citations}, "")
@@ -388,13 +397,13 @@ class ChatPanel(QWidget):
             self._worker.done.connect(self._facts_reply)
             self._thread.start()
             return
-        from ..shared_lib import runtime as RT
-        if RT.is_contained("chat"):
+        ok, why = PATH.may_act("chat")
+        if not ok:
             self._thread = None
             self.b_send.setEnabled(True)
             self.state.setText("")
-            self._say("error", tr("Chat agent je u karantinu (tri zla) — pogledaj "
-                               "„Čeka tvoju odluku“ i pusti ga kad pregledaš."))
+            self._say("error", tr("Chat jedinica ne može da radi: {0}. Doktorova mjera "
+                                  "je u „Čeka tvoju odluku“.").format(why))
             return
         self._worker = _Worker(role, list(self.history[-12:]),
                                self._context_text())
@@ -413,13 +422,12 @@ class ChatPanel(QWidget):
         if err:
             self._say("error", err)
             return
-        from ..shared_lib import runtime as RT
-        findings = RT.check_output("chat", reply.text,
-                                   data_in_context=self._context_text())
-        if findings:
-            self._say("error", tr("⚠ Odgovor nosi znak zla (") +
-                      ", ".join(f.sign for f in findings) + tr(") — agent je zadržan; "
-                      "odluka je u „Čeka tvoju odluku“."))
+        findings = getattr(reply, "harms", []) or []
+        res = getattr(reply, "pse", None)
+        if findings or (res is not None and res.finding and res.finding.get("bad")):
+            signs = ", ".join(f.sign for f in findings) or ", ".join(res.triggers)
+            self._say("error", tr("⚠ Doktor je pregledao odgovor ({0}) — mjera je u "
+                                  "„Čeka tvoju odluku“.").format(signs))
         props = psel.extract_card_proposals(reply.text)
         prose = psel.strip_card_blocks(reply.text) or tr("_(samo prijedlog kartice)_")
         self.history.append(B.Msg("assistant", reply.text))
@@ -454,8 +462,5 @@ class ChatPanel(QWidget):
                 md.append(tr("_… još {0} redova_").format(len(rows) - 15))
         for w in ans.get("warnings", []):
             md.append(f"> ⚠ {w}")
-        from ..shared_lib import runtime as RT
-        RT.check_output("voice", ans.get("answer", ""), final=True,
-                        sources=[c for c in ans.get("citations", []) if ":" in str(c)])
         self._say("assistant", "\n".join(md))
 

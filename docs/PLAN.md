@@ -86,16 +86,16 @@ Osnova: [PSE MASTER ARCHITECTURE v4](../../PSE_MASTER_ARCHITECTURE_v4%20(2).pdf)
 | agentu | primljena instrukcija iz podataka (injekcija); radnje izvan misije; odgovor bez provjere ("sir, yes sir", C); skok thete |
 | fajlu | upis mimo kapije, hash ne odgovara a trag vodi do agenta, izmjena/brisanje zapečaćenog fajla |
 
-**Agent sa ijednim zlom je zaražen i mora se liječiti** (master §4 S3, §8 Fizičar, §10.6 dva stepena):
+**Agent sa ijednim zlom je zaražen i mora se liječiti** (master §4 S3, §8 Doktor, §10.6 dva stepena):
 1. **Zadržavanje** (stepen 1, automatski, povratno): zamrznut upis i LLM pozivi; izlazi u "Čeka tvoju odluku"; sve od prvog lošeg traga → SUSPECT
-2. **Dijagnoza** (Fizičar): koje zlo, od kada ("nulti pacijent" iz dnevnika), praćenje kontakata po provenance tragu, atraktor N/B/C/S
+2. **Dijagnoza** (Doktor): koje zlo, od kada ("nulti pacijent" iz dnevnika), praćenje kontakata po provenance tragu, atraktor N/B/C/S
 3. **Liječenje**, od najblažeg: boundary reset → vraćanje fajlova iz pečata i označavanje upisa REFUTED/SUSPECT (ne briše se) → zaštitna fisija S3 (čista A nastavlja, zadržana B za forenziku pa umire; **traži odobrenje**) → zamjena (čuvari/Guardiani se ne popravljaju) → ako je uzrok model: oslobađanje i ponovni prijem (§8)
 4. **Dekontaminacija**: nova čista jedinica ponovo provjerava sve što je zaraženi proizveo; potrošači zagađenih podataka ponovo rade; finalni izvještaji se ponovo pečate tek posle čiste provjere
 5. **Oporavak**: OBSERVE-ONLY, znanje na težini 0.70 dok SHARED_LIB ne potvrdi; puna prava posle N čistih ciklusa
 6. **Imunitet**: potpis infekcije u registar SHARED_LIB-a; izvještaj o slučaju operateru
 7. **Smrt**: ponovna infekcija 3 puta zaredom ("→ ∞") → harvest-and-terminate (samo potvrđeno znanje)
 
-Ko liječi liječnika: SHARED_LIB zamjenjuje bolesnog Fizičara svježim (nasljeđuje registar obrazaca, ne bolesnu thetu). Sve iz stepena 2 (fisija, smrt, vraćanje operaterovih fajlova) odlučuje čovjek.
+Ko liječi liječnika: SHARED_LIB zamjenjuje bolesnog Doktora svježim (nasljeđuje registar obrazaca, ne bolesnu thetu). Sve iz stepena 2 (fisija, smrt, vraćanje operaterovih fajlova) odlučuje čovjek.
 
 ### F6 · GUI u stilu Svaroga (PySide6 + QSS)
 - tamna tema `#12151d`, paneli, ćilibarni akcenat `#ffc257`, zaobljene kartice

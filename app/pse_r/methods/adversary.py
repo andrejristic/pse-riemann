@@ -189,10 +189,20 @@ def certify_empty(name: str, l_star: float, eps: float = 1e-6, l_hi: float = 0.2
 
 def run(name: str, certificate: bool = True, cancel=None, nb: int = 61, nk: int = 25,
         eps: float = 1e-6, max_cells: int = 20000) -> Report:
+    from ..pse import measure as PM
+    from ..pse import path as PATH
+    ok, why = PATH.may_act("adversary")
+    if not ok:                                          # Faza 6d: a frozen unit does not act
+        raise PATH.Refused(f"adversarijalni mod: {why}")
     rep = search(name, nb, nk, cancel)
     if certificate:
         rep.certificate = certify_empty(name, rep.best_at["l"], eps=eps, max_cells=max_cells,
                                         cancel=cancel)
+    acts = [PM.Action("pretraga prostora parametara", "f")]
+    if certificate:
+        acts.append(PM.Action("certifikat praznine", "f"))
+    PATH.work("adversary", acts, entity=(f"metoda:{name}", "document"),
+              note=f"bolje={rep.better_than_claim}")
     return rep
 
 

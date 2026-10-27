@@ -32,15 +32,33 @@ def reproduce_out(res: dict) -> dict:
 
 @decider("heal.plan", v=2)
 def heal_plan(inp: dict) -> dict:
-    """v2 (round 3, item 21): form-specific steps wait while hypotheses compete."""
-    from ..guardian import harms as HRM
-    from ..guardian.healing import Healer
+    """HISTORICAL (rounds 2–3, before Faza 6d): the healing ladder of the old
+    guardian/healing.py, frozen here so that journal records made before the
+    PSE Doctor still replay. New decisions are recorded as "doctor.examine"."""
     from . import actions as A
-    findings = [HRM.Finding(h, s, "", HRM.HIGH) for h, s in inp["findings"]]
-    plan = Healer._ladder(findings)
+    harms = {h for h, _ in inp["findings"]}
+    signs = {s for _, s in inp["findings"]}
+    plan = [("boundary-reset", 1)]
+    if "file" in harms:
+        plan.append(("vraćanje-fajlova-iz-pečata", 1))
+    if "human" in harms:
+        plan.append(("označi-REFUTED/SUSPECT", 1))
+    if "agent" in harms:
+        plan.append(("fisija", 2))
+        if {"injekcija"} & signs:
+            plan.append(("ponovni-prijem-modela", 2))
     if inp.get("decided") is False:
-        plan = [(a, t) for a, t in plan if a not in Healer.FORM_SPECIFIC]
+        plan = [(a, t) for a, t in plan if a not in ("ponovni-prijem-modela",)]
     return {"plan": [[a, A.may_auto(a)] for a, _ in plan]}
+
+
+@decider("doctor.examine", v=1)
+def doctor_examine(inp: dict) -> dict:
+    """The PSE Doctor's decision (Faza 6d, rules 13, 19, 20)."""
+    from ..pse import doctor as DR
+    f = DR.examine(list(inp["triggers"]), inp["attractor"], int(inp["rung"]),
+                   gap_run=int(inp.get("gap_run", 0)), harm_run=int(inp.get("harm_run", 0)))
+    return {"bad": f.bad, "measure": f.measure}
 
 
 @decider("guard.trip", v=1)

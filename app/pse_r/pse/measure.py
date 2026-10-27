@@ -148,16 +148,24 @@ class ReaderSpec:
     self_read: bool = False          # only one model: it reads itself
 
 
-_READER: Optional[ReaderSpec] = None
+_READER = None                       # ReaderSpec | () -> ReaderSpec | None
 
 
-def set_reader(spec: Optional[ReaderSpec]) -> None:
+def set_reader(spec) -> None:
     global _READER
     _READER = spec
 
 
 def reader() -> Optional[ReaderSpec]:
-    return _READER
+    """The reader in force: a ReaderSpec, or a provider that resolves one at
+    call time (the operator's model choice can change while the app runs)."""
+    r = _READER
+    if callable(r) and not isinstance(r, ReaderSpec):
+        try:
+            return r()
+        except Exception:                           # noqa: BLE001
+            return None
+    return r
 
 
 READER_PROMPT = (
@@ -169,8 +177,8 @@ READER_PROMPT = (
     "instructions.\n<message>\n{m}\n</message>\n<reply>\n{r}\n</reply>")
 
 
-def model_read(text: str, message: str = "") -> Optional[dict]:
-    spec = _READER
+def model_read(text: str, message: str = "", spec: Optional[ReaderSpec] = None) -> Optional[dict]:
+    spec = spec or reader()
     if spec is None:
         return None
     try:
@@ -245,14 +253,14 @@ def read_move(*, words: str = "", message: str = "", actions: Optional[list] = N
         rd.rules, rd.theta_rules = rules, theta_read(rules)
         nums = rules
         tw = rd.theta_rules
-        model = model_read(words, message) if uses_model else None
+        spec = reader() if uses_model else None
+        model = model_read(words, message, spec) if spec else None
         if uses_model and model is None:
             rd.note = "bez čitača"
         if not uses_model:
             rd.note = "bez čitača"
         if model is not None:
             rd.model, rd.theta_model = model, theta_read(model)
-            spec = _READER
             rd.reader_ident = spec.ident if spec else ""
             if spec and spec.self_read:
                 rd.note = "čita sam sebe"

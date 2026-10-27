@@ -29,10 +29,11 @@ from PySide6.QtWidgets import (QComboBox, QGraphicsPathItem, QGraphicsScene,
 
 from .. import config
 from ..core import journal as J
-from ..core import theta as TH
+from ..pse import measure as PM
+from ..pse import path as PATH
 from ..llm import backend as B
 from ..llm.budget import BudgetExceeded
-from ..llm.router import NoProvider, router
+from ..llm.router import NoProvider
 from .widgets import MarkdownView, button, small
 
 
@@ -142,12 +143,12 @@ class _Transcribe(QObject):
 
     def run(self):
         try:
-            r = router().call(B.VISION, [B.Msg(
+            r = PATH.ask("whiteboard", [B.Msg(
                 "user",
                 "Prepiši matematiku sa ove table u LaTeX. Vrati SAMO LaTeX.",
-                image_png=self.png)])
+                image_png=self.png)], entity=("operater", "human"))
             self.done.emit(r.text, "")
-        except (NoProvider, BudgetExceeded) as e:
+        except (NoProvider, BudgetExceeded, PATH.Refused) as e:
             self.done.emit("", str(e))
         except Exception as e:                          # noqa: BLE001
             self.done.emit("", f"{type(e).__name__}: {e}")
@@ -277,7 +278,8 @@ class WhiteboardTab(QWidget):
                      tr("> Transkripcija je prijedlog modela koji si ti potvrdio. "
                      "Originalni potezi su iznad i oni su izvor istine."), ""]
         note.write_text("\n".join(body), encoding="utf-8")
-        TH.record("user_write", 2.0, source="whiteboard")
+        PATH.work("whiteboard", [PM.Action("snima tablu operatera", "o", checked=True)],
+                  entity=("operater", "human"), note=note.name)
         J.log(J.GATE, "user", {"note": str(note), "svg": str(svg) if svg else "",
                                "transcribed": bool(tex)},
               subject=note.stem, verdict="whiteboard")

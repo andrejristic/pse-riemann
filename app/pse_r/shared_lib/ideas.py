@@ -183,21 +183,29 @@ _MAIN_SYSTEM = (
 
 def _default_ask_main(title: str, abstract: str, mission: dict) -> str:
     from ..llm import backend as B
-    from ..llm import selection as SEL
-    back = SEL.role_backend(B.CURATE)
+    from ..pse import path as PATH
     user = (f"MISIJA: {mission['title']}\n{mission['question']}\n\n"
             f"RAD: {title}\n\n{abstract[:3000]}")
-    return back.chat([B.Msg("user", user)], system=_MAIN_SYSTEM, max_tokens=500).text
+    return PATH.ask("ideas", [B.Msg("user", user)], system_extra=_MAIN_SYSTEM,
+                    max_tokens=500, data_in_context=abstract[:3000],
+                    entity=(title[:120], "document")).text
 
 
 def _wording(title: str, abstract: str, mid: str, terms: list,
              ask: Optional[Callable]) -> tuple[dict, str]:
     """Main AI wording if it answers well; otherwise the fixed template."""
+    from ..pse import measure as PM
+    from ..pse import path as PATH
     base = _template(title, mid, terms)
     if ask is False:
+        PATH.work("ideas", [PM.Action("šablon ideje iz sažetka", "f", external=True)],
+                  entity=(title[:120], "document"), note="šablon")
         return base, "šablon"
     try:
         raw = (ask or _default_ask_main)(title, abstract, MIS.get(mid))
+        if ask:
+            PATH.words("ideas", raw, message=abstract[:3000], entity=(title[:120], "document"),
+                       actions=[PM.Action("čita spoljni tekst", "f", external=True)], note="ask")
         d = json.loads(re.search(r"\{.*\}", raw or "", re.S).group(0))
         idea, why, meth = (str(d.get("ideja", "")).strip(), str(d.get("zasto", "")).strip(),
                            str(d.get("metoda", "")).strip())

@@ -44,19 +44,23 @@ def test_tampered_inputs_are_caught_by_their_hash(operator):
     assert R.replay_event(ev) == "redacted"              # not comparable, not silent ok
 
 
-def test_heal_plan_and_guard_trip_replay(operator):
+def test_doctor_and_guard_trip_replay(operator):
     from pse_r.guardian import harms as HRM
-    from pse_r.guardian.healing import Healer
     from pse_r.llm import limits as L
+    from pse_r.pse import unit as PU
+    from pse_r.shared_lib import pse_registry as PR
     from pse_r.shared_lib import runtime as RT
-    h = Healer()
-    c = h.detect("r3-replay-agent", [HRM.Finding(HRM.AGENT, "injekcija", "x", HRM.HIGH)])
-    h.treat(c)
+    PR.reset_for_tests()
+    lib = PR.pse()
+    lib.define(PR.AgentSpec("lab-replay", PU.Mission("s", "a", "o"), 50, "lab", False))
+    u = lib._spawn("lab-replay", lab=True)
+    lib.move(u, words="x", harms=[HRM.Finding(HRM.AGENT, "injekcija", "x", HRM.HIGH)])
+    lib.end(u, "kraj testa")
     L.resume(); L._LISTENERS.clear(); L._WATCH.clear()
     RT.install_hooks()
     L.configure(L.Limits(L_latency_s=2.0))
     L.observe("latency", 3.0)
-    rep = R.replay_all(_events("heal.plan")[-1:] + _events("guard.trip")[-1:], notify=False)
+    rep = R.replay_all(_events("doctor.examine")[-1:] + _events("guard.trip")[-1:], notify=False)
     assert rep.checked == 2 and rep.ok == 2
     L.resume(); L._LISTENERS.clear(); L._WATCH.clear()
 

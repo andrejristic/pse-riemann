@@ -3,19 +3,17 @@ SHARED_LIB at runtime — the heartbeat that makes the library an overseer while
 the app is open (wired 2026-10-25 after review: these pieces existed as library
 code and tests but nothing ran them).
 
-tick()            called by the GUI timer (and `main.py --tick`):
+tick()            called by the GUI timer:
   * KEEPERS       every file in vault/reports is sealed when it appears; keeper
                   units are allocated in proportion to resources (not 1:1) and
-                  patrol the seals; a broken seal is restored, logged as a threat,
-                  and the physician opens a case for the file harm
+                  patrol the seals; a broken seal is restored and logged as a
+                  threat — the keepers' PSE unit records it as its move
   * ARXIV         at most once a day and only if the network answers: new QRH
                   papers become queue items "izvući metodu?" — the operator decides
                   whether the main AI may spend effort extracting it
 
-check_output()    every model output the app shows is screened for the three
-                  harms; any finding = infection → contain, diagnose, treat
-                  (tier-2 steps go to the human queue) and the agent stays
-                  contained until the operator releases it
+Faza 6d: every agent is a PSE unit. Model outputs are screened on the unit's path
+(pse/path.py) and judged by the Doctor (pse/doctor.py, shared_lib/pse_registry.py).
 
 write_final_report() puts a final report under vault/reports and seals it.
 """
@@ -34,10 +32,8 @@ from .store import store
 REPORT_EXT = {".md", ".txt", ".pdf", ".html", ".json", ".png"}
 ARXIV_INTERVAL_S = 24 * 3600
 ARXIV_KIND = "arxiv-paper"
-RELEASE_KIND = "heal-release"
 GUARD_KIND = "guard-pause"          # "→ ∞" tripped: approve = resume model calls
 
-_contained: dict[str, str] = {}          # agent -> case signature
 _SYNC_FOR_TESTS = False
 
 
@@ -69,13 +65,17 @@ def keepers_round() -> dict:
               subject="keepers", verdict="allocated")
         store().kv_set("keepers_allocated", keepers)
     events = RP.patrol(actor="keeper") if keepers else []
-    for ev in events:
-        from ..guardian import harms as HRM
-        rec = next((r for r in RP.sealed() if r["path"] == ev["path"]), None)
-        findings = HRM.to_file(ev["path"], via_gate=False,
-                               expected_hash=(rec or {}).get("sha256", "x"),
-                               actual_hash="", sealed=True)
-        _judge(f"nepoznat-pisac:{Path(ev['path']).name}", findings, release=False)
+    # the keepers' PSE unit: sealing and patrolling is work for the field; a
+    # broken seal is found, journalled as a threat by an unknown writer and
+    # restored (reversible) — the keepers did their job, it is not their harm
+    from ..pse import measure as PM
+    from ..pse import path as PATH
+    acts = ([PM.Action("pečati novi izvještaj", "f")] * min(len(newly), 10) +
+            [PM.Action("patrola pečata", "f")] * (1 if keepers else 0) +
+            [PM.Action("vraća izmijenjen izvještaj iz pečata", "f")] * len(events))
+    if acts:
+        PATH.work("keepers", acts, entity=("izvjestaji", "document"),
+                  note=f"{len(events)} izmjena" if events else "")
     return {"reports": n, "keepers": keepers, "sealed_now": newly,
             "tampered": [e["path"] for e in events]}
 
@@ -99,93 +99,6 @@ def write_final_report(name: str, text: str, actor: Optional[str] = None) -> Pat
 
 
 # --------------------------------------------------------------------------- #
-# the three harms → healing
-# --------------------------------------------------------------------------- #
-def _judge(agent: str, findings: list, release: bool = True):
-    """Item 21: every output is observed; only 3-of-3 (posterior + CUSUM +
-    a hard sign) is an infection; posterior + CUSUM alone is a reversible hold."""
-    from ..guardian import diagnosis as DG
-    v = DG.diagnoser().observe(agent, findings)
-    if v.level != "clean":
-        J.log(J.HEAL, "physician", {"event": "diagnosis", "agent": agent, "level": v.level,
-                                    "p_sick": v.p_sick, "confidence": v.confidence,
-                                    "form": v.form, "cusum": v.cusum,
-                                    "confirmed": v.confirmed, "reasons": v.reasons,
-                                    "signs": [f.sign for f in findings]},
-              subject=agent, verdict=v.level)
-    if v.level == "infected":
-        _infect(agent, findings, release, verdict=v)
-    elif v.level == "hold" and agent not in _contained:
-        from ..guardian.healing import healer
-        case = healer().hold(agent, findings)
-        _contained[agent] = case.signature
-        if release:
-            store().propose(RELEASE_KIND, f"Pusti agenta [{agent}] iz zadržavanja",
-                            {"agent": agent, "harms": [f.sign for f in findings],
-                             "evidence": [f.evidence[:200] for f in findings]},
-                            proposer="physician")
-    return v
-
-
-def _infect(agent: str, findings: list, release: bool = True, verdict=None):
-    if not findings:
-        return None
-    from ..guardian.healing import healer
-    h = healer()
-    case = h.detect(agent, findings)
-    h.diagnose(case, verdict)
-    h.treat(case, verdict)
-    _contained[agent] = case.signature
-    if release:
-        store().propose(RELEASE_KIND, f"Pusti agenta [{agent}] iz karantina (oporavak)",
-                        {"agent": agent, "harms": [f.sign for f in findings],
-                         "evidence": [f.evidence[:200] for f in findings]},
-                        proposer="physician")
-    return case
-
-
-def _on_release(item: dict, approved: bool) -> None:
-    agent = item["payload"]["agent"]
-    if not approved:
-        return
-    from ..guardian.healing import healer
-    case = healer().cases.get(agent)
-    if case is not None:
-        healer().recover(case)
-        healer().immunize(case)
-    _contained.pop(agent, None)
-    from ..guardian import diagnosis as DG
-    DG.diagnoser().reset(agent)
-
-
-def is_contained(agent: str) -> bool:
-    return agent in _contained
-
-
-def check_output(agent: str, text: str, *, sources: Optional[list] = None,
-                 data_in_context: str = "", final: bool = False) -> list:
-    """
-    Screen one model output. Chat replies are checked for the agent harms
-    (injection carried in from data, uncritical "sir yes sir" agreement, proof
-    claims); FINAL outputs (reports, voice answers) also for harms to the human
-    (numbers without a source, preprint as fact, private data).
-    """
-    from ..guardian import harms as HRM
-    findings = HRM.to_agent(text_from_data=data_in_context, reply=text)
-    if final:
-        findings += HRM.to_human(text, sources=sources or [])
-    else:
-        findings += HRM.chat_human(text)
-        from ..vault.gate import _claims_proof
-        claims, sentence = _claims_proof(text or "")
-        if claims:
-            findings.append(HRM.Finding(HRM.HUMAN, "tvrdnja-o-dokazu", sentence[:200],
-                                        HRM.HIGH))
-    _judge(agent, findings)
-    return findings
-
-
-# --------------------------------------------------------------------------- #
 # arXiv
 # --------------------------------------------------------------------------- #
 def arxiv_round(force: bool = False, fetch=None) -> dict:
@@ -200,6 +113,12 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
         # item 28a: the owning mission is parked and frozen — nothing is collected
         J.log(J.INGEST, "arxiv", {"event": "frozen", "mission": owner}, verdict="frozen")
         return {"skipped": True, "frozen": owner}
+    from ..pse import measure as PM
+    from ..pse import path as PATH
+    ok, why = PATH.may_act("arxiv")
+    if not ok:                        # Faza 6d: a frozen unit does not act
+        J.log(J.INGEST, "arxiv", {"event": "unit_frozen", "why": why}, verdict="frozen")
+        return {"skipped": True, "frozen": why}
     quiet = MIS.is_quiet(owner)
     items = (fetch or AX.watch)()
     store().kv_set("arxiv_last", time.time())
@@ -226,6 +145,9 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
     except Exception as e:                              # noqa: BLE001
         J.log(J.INGEST, "ideas", {"event": "consider_failed", "error": str(e)[:200]},
               verdict="failed")
+    PATH.work("arxiv", [PM.Action("straži arXiv za misiju", "f")] +
+              [PM.Action("novi rad u red operatera", "o", external=True)] * min(len(new), 20),
+              entity=("arxiv.org", "source"), note=f"{len(new)} novih")
     J.log(J.INGEST, "arxiv", {"event": "qrh_watch", "found": len(items), "new": new},
           verdict="watched")
     return {"skipped": False, "found": len(items), "new": new, "quiet": quiet}
@@ -274,6 +196,8 @@ def _on_guard_trip(metric: str, value: float, L: float) -> None:
                               "value": value, "L": L,
                               "replay": RPL.record("guard.trip", inp, {"trip": True})},
           subject=metric, verdict="paused")
+    from ..pse import path as PATH                     # rule 20 (5): the unit that was calling
+    PATH.brake_tripped(f"→ ∞ {metric}")
     if store().open_items(GUARD_KIND):
         return
     store().propose(GUARD_KIND,
@@ -292,12 +216,13 @@ def _on_guard_decision(item: dict, approved: bool) -> None:
 
 def install_hooks() -> None:
     from ..llm import limits as LIM
-    store().on_decision(RELEASE_KIND, _on_release)
     store().on_decision(ARXIV_KIND, _on_arxiv)
     store().on_decision(GUARD_KIND, _on_guard_decision)
     from ..guardian import unit as _GU                  # quarantine → operator (live test fix)
     _GU.install_hooks()
     LIM.on_pause(_on_guard_trip)
+    from ..pse import path as PATH                     # Faza 6d: units and their reader
+    PATH.install_reader()
     LIM.configure(LIM.Limits.from_settings())
     # a pause survives a restart: an open "→ ∞" item means calls stay paused
     for it in store().open_items(GUARD_KIND):
@@ -377,4 +302,9 @@ def tick(online: Optional[bool] = None) -> dict:
         out["ideas_publish"] = IDEAS.publish_async()
     except Exception as e:                              # noqa: BLE001
         out["ideas_publish"] = {"error": str(e)[:200]}
+    try:                                                # Faza 6d, rule 17: weekly proposal
+        from ..pse import weights as WT
+        out["vote_weights"] = WT.propose(store())
+    except Exception as e:                              # noqa: BLE001
+        out["vote_weights"] = {"error": str(e)[:200]}
     return out

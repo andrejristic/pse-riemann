@@ -30,7 +30,6 @@ import mpmath as mp
 
 from .. import config
 from ..core import journal as J
-from ..core import theta as TH
 from ..vault.card import Card, COMPUTED
 from ..vault.gate import Verdict, gate
 from . import experiments as EX
@@ -141,8 +140,6 @@ def run(key: str, params: Optional[dict] = None, make_card: bool = True
     (run_dir / "result.json").write_text(
         json.dumps(record, indent=1, default=str), encoding="utf-8")
 
-    # A lab run is self-directed work — it is the app producing its own truth.
-    TH.record("lab_run", 1.0, source=f"lab:{key}", note=run_id)
     J.log(J.LAB, "lab",
           {"experiment": key, "params": p, "numbers": res.numbers,
            "elapsed_s": record["elapsed_s"], "sha": sha[:16],

@@ -22,9 +22,7 @@ then it is REPLACED (fresh counters; the record in SHARED_LIB stays).
 """
 from __future__ import annotations
 
-import statistics
 import time
-from collections import deque
 from typing import Optional
 
 from ...core import journal as J
@@ -61,8 +59,6 @@ class SSHGuardian:
             from ... import settings as S
             limits = S.load().get("ssh_L") or {}
         self.keys = K.ThreeKeys(limits, accounts)
-        self.theta_series: deque = deque(st.get("theta", [])[-200:], maxlen=200)
-        self.generation = int(st.get("generation", 1))
         self.stats = {"lines": 0, "events": 0, "tier1": 0, "tier2": 0}
 
     # ---------------------------------------------------------------- loop
@@ -182,50 +178,53 @@ class SSHGuardian:
 
     # ---------------------------------------------------------------- theta
     def _theta(self, o: float, s: float) -> None:
+        """The poll is a move of the SSH guardian's PSE unit (Faza 6d): its θ is
+        measured by SHARED_LIB's meter; a flat θ while traffic flows is the
+        schizoid attractor, and the Doctor — not this class — replaces it."""
         if o + s <= 0:
-            return                                           # nothing happened: no sample
-        # measured, never adjusted: what the unit actually spent on each side
-        th = 100.0 * o / (o + s)
-        self.theta_series.append(round(th, 3))
-        if self.asleep():
-            self.replace("θ ravna dok saobraćaj teče (šizoidni obrazac, §10.7)")
+            return                                           # nothing happened: no move
+        from ...pse import measure as PM
+        from ...pse import path as PATH
+        acts = ([PM.Action("odgovara napadaču", "o", checked=True)] * min(int(o), 20) +
+                [PM.Action("provjera prije radnje", "s", justified=True)] * min(int(s), 40))
+        try:
+            # attackers it actually engaged with are on its boundary; a guardian
+            # that registers no one while it works is the schizoid one (rule 5a)
+            PATH.work("ssh-guardian", acts, entity=("ssh-napadači", "source") if o > 0 else None)
+        except Exception:                                    # noqa: BLE001 — never blocks
+            pass
+
+    def _unit(self):
+        from ...pse import path as PATH
+        return PATH.unit("ssh-guardian")
+
+    @property
+    def generation(self) -> int:
+        try:
+            return self._unit().core.generation
+        except Exception:                                    # noqa: BLE001
+            return 1
 
     def theta(self) -> Optional[float]:
-        return self.theta_series[-1] if self.theta_series else None
+        try:
+            return round(self._unit().theta.current, 2)
+        except Exception:                                    # noqa: BLE001
+            return None
 
     def health(self) -> dict:
-        ser = list(self.theta_series)[-30:]
-        if len(ser) < 2:
-            return {"theta": self.theta(), "sigma": None, "status": "zagrijavanje"}
-        sig = statistics.pstdev(ser)
-        mean = statistics.fmean(ser)
-        if sig < 0.01 and len(ser) >= 10:
-            status = "ravna (spava)"
-        elif mean > THETA_BAND[1]:
-            status = "previše upija napadača"
-        elif mean < THETA_BAND[0]:
-            status = "ispod opsega"
-        else:
-            status = "zdrava"
-        return {"theta": round(mean, 2), "sigma": round(sig, 3), "status": status,
-                "generation": self.generation}
-
-    def asleep(self) -> bool:
-        ser = list(self.theta_series)[-10:]
-        return len(ser) >= 10 and statistics.pstdev(ser) < 0.01
-
-    def replace(self, why: str) -> None:
-        """Recovery = replacement, not remediation (§10.7). The record stays."""
-        self.generation += 1
-        self.keys = K.ThreeKeys(self.keys.L, self.keys.accounts)
-        self.theta_series.clear()
-        J.log(J.UNIT, "physician", {"event": "ssh_guardian_replaced", "why": why,
-                                    "generation": self.generation},
-              subject="ssh-guardian", verdict="replaced")
+        from ...pse import swing as SW
+        u = self._unit()
+        rep = SW.assess(u.theta.series, boundary_empty=not u.boundary.entities)
+        status = {"H": "zdrava", "S": "ravna (spava)", "C": "previše upija napadača",
+                  "N": "ispod opsega", "B": "njiše se", "?": "zagrijavanje"}.get(
+                      rep.attractor, rep.attractor)
+        if u.frozen:
+            status += " · zamrznuta (Doktor)"
+        return {"theta": round(u.theta.current, 2), "sigma": round(rep.sigma, 3),
+                "status": status, "generation": u.core.generation}
 
     def _persist(self) -> None:
-        st = {"theta": list(self.theta_series), "generation": self.generation,
-              "source": ({"kind": self.source_kind, **self.source.state()}
+        st = {"source": ({"kind": self.source_kind, **self.source.state()}
                          if self.source is not None and hasattr(self.source, "state") else {})}
         _store().kv_set(KV_STATE, st)
 

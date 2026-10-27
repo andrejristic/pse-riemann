@@ -4,7 +4,6 @@ import pytest
 
 from pse_r.core import actions as A
 from pse_r.guardian import harms as HRM
-from pse_r.guardian.healing import Healer, TIER2
 from pse_r.shared_lib.store import store
 
 
@@ -21,26 +20,22 @@ def test_reversible_needs_an_undo():
 
 
 def test_human_tier_is_derived_from_declarations():
+    tier2 = {s.name for s in A.all_specs() if not s.auto}
     for name in ("fisija", "zamjena", "smrt", "ponovni-prijem-modela",
                  "vraćanje-fajlova-operatera"):
-        assert name in TIER2 and not A.may_auto(name)
+        assert name in tier2 and not A.may_auto(name)
     for name in ("contain", "boundary-reset", "vraćanje-fajlova-iz-pečata",
                  "označi-REFUTED/SUSPECT", "model.unload", "guard.pause"):
         assert A.may_auto(name) and A.spec(name).undo
 
 
-def test_healer_queues_every_non_reversible_step(operator, monkeypatch):
-    # a ladder step nobody declared must go to the human, not run
-    monkeypatch.setattr(Healer, "_ladder",
-                        staticmethod(lambda f: [("boundary-reset", 1),
-                                                ("nova-nedeklarisana-akcija", 1)]))
-    h = Healer()
-    case = h.detect("r3-agent", [HRM.Finding(HRM.AGENT, "injekcija", "x", HRM.HIGH)])
-    h.treat(case)
-    assert case.actions == ["boundary-reset"]
-    assert [a for _, a in case.pending] == ["nova-nedeklarisana-akcija"]
-    assert any(it["payload"]["action"] == "nova-nedeklarisana-akcija"
-               for it in store().open_items("heal"))
+def test_pse_fission_fusion_are_declared_reversible_with_undo():
+    # Faza 6d, rule 14: SHARED_LIB executes them alone because they are reversible
+    from pse_r.shared_lib import pse_registry as PR
+    PR.reset_for_tests()
+    PR.pse()
+    for name in ("pse.fisija", "pse.fuzija", "pse.produzenje", "pse.zamrzavanje"):
+        assert A.may_auto(name) and A.spec(name).undo
 
 
 def test_restore_from_seal_keeps_the_tampered_copy(operator, tmp_path):

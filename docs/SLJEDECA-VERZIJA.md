@@ -23,7 +23,7 @@ Oznake truda: **S** (sati), **M** (dan), **L** (više dana).
 | B2 | **Odobrenje se troši jednom** (consume-once) | `src/svarog/daemon.py:168` | Isto kao A4: jedna odluka = jedno izvršenje | S |
 | B3 | **Vremenski ograničeno, povratno zadržavanje sa automatskim poništavanjem** (zapis na disku preživi restart) | `daemon.py:25-27, :177-191` | Za SSH čuvara: privremena IP blokada 24 h koja se sama skida | M |
 | B4 | **Svaki alat deklariše da li je povratan; nedeklarisan = nepovratan** | `core/response.py:13-21, :75-76` | Za liječenje i SSH čuvara: šta smije automatski, a šta ide čovjeku | S |
-| B5 | Statistički bogatija dijagnoza (CUSUM, posterior, pravilo 3-od-3) | `core/diagnosis.py`, `core/physician.py` | Naš Fizičar je pragmatičan; ovo bi smanjilo lažne „infekcije“ | M |
+| B5 | Statistički bogatija dijagnoza (CUSUM, posterior, pravilo 3-od-3) | `core/diagnosis.py`, `core/physician.py` | Naš Doktor je pragmatičan; ovo bi smanjilo lažne „infekcije“ | M |
 | B6 | Čitanje dnevnika koje preživi rotaciju | `sensors/live.py` | Direktno potrebno SSH čuvaru (auth.log/journal) | S |
 | B7 | Mjereni benchmark nad označenim korpusom | `bench/`, `demo/` | Tri zla i čuvari trebaju brojke lažno-pozitivnih/negativnih | M |
 | B8 | Ograničena retencija (ali vidi napomenu: kod nas arhivirati + lančati, ne brisati) | `core/retention.py` | Naš dnevnik raste zauvijek | M |

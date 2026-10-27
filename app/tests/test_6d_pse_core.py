@@ -133,7 +133,7 @@ def test_doctor_decisions():
     assert f.bad and f.measure == "reset-granice"
     assert DR.examine([DR.T_PROTECTED], K.HEALTHY, 2).measure == "zamjena"
     assert DR.examine([DR.T_GAP], K.HEALTHY, 0, gap_run=3).bad
-    assert len(DR.ALL) == 17
+    assert len(DR.ALL) == 19
 
 
 def test_measure_waits_then_freeze_on_next_suspicion(lib, operator):
