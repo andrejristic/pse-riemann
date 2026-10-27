@@ -265,3 +265,26 @@ def test_burst_trigger(lib):
     for _ in range(22):
         trig += lib.move(u, actions=[M.Action("x")]).triggers
     assert DR.T_BURST in trig
+
+
+# --- the unit's path end to end (fake model behind the router) --------------- #
+def test_path_ask_end_to_end(lib, monkeypatch):
+    from pse_r.llm import backend as B
+    from pse_r.llm import router as RT
+    from pse_r.pse import path as PATH
+    seen = {}
+
+    def fake_unit_call(self, unit, role, messages, system_extra="", max_tokens=0):
+        seen["unit"], seen["role"] = unit.unit_id, role
+        return B.Reply("Rezultat je u lab-u [run-1]. Da li da nastavim?", "fake", "m1")
+    monkeypatch.setattr(RT.Router, "unit_call", fake_unit_call)
+    r = PATH.ask("skeptic", [B.Msg("user", "napadni ovo")], to_human=False)
+    assert seen["unit"].startswith("skeptic#") and r.pse.theta is not None
+    assert r.harms == []
+    rows = _store().rows("SELECT pvp FROM pse_moves WHERE unit_id=? ORDER BY id DESC LIMIT 1",
+                         (seen["unit"],))
+    assert "fake:m1" in rows[0]["pvp"]
+    lib.freeze(lib.unit("skeptic"), "test", "test")
+    with pytest.raises(PATH.Refused):
+        PATH.ask("skeptic", [B.Msg("user", "x")])
+    lib.unfreeze(lib.unit("skeptic"), "test")

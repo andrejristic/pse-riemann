@@ -223,6 +223,8 @@ def install_hooks() -> None:
     LIM.on_pause(_on_guard_trip)
     from ..pse import path as PATH                     # Faza 6d: units and their reader
     PATH.install_reader()
+    from . import mission_agent as MA                  # P3: proposals from mission talks
+    MA.install_hooks()
     LIM.configure(LIM.Limits.from_settings())
     # a pause survives a restart: an open "→ ∞" item means calls stay paused
     for it in store().open_items(GUARD_KIND):

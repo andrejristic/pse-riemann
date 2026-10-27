@@ -118,8 +118,8 @@ def ask(agent: str, messages: list, *, system_extra: str = "", max_tokens: int =
         lib.report_brake(u, DR.T_INFINITY, note="prekidač online AI-ja se sam isključio")
     harms = screen(reply.text or "", data_in_context=data_in_context, final=final,
                    sources=sources)
-    last_user = next((m.content for m in reversed(messages)
-                      if getattr(m, "role", "") == "user" and isinstance(m.content, str)), "")
+    last_user = next((getattr(m, "text", "") or "" for m in reversed(messages)
+                      if getattr(m, "role", "") == "user"), "")
     acts = list(actions or [])
     if data_in_context:
         acts.append(M.Action("čita spoljni tekst", "f", checked=True, external=True))

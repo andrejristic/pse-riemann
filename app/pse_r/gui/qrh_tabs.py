@@ -69,10 +69,47 @@ class MissionsTab(QWidget):
                              button(tr("Sljedeća misija ⟳"), self._switch_next),
                              button(tr("Ostavi za kasnije…"), self._park_active),
                              QLabel(tr("Dok čeka:")), self.cb_bg))
+        # P3 / 33f: talk about the mission, in this tab (agreement rule 28)
+        v.addWidget(flow_row(button(tr("Razgovaraj o misiji"), self._talk, primary=True),
+                             button(tr("Zatvori misiju…"), self._close_mission)))
         self._card_md = ""
         v.addWidget(hline())
+        from .mission_talk import MissionTalk
+        self.talk = MissionTalk()
+        self.talk.hide()
+        self.talk.closed.connect(self._talk_closed)
+        self.talk.proposed.connect(self.refresh)
+        v.addWidget(self.talk, 1)
         self.view = MarkdownView()
         v.addWidget(self.view, 1)
+        self.refresh()
+
+    def _talk(self):
+        mid = self.cb_mission.currentData() or MIS.active()
+        if not mid:
+            return
+        self.view.hide()
+        self.talk.open_for(mid)
+
+    def _talk_closed(self):
+        self.view.show()
+        self.refresh()
+
+    def _close_mission(self):
+        mid = self.cb_mission.currentData()
+        if not mid:
+            return
+        m = MIS.get(mid)
+        if QMessageBox.question(self, tr("Zatvori misiju"),
+                                tr("Zatvoriti misiju „{0}“? Agent misije umire, a sve iz njega "
+                                   "ide u SHARED_LIB.").format(m["title"] if m else mid)) \
+                != QMessageBox.Yes:
+            return
+        from ..shared_lib import mission_agent as MA
+        try:
+            MA.close_mission(mid)
+        except Exception as e:                       # noqa: BLE001
+            QMessageBox.warning(self, tr("Misije"), str(e))
         self.refresh()
 
     def _show_goal(self):
