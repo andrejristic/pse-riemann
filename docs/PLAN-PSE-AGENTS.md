@@ -65,3 +65,18 @@ State: P0, P1, P2 done (`e15e252`, `f27680b`, `fe1a079`, pushed). Andrej sleeps;
 | R8 | Debs again | with the guide inside; all tests; PSE audit; WORKLOG, ZA-ANDREJA, plan docx | all green | 1–2 h |
 
 Total about 28–44 h. At the end: the list of local commits for push approval and what I could not do.
+
+## Third round (2026-10-27, agreement rules 42–49): plan for 0.3.0~rc2
+
+State: rc1 built and pushed (`0cb32d4`); the first live test found two big problems (voice: a raw SQL error and a cut-off answer; the Missions tab does not lead into a concrete mission). Work starts only on "kreni".
+
+| # | Step | What exactly | Done when | Estimate |
+|---|---|---|---|---|
+| R9 | Model fixes (48 a, b, d) | Gemini 2.5 thinking budget per role + output limit; recognising a cut-off answer for all providers (finish reason), one retry, then the message "the answer was cut off"; reader with a per-model limit, incomplete JSON → "reader cut off" in the Laboratory | tests with fake providers (cut / complete answer) | 1.5–2 h |
+| R10 | Voice (48 c, 47) | invalid SQL → one retry with the error, then a human sentence; a question asking for judgement → a message + the link "Talk about the mission: X"; mission names as `mission:` links that open the workspace | tests + chat screenshot | 1–1.5 h |
+| R11 | Mission workspace (42) | Missions tab: missions list (cards) on the left; right top details + buttons; right bottom papers strip + conversation; draggable border; global buttons at the top | SR/EN screenshots, narrow screen (Acer) without overflow | 3–4 h |
+| R12 | Conversation on click (43, 44) | clicking a mission → the agent reads state + memory + papers and writes first; "new" for new papers; "Tell it to read…" (paper, arXiv full text, card, report, note) | tests with a fake model | 1.5–2 h |
+| R13 | Mission memory (45, 46) | at the end of a session the agent proposes items (decided, established with a source, open, next step); tick / delete / add → "Save memory"; without a decision "unreviewed"; the next session reads the memory, not the old conversation; beside "Where you left off" | tests + screenshot | 2–3 h |
+| R14 | Release rc2 (49) | all tests, PSE audit, language audit; packages 0.3.0~rc2 (personal and public), selftest from both; guides (SR/EN, md + docx, screenshots from the package) and the live-test guide updated; WORKLOG, ZA-ANDREJA; commits local, push on approval | all green | 2–3 h |
+
+Total about 11–15.5 h.

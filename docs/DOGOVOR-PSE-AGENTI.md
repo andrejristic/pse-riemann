@@ -124,3 +124,16 @@ Posle svake faze: izvještaj, testovi i stanje „ko je sada PSE sazdan“.
 | 39 | Vodiči | (1) kompletan vodič za cijelu aplikaciju `VODIC-SR` / `GUIDE-EN`, isti sadržaj, za 0.3.0, u paketu (md u aplikaciji „Pomoć → Vodič“ + docx), piše se posljednji iz instalirane verzije; lični paket dobija dodatak „Tvoje misije“. (2) vodič za instalaciju i živi test `PSE Riemann — VODIC 0.3.0 INSTALACIJA I ZIVI TEST.docx` + EN, samo za Andreja, ne ulazi u paket |
 | 40 | Kalibracija i vijek | θ doslovno po potezu do živog testa; N_max za chat i glas = 1000 |
 | 41 | Način rada | Andrej spava: radim sve iz plana bez pitanja; commitovi lokalno; na kraju spisak commitova za odobrenje + šta nisam mogao (`ZA-ANDREJA.md`) |
+
+## 8. Dogovor, treća runda (2026-10-27, posle prvog živog testa): rc2
+
+| # | Tema | Dogovor |
+|---|---|---|
+| 42 | Tab Misije = radni prostor | raspored A: **lijevo** lista misija kao kartice (naslov, kratko stanje, front, broj radova, broj stavki koje čekaju) + „+ Nova misija“; **desno gore** detalji izabrane misije (pitanje, stanje, cilj, zadnji koraci, „gdje si stao“) i njena dugmad (Aktiviraj, Ostavi za kasnije, Zatvori misiju); **desno dolje** traka radova koja se rasklapa („N od M izabrano ▾“) i razgovor; granica gore/dolje se vuče mišem. Gore u tabu ostaje ono što važi za sve misije (Provjeri arXiv, Adversarijalni mod, Radni tekst, Izvezi izvještaj) |
+| 43 | Početak razgovora | klik na misiju odmah pokreće agenta misije: čita stanje misije, pamćenje prošle sesije i radove, napiše prvu poruku (šta vidi, gdje ste stali, ≤ 3 pitanja) i čeka korisnika. Prvi poziv košta |
+| 44 | Šta agent čita | prvi put: svi radovi misije (sažeci); posle: radovi izabrani u prošloj sesiji + novi radovi od tada (označeni „novo“) + **sve što mu korisnik zada da čita** (rad iz liste, puni tekst arXiv rada, karticu, izvještaj, bilješku) |
+| 45 | Pamćenje misije | u sljedeću sesiju prenosi se **samo bitno**, ne stari razgovor: odlučeno / dogovoreno, utvrđeno (sa izvorom), otvorena pitanja, dogovoreni sljedeći korak. Agent **predlaže** stavke na kraju sesije (Završi razgovor, prelazak na drugu misiju, zatvaranje aplikacije); korisnik ih u radnom prostoru štiklira, briše ili dopunjuje → „Sačuvaj pamćenje“. Bez odluke se čuva agentov prijedlog označen „nepregledano“. Cijeli razgovor se i dalje čuva u rezultatima (NAŠE-NERECENZIRANO), ali ga agent više ne čita |
+| 46 | Pamćenje i „Gdje si stao“ | stoje jedno pored drugog: bilješka je korisnikova, pamćenje je agentovo (pregledano od korisnika) |
+| 47 | Imena misija u chatu | glas SHARED_LIB-a daje imena misija kao linkove koji otvaraju radni prostor te misije; pitanje koje traži sud („sljedeći korak“, „šta da radim“) → glas kaže da baza na to ne odgovara i daje link „Razgovaraj o misiji: X“ |
+| 48 | Popravke (obavezno) | (a) Gemini 2.5: budžet razmišljanja po ulozi, limit izlaza = odgovor + budžet (razmišljanje ne jede odgovor); (b) odsječen odgovor (svi provajderi): jedan ponovni pokušaj sa većim limitom, a ako je opet odsječen — aplikacija to kaže; (c) neispravan SQL u glasu: jedan ponovni pokušaj sa greškom poslatom modelu, pa ljudska rečenica — nikad sirova greška; (d) čitač: limit po modelu (200 + budžet razmišljanja); nepotpun JSON → „čitač odsječen“ vidljiv u Laboratoriji |
+| 49 | Izdanje | 0.3.0~rc2, oba paketa (lični i javni), vodiči ažurirani, snimci iz paketa |

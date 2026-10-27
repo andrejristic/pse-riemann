@@ -65,3 +65,18 @@ Stanje: P0, P1, P2 gotovi (`e15e252`, `f27680b`, `fe1a079`, pushano). Andrej spa
 | R8 | Deb-ovi ponovo | sa vodičem unutra; svi testovi; revizija PSE; WORKLOG, ZA-ANDREJA, plan docx | sve zeleno | 1–2 h |
 
 Ukupno oko 28–44 h. Na kraju: spisak lokalnih commitova za odobrenje push-a i šta nisam mogao.
+
+## Treća runda (2026-10-27, dogovor pravila 42–49): plan za 0.3.0~rc2
+
+Stanje: rc1 izgrađen i pushan (`0cb32d4`); prvi živi test našao dva velika problema (glas: sirova greška SQL-a i odsječen odgovor; tab Misije ne vodi u konkretnu misiju). Rad počinje tek na „kreni“.
+
+| # | Korak | Šta tačno | Gotovo kada | Procjena |
+|---|---|---|---|---|
+| R9 | Popravke modela (48 a, b, d) | Gemini 2.5 budžet razmišljanja po ulozi + limit izlaza; prepoznavanje odsječenog odgovora za sve provajdere (razlog prekida), jedan ponovni pokušaj, pa poruka „odgovor je odsječen“; čitač sa limitom po modelu, nepotpun JSON → „čitač odsječen“ u Laboratoriji | testovi sa lažnim provajderima (odsječen / cio odgovor) | 1,5–2 h |
+| R10 | Glas (48 c, 47) | neispravan SQL → jedan ponovni pokušaj uz grešku, pa ljudska rečenica; pitanje koje traži sud → poruka + link „Razgovaraj o misiji: X“; imena misija kao linkovi `mission:` koji otvaraju radni prostor | testovi + snimak chata | 1–1,5 h |
+| R11 | Radni prostor misije (42) | tab Misije: lista misija (kartice) lijevo; desno gore detalji + dugmad; desno dolje traka radova + razgovor; vučena granica; globalna dugmad gore | snimci SR/EN, uski ekran (Acer) bez prekoračenja | 3–4 h |
+| R12 | Razgovor na klik (43, 44) | klik na misiju → agent čita stanje + pamćenje + radove i piše prvi; „novo“ za nove radove; „Zadaj da čita…“ (rad, puni tekst arXiv, kartica, izvještaj, bilješka) | testovi sa lažnim modelom | 1,5–2 h |
+| R13 | Pamćenje misije (45, 46) | na kraju sesije agent predlaže stavke (odlučeno, utvrđeno sa izvorom, otvoreno, sljedeći korak); kvačice / brisanje / dopuna → „Sačuvaj pamćenje“; bez odluke „nepregledano“; sljedeća sesija čita pamćenje, ne stari razgovor; pored „Gdje si stao“ | testovi + snimak | 2–3 h |
+| R14 | Izdanje rc2 (49) | svi testovi, PSE revizija, revizija jezika; paketi 0.3.0~rc2 (lični i javni), selftest iz oba; vodiči (SR/EN, md + docx, slike iz paketa) i vodič za živi test ažurirani; WORKLOG, ZA-ANDREJA; commitovi lokalno, push na odobrenje | sve zeleno | 2–3 h |
+
+Ukupno oko 11–15,5 h.
