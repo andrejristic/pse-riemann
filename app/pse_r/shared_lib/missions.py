@@ -89,6 +89,24 @@ def create(mid: str, title: str, question: str, state: str,
     return mid
 
 
+def new_mission(title: str, question: str) -> str:
+    """The operator opens a new mission (both editions; the public one starts
+    with none). Its first state is "otvorena"."""
+    import re as _re
+    import unicodedata as _ud
+    OP.require_operator()
+    title, question = (title or "").strip(), (question or "").strip()
+    if not title or not question:
+        raise ValueError("misija treba naslov i pitanje")
+    slug = _ud.normalize("NFKD", title).encode("ascii", "ignore").decode().lower()
+    slug = _re.sub(r"[^a-z0-9]+", "-", slug).strip("-")[:40] or "misija"
+    mid, n = f"misija-{slug}", 1
+    while get(mid) is not None:
+        n += 1
+        mid = f"misija-{slug}-{n}"
+    return create(mid, title, question, "otvorena")
+
+
 def get(mid: str) -> Optional[dict]:
     _ensure()
     r = store().rows("SELECT * FROM missions WHERE id=?", (mid,))

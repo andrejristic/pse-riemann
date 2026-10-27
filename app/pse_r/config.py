@@ -18,7 +18,7 @@ from pathlib import Path
 
 APP_NAME = "PSE Riemann"
 APP_SLUG = "pse-riemann"
-VERSION = "0.2.0~rc2"     # round 3 release candidate 2 (live-test fixes); final: 0.2.0
+VERSION = "0.3.0~rc1"     # Faza 6d: every agent is a PSE unit; final: 0.3.0
 
 # --------------------------------------------------------------------------- #
 # Paths
@@ -41,6 +41,23 @@ def is_packaged() -> bool:
     A marker file the build drops — not a guess from write permissions, which
     would give a different answer for root than for you."""
     return getattr(sys, "frozen", False) or PACKAGED_MARKER.exists()
+
+
+# Edition (agreement rule 38): "andrej" = the personal package with the three
+# missions and the QRH content; "public" = empty missions, empty vault, all the
+# machinery. The build writes app/.edition; a checkout is Andrej's own copy.
+EDITION_FILE = APP_DIR.parent / ".edition"
+
+
+def edition() -> str:
+    e = os.environ.get("PSE_RIEMANN_EDITION", "").strip()
+    if not e and EDITION_FILE.exists():
+        e = EDITION_FILE.read_text(encoding="utf-8").strip()
+    return e if e in ("andrej", "public") else "andrej"
+
+
+def personal() -> bool:
+    return edition() == "andrej"
 
 
 RESULTS_NAME = "PSE Riemann rezultati"

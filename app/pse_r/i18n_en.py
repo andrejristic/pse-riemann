@@ -1067,4 +1067,8 @@ EN = {
 'Jezik': 'Language',
 'Otvori Laboratoriju (utiče na prave agente)': 'Open the Laboratory (acts on real agents)',
 '### Stanje roja': '### Swarm state',
+'Nova misija…': 'New mission…',
+'Nova misija': 'New mission',
+'Naslov misije:': 'Mission title:',
+'Pitanje misije (šta tačno želiš da saznaš):': "The mission's question (what exactly you want to find out):",
 }

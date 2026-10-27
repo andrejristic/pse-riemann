@@ -71,6 +71,7 @@ class MissionsTab(QWidget):
                              QLabel(tr("Dok čeka:")), self.cb_bg))
         # P3 / 33f: talk about the mission, in this tab (agreement rule 28)
         v.addWidget(flow_row(button(tr("Razgovaraj o misiji"), self._talk, primary=True),
+                             button(tr("Nova misija…"), self._new_mission),
                              button(tr("Zatvori misiju…"), self._close_mission)))
         self._card_md = ""
         v.addWidget(hline())
@@ -94,6 +95,25 @@ class MissionsTab(QWidget):
     def _talk_closed(self):
         self.view.show()
         self.refresh()
+
+    def _new_mission(self):
+        from PySide6.QtWidgets import QInputDialog
+        title, ok = QInputDialog.getText(self, tr("Nova misija"), tr("Naslov misije:"))
+        if not ok or not title.strip():
+            return
+        q, ok = QInputDialog.getMultiLineText(self, tr("Nova misija"),
+                                              tr("Pitanje misije (šta tačno želiš da saznaš):"))
+        if not ok or not q.strip():
+            return
+        try:
+            mid = MIS.new_mission(title, q)
+        except Exception as e:                       # noqa: BLE001
+            QMessageBox.warning(self, tr("Misije"), str(e))
+            return
+        self.refresh()
+        i = self.cb_mission.findData(mid)
+        if i >= 0:
+            self.cb_mission.setCurrentIndex(i)
 
     def _close_mission(self):
         mid = self.cb_mission.currentData()

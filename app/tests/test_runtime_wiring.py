@@ -56,6 +56,8 @@ def test_clean_output_is_not_a_harm(operator):
 
 
 def test_arxiv_round_queues_new_papers_once(operator):
+    from pse_r.shared_lib import missions as MIS
+    MIS.seed_first()                     # the QRH feed belongs to the first mission (rule 38)
     class It:
         def __init__(self, ref, title):
             self.source_ref, self.title, self.abstract = ref, title, ""
@@ -100,3 +102,16 @@ def test_extraction_prompt_carries_paper_and_rules():
         return "```json\n" + json.dumps(raw) + "\n```"
     EXT.extract_pack("arxiv:2610.12234", "Liu", paper_text="PAPER-BODY-MARKER", ask=ask)
     assert "PAPER-BODY-MARKER" in seen["p"] and "claimed_B" in seen["p"]
+
+
+def test_public_edition_has_no_qrh_feed(monkeypatch):
+    from pse_r.shared_lib import missions as MIS
+    monkeypatch.setattr(MIS, "get", lambda mid: None)
+    r = RT.arxiv_round(force=True, fetch=lambda: [])
+    assert r.get("skipped") and r.get("no_mission")
+
+
+def test_new_mission_by_operator(operator):
+    from pse_r.shared_lib import missions as MIS
+    mid = MIS.new_mission("Moja misija ć", "Šta tačno?")
+    assert mid.startswith("misija-moja-misija") and MIS.get(mid)["state"] == "otvorena"

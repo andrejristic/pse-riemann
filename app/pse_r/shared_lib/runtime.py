@@ -109,6 +109,8 @@ def arxiv_round(force: bool = False, fetch=None) -> dict:
     from ..methods import arxiv as AX
     from . import missions as MIS
     owner = MIS.FEED_OWNER["arxiv-qrh"]
+    if MIS.get(owner) is None:          # rule 38: the public edition has no QRH mission
+        return {"skipped": True, "no_mission": owner}
     if not MIS.accepts_background(owner):
         # item 28a: the owning mission is parked and frozen — nothing is collected
         J.log(J.INGEST, "arxiv", {"event": "frozen", "mission": owner}, verdict="frozen")
