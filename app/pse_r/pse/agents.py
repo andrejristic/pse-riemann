@@ -60,6 +60,10 @@ AGENTS = {
               K.N_MAX_DEFAULT, "rad", False, False),
     "doctor": (Mission("jedinice roja", "pregleda i liječi",
                        "zdrav roj; mjere idu operateru"), None, "roj", False, False),
+    # 33b: only when the operator starts it
+    "translator": (Mission("tekst koji operater želi na drugom jeziku", "prevodi",
+                           "vjeran mašinski prevod, original netaknut"), K.N_MAX_DEFAULT,
+                   "prevod", True, False),
     # P3
     "mission-agent": (Mission("misija i izabrani radovi", "razgovara s operaterom o misiji",
                               "prijedlozi u „Čeka tvoju odluku“"), None, "misija", True, False),
@@ -74,14 +78,14 @@ LABELS_SR = {"chat": "chat", "voice": "glas SHARED_LIB-a", "skeptic": "skeptik",
              "ssh-guardian": "SSH čuvar", "keepers": "čuvari pečata",
              "adversary": "adversarijalni mod", "arxiv": "arXiv stražar",
              "paper": "sastavljač rada", "doctor": "Doktor",
-             "mission-agent": "agent misije", "lab": "probna jedinica"}
+             "mission-agent": "agent misije", "translator": "prevodilac", "lab": "probna jedinica"}
 LABELS_EN = {"chat": "chat", "voice": "SHARED_LIB voice", "skeptic": "skeptic",
              "extractor": "extractor", "reader": "reader", "curator": "curator",
              "ideas": "ideas", "whiteboard": "whiteboard", "net-guardian": "network guardian",
              "ssh-guardian": "SSH guardian", "keepers": "seal keepers",
              "adversary": "adversarial mode", "arxiv": "arXiv watcher",
              "paper": "paper builder", "doctor": "Doctor",
-             "mission-agent": "mission agent", "lab": "test unit"}
+             "mission-agent": "mission agent", "translator": "translator", "lab": "test unit"}
 
 
 def define_all(lib) -> None:

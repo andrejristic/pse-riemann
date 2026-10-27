@@ -496,6 +496,10 @@ class EditorTab(QWidget):
         self.edit.setStyleSheet(
             f"font-family:monospace;font-size:{_BASE_PT[0]*0.95:.1f}pt;")
         self.edit.textChanged.connect(self._preview)
+        # 33b: "Prevedi" in the editor too — the translation shows in the preview,
+        # beside the original, which is never changed
+        self.edit.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.edit.customContextMenuRequested.connect(self._edit_menu)
         split.addWidget(self.edit)
         self.view = MarkdownView()
         split.addWidget(self.view)
@@ -526,6 +530,7 @@ class EditorTab(QWidget):
         if not p:
             return
         self.path = Path(p)
+        self.view.source_path = str(self.path)
         try:
             self.edit.setPlainText(self.path.read_text(encoding="utf-8"))
         except OSError as e:
@@ -534,6 +539,15 @@ class EditorTab(QWidget):
 
     def _preview(self):
         self.view.set_markdown(self.edit.toPlainText())
+
+    def _edit_menu(self, pos):
+        m = self.edit.createStandardContextMenu()
+        m.addSeparator()
+        m.addAction(tr("Prevedi na srpski"), lambda: self.view.translate_to("sr"))
+        m.addAction(tr("Prevedi na engleski"), lambda: self.view.translate_to("en"))
+        a = m.addAction(tr("Prikaži original"), self.view.show_original)
+        a.setEnabled(self.view._orig is not None)
+        m.exec(self.edit.mapToGlobal(pos))
 
     def open_path(self, p: Path):
         for i in range(self.picker.count()):

@@ -20,7 +20,7 @@ import html as _html
 import re
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QUrl, Qt, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QImage, QTextDocument
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
                                QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget)
@@ -223,7 +223,15 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
 
 
 class MarkdownView(QTextBrowser):
-    """Read-only markdown + math. Emits card links via `on_card`."""
+    """Read-only markdown + math. Emits card links via `on_card`.
+
+    33b (rule 35): every view offers "Prevedi na srpski / engleski / Prikaži
+    original" — right click, or the small "⋯" in its corner. The translation is
+    made by the translator unit only on that click; the original is never changed.
+    Set `source_path` when the text is a file (the translation is then also saved
+    beside it) and `licensed` for a papers-local text (local GGUF only)."""
+
+    _tr_done = Signal(object, str)
 
     def __init__(self, on_card=None, parent=None):
         super().__init__(parent)
@@ -233,8 +241,29 @@ class MarkdownView(QTextBrowser):
         self.anchorClicked.connect(self._clicked)
         self.setStyleSheet("QTextBrowser{background:#1a1f2b;border:none;}")
         self._md = ""
+        self._orig = None                        # the original while a translation shows
+        self.source_path = None
+        self.licensed = False
+        self._tr_done.connect(self._translated)
+        from PySide6.QtWidgets import QToolButton
+        self._more = QToolButton(self)
+        self._more.setText("⋯")
+        self._more.setToolTip(tr("Prevedi na srpski / engleski · Prikaži original"))
+        self._more.setAutoRaise(True)
+        self._more.clicked.connect(lambda: self._tr_menu().exec(
+            self._more.mapToGlobal(self._more.rect().bottomLeft())))
+
+    def resizeEvent(self, e):                    # noqa: N802 (Qt)
+        super().resizeEvent(e)
+        # left of the panel's ⤢ button, which sits in the top-right corner
+        self._more.move(max(0, self.viewport().width() - self._more.sizeHint().width() - 40), 2)
 
     def set_markdown(self, md: str) -> None:
+        """New content from the owner: any translation on screen is dropped."""
+        self._orig = None
+        self._render(md)
+
+    def _render(self, md: str) -> None:
         self._md = md or ""
         doc = self.document()
         doc.clear()
@@ -245,7 +274,7 @@ class MarkdownView(QTextBrowser):
         """Re-lay-out at the current base size — used by the live zoom."""
         if self._md:
             pos = self.verticalScrollBar().value()
-            self.set_markdown(self._md)
+            self._render(self._md)
             self.verticalScrollBar().setValue(pos)
 
     def _clicked(self, url: QUrl) -> None:
@@ -254,6 +283,66 @@ class MarkdownView(QTextBrowser):
             self.on_card(s[5:])
         elif s.startswith(("http://", "https://")):
             QDesktopServices.openUrl(url)
+
+    # -- translation on request (33b) ------------------------------------- #
+    def _tr_menu(self, menu=None):
+        from PySide6.QtWidgets import QMenu
+        m = menu or QMenu(self)
+        if menu is not None:
+            m.addSeparator()
+        m.addAction(tr("Prevedi na srpski"), lambda: self.translate_to("sr"))
+        m.addAction(tr("Prevedi na engleski"), lambda: self.translate_to("en"))
+        a = m.addAction(tr("Prikaži original"), self.show_original)
+        a.setEnabled(self._orig is not None)
+        return m
+
+    def contextMenuEvent(self, e):               # noqa: N802 (Qt)
+        self._tr_menu(self.createStandardContextMenu(e.pos())).exec(e.globalPos())
+
+    def show_original(self) -> None:
+        if self._orig is not None:
+            md, self._orig = self._orig, None
+            self._render(md)
+
+    def translate_to(self, lang: str, ask=None, confirm: bool = True) -> None:
+        import threading
+        from PySide6.QtWidgets import QMessageBox
+        from ..shared_lib import translator as TR
+        src = self._orig if self._orig is not None else self._md
+        if not src.strip():
+            return
+        est = TR.estimate(src)
+        if confirm and est["long"] and not TR.cached(src, lang):
+            how = (tr("~{0} $").format(est["usd"]) if est["usd"] is not None else
+                   tr("~{0} min na lokalnom modelu").format(est["minutes"])
+                   if est["minutes"] is not None else "?")
+            if QMessageBox.question(self, tr("Prevod"), tr(
+                    "Dug tekst: {0} znakova (~{1} tokena), {2}. Prevesti?").format(
+                    est["chars"], est["tokens_in"], how)) != QMessageBox.Yes:
+                return
+        path, lic = self.source_path, self.licensed
+
+        def work():
+            try:
+                self._tr_done.emit(TR.translate(src, lang, source_path=path, licensed=lic,
+                                                ask=ask), src)
+            except Exception as e:               # noqa: BLE001 — shown to the operator
+                self._tr_done.emit(None, str(e))
+        self.setToolTip(tr("prevodi se…"))
+        if ask is not None:                      # tests: synchronous
+            work()
+        else:
+            threading.Thread(target=work, name="translate", daemon=True).start()
+
+    def _translated(self, res, src_or_err: str) -> None:
+        self.setToolTip("")
+        if res is None:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, tr("Prevod"), src_or_err)
+            return
+        head = f"> _{res['label']}_" + (f" · `{Path(res['file']).name}`" if res.get("file") else "")
+        self._render(head + "\n\n" + res["text"])
+        self._orig = src_or_err
 
 
 # --------------------------------------------------------------------------- #
