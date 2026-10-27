@@ -1132,4 +1132,11 @@ EN = {
 'čita SHARED_LIB (samo SELECT)': 'reads SHARED_LIB (SELECT only)',
 'čita i sažima uz izvore': 'reads and summarises with sources',
 'čuva i patrolira': 'guards and patrols',
+'**Čitač:** još nema poteza': '**Reader:** no moves yet',
+'pročitao': 'read',
+'**Čitač (zadnji potez):** {0} · zadnjih {1}: odsječen {2}, bez čitača {3}': '**Reader (last move):** {0} · last {1}: cut {2}, no reader {3}',
+'čitač odsječen': 'reader cut off',
+'bez čitača': 'no reader',
+'čita sam sebe': 'reads itself',
+'[odgovor odsječen: ni dvostruki limit nije bio dovoljan — pitaj kraće ili podijeli pitanje]': '[answer cut off: even twice the limit was not enough — ask more briefly or split the question]',
 }

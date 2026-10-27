@@ -22,6 +22,7 @@ from typing import Optional
 
 from ..guardian import secrets as SEC
 from . import backend as B
+from . import providers as P
 from . import psel
 from .budget import budget
 
@@ -51,6 +52,15 @@ ROLE_TUNING: dict[str, dict] = {
 
 class NoProvider(Exception):
     pass
+
+
+class SensorText(str):
+    """The reader's raw text; `.cut` = still cut by the limit after the retry."""
+
+    def __new__(cls, text: str = "", cut: bool = False):
+        obj = super().__new__(cls, text)
+        obj.cut = cut
+        return obj
 
 
 @dataclass
@@ -105,45 +115,51 @@ class Router:
         return self._call(role, messages, system_extra=system_extra, max_tokens=max_tokens,
                           who=f"{unit.unit_id}")
 
-    def sensor_call(self, role: str, prompt: str, max_tokens: int = 200) -> str:
+    def sensor_call(self, role: str, prompt: str, max_tokens: int = 200) -> "SensorText":
         """The language reader (a sensor, §0.5.4, not an agent): twelve numbers
-        and nothing else. Same brakes; no generator register."""
+        and nothing else. Same brakes; no generator register. The limit is
+        200 + the model's thinking budget (rule 48 d, added in the backend);
+        `.cut` says the answer was still cut after the one retry."""
         r = self._call(role, [B.Msg("user", prompt)], max_tokens=max_tokens, who="čitač",
                        system="Return only the JSON object requested.", raw=True)
-        return r.text or ""
+        return SensorText(r.text or "", cut=bool((r.raw or {}).get("truncated")))
 
     def _call(self, role: str, messages: list[B.Msg], *, system_extra: str = "",
               max_tokens: int = 0, who: str = "", system: str = "",
               raw: bool = False) -> B.Reply:
         route = self.resolve(role)
         tune = ROLE_TUNING.get(role, ROLE_TUNING[B.CHAT])
+        effort = "low" if raw else tune["effort"]
+        limit = max_tokens or tune["max_tokens"]
         if route.provider == "gguf":
             from . import selection as SEL
             if role == B.VISION:
                 raise NoProvider("lokalni GGUF ne čita slike — za tablu izaberi "
                                  "Claude ili Gemini kao glavni AI")
             bk = SEL.backend_for(route.model)
+            if P.thinks(route.model):                  # rule 48 d: R1 thinks in the open
+                limit += int(getattr(getattr(bk, "lim", None), "think_budget", 0) or 0)
         else:
             bk = B.make(route.provider, route.model)
             budget().check(route.provider)
 
         system = system or psel.system_prompt(role, system_extra)
-        reply = bk.chat(messages, system=system,
-                        max_tokens=max_tokens or tune["max_tokens"],
-                        effort="low" if raw else tune["effort"])
-
-        if route.provider != "gguf":                  # a local model costs nothing
-            rw = reply.raw or {}
-            out = budget().worst_case_out(route.provider, reply.out_tokens,
-                                          int(rw.get("max_tokens", 0)),
-                                          bool(rw.get("cut")),
-                                          bool(rw.get("usage_reported", True)))
-            budget().record(route.provider, reply.model, f"{role}:{who}",
-                            reply.in_tokens, out, worst_case=(out != reply.out_tokens))
-            from ..guardian import killswitch as KS
-            KS.observe_cloud_call(route.provider, reply.in_tokens + out,
-                                  budget().price(reply.model, reply.in_tokens, out,
-                                                 route.provider))
+        reply = bk.chat(messages, system=system, max_tokens=limit, effort=effort)
+        self._account(route, role, who, reply)
+        if reply.stop_reason in P.TRUNCATED:
+            # rule 48 b: one retry with twice the limit; if it is still cut, say so
+            if route.provider != "gguf":
+                budget().check(route.provider)
+            again = bk.chat(messages, system=system, max_tokens=limit * 2, effort=effort)
+            self._account(route, role, who + ":ponovo", again)
+            reply = again
+            if reply.stop_reason in P.TRUNCATED:
+                reply.raw = {**(reply.raw or {}), "truncated": True}
+                if not raw:
+                    from ..i18n import tr
+                    reply.text = (reply.text or "").rstrip() + "\n\n" + tr(
+                        "[odgovor odsječen: ni dvostruki limit nije bio dovoljan — "
+                        "pitaj kraće ili podijeli pitanje]")
         self._last_provider[role] = route.provider
         if raw:
             return reply
@@ -155,6 +171,22 @@ class Router:
             return reply
         reply.text = psel.scrub(reply.text)
         return reply
+
+    @staticmethod
+    def _account(route: Route, role: str, who: str, reply: B.Reply) -> None:
+        if route.provider == "gguf":                  # a local model costs nothing
+            return
+        rw = reply.raw or {}
+        out = budget().worst_case_out(route.provider, reply.out_tokens,
+                                      int(rw.get("max_tokens", 0)),
+                                      bool(rw.get("cut")),
+                                      bool(rw.get("usage_reported", True)))
+        budget().record(route.provider, reply.model, f"{role}:{who}",
+                        reply.in_tokens, out, worst_case=(out != reply.out_tokens))
+        from ..guardian import killswitch as KS
+        KS.observe_cloud_call(route.provider, reply.in_tokens + out,
+                              budget().price(reply.model, reply.in_tokens, out,
+                                             route.provider))
 
     def _ping_once(self, provider: str, model: str):
         bk = B.make(provider, model)

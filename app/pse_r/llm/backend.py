@@ -141,6 +141,7 @@ class StreamingBackend(Backend):
         except L.Aborted as a:
             raise EgressBlocked(f"{self.provider}: {a}") from None
         payload = self._payload(messages, system, max_tokens, effort)
+        sent_max = max_tokens + P.think_budget(self.model, effort)   # rule 48 a
         from ..guardian import disclosure as DISC          # item 21: measured BEFORE sending
         try:
             DISC.check_and_spend(self.host, DISC.payload_text(payload),
@@ -170,7 +171,9 @@ class StreamingBackend(Backend):
         if st["stop"] in _CUT:
             text = text.rstrip() + f"\n\n[prekinuto: {_CUT[st['stop']]}]"
         return Reply(text, self.provider, st["model"], st["in"], st["out"],
-                     st["stop"], {"stream": True, "max_tokens": max_tokens,
+                     st["stop"], {"stream": True, "max_tokens": sent_max,
+                                  "answer_max": max_tokens,
+                                  "think_budget": sent_max - max_tokens,
                                   "cut": st["stop"] in _CUT,
                                   "usage_reported": bool(st["out"] or st["in"])})
 
@@ -226,7 +229,8 @@ class AnthropicBackend(StreamingBackend):
                 blocks.append({"type": "text", "text": m.text})
             content_msgs.append({"role": m.role, "content": blocks or [
                 {"type": "text", "text": ""}]})
-        payload = {"model": self.model, "max_tokens": max_tokens, "stream": True,
+        total = max_tokens + P.think_budget(self.model, effort)   # thinking + text share it
+        payload = {"model": self.model, "max_tokens": total, "stream": True,
                    "messages": content_msgs, "output_config": {"effort": effort},
                    "fallbacks": "default"}
         if system:
@@ -269,8 +273,14 @@ class GeminiBackend(StreamingBackend):
                 parts.append({"text": m.text})
             contents.append({"role": "user" if m.role == "user" else "model",
                              "parts": parts or [{"text": ""}]})
-        payload = {"contents": contents,
-                   "generationConfig": {"maxOutputTokens": max_tokens}}
+        # Gemini 2.5 spends thinking out of maxOutputTokens (live test, rc1: a
+        # 600-token limit left 24 visible tokens). Rule 48 a: a budget per role
+        # (via effort) and the limit = answer + budget.
+        budget = P.think_budget(self.model, effort)
+        gen = {"maxOutputTokens": max_tokens + budget}
+        if budget:
+            gen["thinkingConfig"] = {"thinkingBudget": budget}
+        payload = {"contents": contents, "generationConfig": gen}
         if system:
             payload["systemInstruction"] = {"parts": [{"text": system}]}
         return payload
@@ -282,7 +292,8 @@ class GeminiBackend(StreamingBackend):
         u = ev.get("usageMetadata") or {}
         if u:
             st["in"] = int(u.get("promptTokenCount", st["in"]))
-            st["out"] = int(u.get("candidatesTokenCount", st["out"]))
+            st["out"] = (int(u.get("candidatesTokenCount", 0))
+                         + int(u.get("thoughtsTokenCount", 0))) or st["out"]
         cands = ev.get("candidates") or []
         if not cands:
             return ""
@@ -307,8 +318,11 @@ class OpenAICompatBackend(StreamingBackend):
                         "url": "data:image/png;base64," + self._b64(m.image_png)}}]})
             else:
                 msgs.append({"role": m.role, "content": m.text})
-        payload = {"model": self.model, "messages": msgs, "max_tokens": max_tokens,
+        budget = P.think_budget(self.model, effort)              # rule 48 a, d
+        payload = {"model": self.model, "messages": msgs, "max_tokens": max_tokens + budget,
                    "stream": True}
+        if budget and self.provider == "openrouter":
+            payload["reasoning"] = {"max_tokens": budget}
         if self.preset.usage_in_stream:
             payload["stream_options"] = {"include_usage": True}
         return payload

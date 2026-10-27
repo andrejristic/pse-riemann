@@ -132,8 +132,10 @@ def test_strict_caps_for_providers_that_bill_full(monkeypatch):
     assert fs.payload["max_tokens"] == P.STRICT_MAX_OUTPUT
     sent = sum(len(m["content"]) for m in fs.payload["messages"] if isinstance(m["content"], str))
     assert sent <= P.STRICT_MAX_INPUT_CHARS
-    B.make("claude").chat([B.Msg("user", "y")], max_tokens=8000)
-    assert fs.payload["max_tokens"] == 8000
+    bk = B.make("claude")
+    bk.chat([B.Msg("user", "y")], max_tokens=8000)
+    # rule 48 a: the thinking budget comes on top of the answer limit
+    assert fs.payload["max_tokens"] == 8000 + P.think_budget(bk.model, "high")
 
 
 def test_worst_case_budget():

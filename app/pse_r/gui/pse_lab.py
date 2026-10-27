@@ -73,6 +73,28 @@ def alarm() -> str:
     return "zvuk"
 
 
+def _reader_line(uid: str) -> str:
+    """Rule 48 d: the reader's state on the unit's last 30 moves — a cut JSON
+    is shown, never silently counted as "no reader"."""
+    import json as _json
+    from ..shared_lib.store import store
+    notes = []
+    for r in store().rows("SELECT reading FROM pse_moves WHERE unit_id=? ORDER BY id DESC "
+                          "LIMIT 30", (uid,)):
+        try:
+            notes.append((_json.loads(r["reading"] or "{}") or {}).get("note", ""))
+        except ValueError:
+            notes.append("")
+    if not notes:
+        return tr("**Čitač:** još nema poteza")
+    cut = sum(1 for n in notes if n == "čitač odsječen")
+    none = sum(1 for n in notes if n == "bez čitača")
+    last = notes[0] or tr("pročitao")
+    line = tr("**Čitač (zadnji potez):** {0} · zadnjih {1}: odsječen {2}, bez čitača {3}").format(
+        tr(last), len(notes), cut, none)
+    return ("⚠ " + line) if cut else line
+
+
 def _lib():
     from ..shared_lib.pse_registry import pse
     return pse()
@@ -186,6 +208,7 @@ class LabTab(QWidget):
               tr("**Organeli:** {0}").format(", ".join(f"{k} ({o.weight:.2f}{', privremen' if o.provisional else ''})"
                                                        for k, o in u.organelles.items.items()) or "—"),
               tr("**Stanje:** {0}").format(u.freeze_reason or (tr("⏳ mjera čeka") if u.restricted else tr("radi"))),
+              _reader_line(u.unit_id),
               "", "```", "\n".join(rep.reasons) or "—", "```"]
         self.view.set_markdown("\n\n".join(md))
 

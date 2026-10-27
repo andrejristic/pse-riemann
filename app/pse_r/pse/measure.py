@@ -178,15 +178,32 @@ READER_PROMPT = (
 
 
 def model_read(text: str, message: str = "", spec: Optional[ReaderSpec] = None) -> Optional[dict]:
+    return model_read_ex(text, message, spec)[0]
+
+
+CUT = "čitač odsječen"
+
+
+def model_read_ex(text: str, message: str = "",
+                  spec: Optional[ReaderSpec] = None) -> tuple[Optional[dict], str]:
+    """(numbers or None, why): why = "" | "cut" (the limit cut the JSON, rule
+    48 d — shown in the Laboratory) | "none" (no reader / no usable answer)."""
     spec = spec or reader()
     if spec is None:
-        return None
+        return None, "none"
     try:
         raw = spec.ask(READER_PROMPT.format(m=message[:4000], r=text[:6000]))
-        j = json.loads(re.search(r"\{.*\}", raw, re.S).group(0))
-        return {k: _sat(float(j[k])) for k in SCHEMA}
     except Exception:                               # noqa: BLE001
-        return None                                 # rule floor stands (not UNKNOWN)
+        return None, "none"
+    raw = raw or ""
+    try:
+        j = json.loads(re.search(r"\{.*\}", raw, re.S).group(0))
+        return {k: _sat(float(j[k])) for k in SCHEMA}, ""
+    except Exception:                               # noqa: BLE001
+        start = raw.find("{")
+        if getattr(raw, "cut", False) or (start >= 0 and "}" not in raw[start:]):
+            return None, "cut"
+        return None, "none"                         # rule floor stands (not UNKNOWN)
 
 
 # --- work ----------------------------------------------------------------- #
@@ -225,7 +242,7 @@ class Reading:
     theta_rules: Optional[float] = None
     theta_model: Optional[float] = None
     gap: float = 0.0
-    note: str = ""                    # "bez čitača" | "čita sam sebe" | ""
+    note: str = ""                    # "bez čitača" | "čitač odsječen" | "čita sam sebe" | ""
     reader_ident: str = ""
     work_dev: float = 0.0
     words_dev: float = 0.0
@@ -254,9 +271,9 @@ def read_move(*, words: str = "", message: str = "", actions: Optional[list] = N
         nums = rules
         tw = rd.theta_rules
         spec = reader() if uses_model else None
-        model = model_read(words, message, spec) if spec else None
+        model, why = model_read_ex(words, message, spec) if spec else (None, "none")
         if uses_model and model is None:
-            rd.note = "bez čitača"
+            rd.note = CUT if why == "cut" else "bez čitača"
         if not uses_model:
             rd.note = "bez čitača"
         if model is not None:

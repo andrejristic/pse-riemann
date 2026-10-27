@@ -21,6 +21,8 @@ Input tokens are always billed; a non-streaming call is always billed in full.
 """
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -180,3 +182,31 @@ def effective_caps(provider: str, max_tokens: int) -> tuple[int, int]:
     if cancel_stops_billing(provider):
         return max_tokens, 400_000
     return min(max_tokens, STRICT_MAX_OUTPUT), STRICT_MAX_INPUT_CHARS
+
+
+# --------------------------------------------------------------------------- #
+# Thinking budget (rule 48 a, d): models that think spend their reasoning out
+# of the same output limit. The budget is added ON TOP of the answer limit, so
+# thinking never eats the answer. Per role via effort (router.ROLE_TUNING).
+# --------------------------------------------------------------------------- #
+THINK_BUDGET = {"low": 512, "medium": 1024, "high": 4096}
+
+_THINKING_MARKS = ("gemini-2.5", "gemini-3", "deepseek-r1", "deepseek-reasoner", "-r1-",
+                   "reasoning", "thinking", "qwq", "gpt-5", "grok-3-mini", "magistral",
+                   "openrouter/auto", "claude-opus-5", "claude-sonnet-5", "claude-fable-5")
+_O_SERIES = re.compile(r"(^|/)o[134](-|$)")
+
+
+def thinks(model: str) -> bool:
+    """Whether the model spends reasoning tokens out of max_tokens."""
+    m = (model or "").lower()
+    return any(k in m for k in _THINKING_MARKS) or m.endswith("-r1") or bool(_O_SERIES.search(m))
+
+
+def think_budget(model: str, effort: str = "medium") -> int:
+    """Tokens reserved for thinking on top of the answer (0 for models that do not think)."""
+    return THINK_BUDGET.get(effort, THINK_BUDGET["medium"]) if thinks(model) else 0
+
+
+# Stop reasons that mean "the output limit cut the answer" (rule 48 b).
+TRUNCATED = {"max_tokens", "MAX_TOKENS", "length"}
