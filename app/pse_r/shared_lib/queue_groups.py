@@ -112,24 +112,27 @@ def decide_many(ids: list, approve: bool, reason: str = "") -> dict:
 
 
 def detail_md(item: dict) -> str:
-    """Everything about one item (the full abstract included)."""
+    """Everything about one item (the full abstract included), SR or EN."""
+    from ..i18n import lang, tr
     p = item.get("payload") or {}
     L = [f"### {item['title']}", "",
-         f"**{KIND_LABEL.get(item['kind'], item['kind'])}** · predložio: {item.get('proposer', '')}"
-         + ("" if bulk_allowed(item) else f" · _{ONE_BY_ONE_REASON}_"), ""]
+         tr("**{0}** · predložio: {1}").format(tr(KIND_LABEL.get(item["kind"], item["kind"])),
+                                              item.get("proposer", ""))
+         + ("" if bulk_allowed(item) else f" · _{tr(ONE_BY_ONE_REASON)}_"), ""]
     if p.get("abstract"):
-        L += ["**Sažetak:**", "", p["abstract"], ""]
+        L += [tr("**Sažetak:**"), "", p["abstract"], ""]
     if p.get("ref"):
-        L.append(f"**Izvor:** `{p['ref']}`")
+        L.append(tr("**Izvor:** `{0}`").format(p["ref"]))
     if item["kind"] == "doctor-measure":
         f = p.get("finding") or {}
-        L += [f"**Jedinica:** {p.get('unit')} · **mjera:** {p.get('measure')}",
-              f"**Zašto:** {f.get('why', '')}",
-              "**Okidači:** " + ", ".join(p.get("labels_sr") or f.get("triggers") or [])]
+        labels = p.get("labels_en" if lang() == "en" else "labels_sr") or f.get("triggers") or []
+        L += [tr("**Jedinica:** {0} · **mjera:** {1}").format(p.get("unit"), p.get("measure")),
+              tr("**Zašto:** {0}").format(f.get("why", "")),
+              tr("**Okidači:** {0}").format(", ".join(labels))]
     res = p.get("result") or {}
     if res.get("computed_B") is not None:
-        L.append(f"**Reprodukcija:** naš B*={res['computed_B']:.12f}, rad {res.get('claimed_B')}, "
-                 f"razlika {res.get('error', 0):.1e}")
+        L.append(tr("**Reprodukcija:** naš B*={0:.12f}, rad {1}, razlika {2:.1e}").format(
+            res["computed_B"], res.get("claimed_B"), res.get("error", 0)))
     for k in ("text", "reason", "summary", "command", "path"):
         if p.get(k):
             L.append(f"**{k}:** {str(p[k])[:2000]}")

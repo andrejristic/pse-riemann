@@ -160,24 +160,23 @@ class Budget:
             d["usd"], self.daily_cap, d["calls"], free_calls, paid_calls)
 
     def tooltip(self) -> str:
+        from ..i18n import tr
         d = self.today()
-        lines = ["Potrošeno DANAS (nije preostalo — potrošeno).", "",
-                 f"Dnevni limit vrijedi samo za plaćene provajdere: "
-                 f"${self.daily_cap:.2f}.", ""]
+        lines = [tr("Potrošeno DANAS (nije preostalo — potrošeno)."), "",
+                 tr("Dnevni limit vrijedi samo za plaćene provajdere: ${0:.2f}.").format(self.daily_cap), ""]
         if d["by_provider"]:
-            lines.append("Po provajderu:")
+            lines.append(tr("Po provajderu:"))
             for p, v in sorted(d["by_provider"].items()):
-                tag = "besplatan tier" if p in FREE_TIER else f"${v['usd']:.4f}"
-                lines.append(f"  {p}: {v['calls']} poziva · {tag} · "
-                             f"{v['in']}→{v['out']} tokena")
+                tag = tr("besplatan tier") if p in FREE_TIER else f"${v['usd']:.4f}"
+                lines.append(tr("  {0}: {1} poziva · {2} · {3}→{4} tokena").format(
+                    p, v["calls"], tag, v["in"], v["out"]))
         else:
-            lines.append("Danas još nijedan poziv.")
+            lines.append(tr("Danas još nijedan poziv."))
         if any(p in FREE_TIER for p in d["by_provider"]):
-            lines += ["", "Besplatni tierovi (Groq/Gemini/Mistral) imaju kvotu "
-                          "po zahtjevima i tokenima koju vodi sam provajder — "
-                          "ova aplikacija je ne vidi i ne broji. Ako te odbiju, "
-                          "to je njihova kvota, ne ovaj limit."]
-        lines += ["", f"Ukupno od početka: ${self.total():.2f}"]
+            lines += ["", tr("Besplatni tierovi (Groq/Gemini/Mistral) imaju kvotu po zahtjevima i "
+                             "tokenima koju vodi sam provajder — ova aplikacija je ne vidi i ne "
+                             "broji. Ako te odbiju, to je njihova kvota, ne ovaj limit.")]
+        lines += ["", tr("Ukupno od početka: ${0:.2f}").format(self.total())]
         return "\n".join(lines)
 
     def history(self, days: int = 20) -> list[tuple[str, float]]:

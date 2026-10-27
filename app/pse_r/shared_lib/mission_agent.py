@@ -176,8 +176,9 @@ class Conversation:
 def _require_ai() -> None:
     from ..llm import selection as SEL
     if not SEL.get_main():
-        raise NoAI("Agent misije treba AI: izaberi glavni AI (cloud ili GGUF) u Podešavanju. "
-                   "Bez modela razgovor o misiji nema smisla, pa ga ne glumim šablonom.")
+        from ..i18n import tr
+        raise NoAI(tr("Agent misije treba AI: izaberi glavni AI (cloud ili GGUF) u Podešavanju. "
+                      "Bez modela razgovor o misiji nema smisla, pa ga ne glumim šablonom."))
 
 
 def trim_questions(text: str, n: int = MAX_QUESTIONS) -> str:
@@ -249,8 +250,9 @@ def start(mid: str, refs: list, ask=None, ask_skeptic=None) -> Conversation:
                         cid=f"razgovor-{mid}-{time.strftime('%Y%m%d-%H%M%S')}")
     non_arxiv = [p["ref"] for p in chosen if not p["ref"].startswith("arxiv:")]
     if non_arxiv:
-        conv.turns.append(Turn("sistem", "Za ove radove imam samo sažetak (puni tekst samo "
-                                         "za arXiv): " + ", ".join(non_arxiv)))
+        from ..i18n import tr
+        conv.turns.append(Turn("sistem", tr("Za ove radove imam samo sažetak (puni tekst samo "
+                                            "za arXiv): {0}").format(", ".join(non_arxiv))))
     first = _ask(conv, "Pročitao si izabrane radove i stanje misije. Ukratko reci šta vidiš "
                        "kao vezu radova i misije, pa me ispitaj (najviše 3 pitanja).", ask)
     conv.turns.append(Turn("agent", trim_questions(first)))
@@ -278,7 +280,8 @@ def say(conv: Conversation, text: str, ask=None, ask_skeptic=None) -> Conversati
 def load_fulltext(conv: Conversation, ref: str, fetch=None) -> str:
     """Full text on request — arXiv only [rule 29]."""
     if not ref.startswith("arxiv:"):
-        msg = f"Puni tekst postoji samo za arXiv radove; za {ref} čitam samo sažetak."
+        from ..i18n import tr
+        msg = tr("Puni tekst postoji samo za arXiv radove; za {0} čitam samo sažetak.").format(ref)
         conv.turns.append(Turn("sistem", msg))
         return msg
     if fetch is None:
@@ -291,7 +294,8 @@ def load_fulltext(conv: Conversation, ref: str, fetch=None) -> str:
     from ..pse import path as PATH
     PATH.work(agent_key(conv.mid), [PM.Action("čita puni tekst rada", "f", external=True)],
               entity=(ref, "document"), note="puni tekst")
-    conv.turns.append(Turn("sistem", f"Učitan puni tekst {ref} ({len(txt)} znakova)."))
+    from ..i18n import tr
+    conv.turns.append(Turn("sistem", tr("Učitan puni tekst {0} ({1} znakova).").format(ref, len(txt))))
     save(conv)
     return txt
 
@@ -316,7 +320,8 @@ def conclude(conv: Conversation, ask=None) -> list[str]:
         pids.append(_propose(conv, "cilj", str(int(g))))
     if d.get("metoda") and not is_claim(str(d["metoda"])):
         pids.append(_propose(conv, "metoda", str(d["metoda"]).strip()))
-    conv.turns.append(Turn("sistem", f"Zaključak: {len(pids)} prijedloga u „Čeka tvoju odluku“."))
+    from ..i18n import tr
+    conv.turns.append(Turn("sistem", tr("Zaključak: {0} prijedloga u „Čeka tvoju odluku“.").format(len(pids))))
     save(conv)
     J.log(J.MISSION, "mission-agent", {"event": "concluded", "mission": conv.mid,
                                        "proposals": pids, "id": conv.cid},
@@ -364,13 +369,14 @@ def _dir() -> Path:
 
 
 def to_markdown(conv: Conversation) -> str:
+    from ..i18n import tr
     m = MIS.get(conv.mid) or {}
-    L = [f"# Razgovor o misiji — {m.get('title', conv.mid)}", "",
+    L = [tr("# Razgovor o misiji — {0}").format(m.get("title", conv.mid)), "",
          f"_{LABEL} · {time.strftime('%Y-%m-%d %H:%M', time.localtime(conv.started))}_", "",
-         "**Radovi:** " + (", ".join(f"`{r}`" for r in conv.refs) or "—"), ""]
+         tr("**Radovi:** {0}").format(", ".join(f"`{r}`" for r in conv.refs) or "—"), ""]
     for t in conv.turns:
         when = time.strftime("%H:%M", time.localtime(t.ts))
-        L += [f"### {t.who} · {when}", "", t.text, ""]
+        L += [f"### {tr(t.who)} · {when}", "", t.text, ""]
     return "\n".join(L)
 
 

@@ -154,7 +154,7 @@ class TopBar(QFrame):
         try:
             from ..llm import selection as SEL
             main = SEL.get_main()
-            self._set("main", tr("glavni: {0}").format(main or 'nema'), "info" if main else "warn",
+            self._set("main", tr("glavni: {0}").format(main or tr('nema')), "info" if main else "warn",
                       tr("glavni AI radi sve uloge osim skeptika"))
             if SEL.skeptic_available():
                 self._set("skeptic", tr("skeptik: {0}").format(SEL.get_skeptic()), "info",

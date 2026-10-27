@@ -391,13 +391,15 @@ def weekly_review(week: Optional[str] = None) -> str:
     wk = week or _week()
     rows = store().rows("SELECT * FROM inspiracije WHERE week=? ORDER BY score DESC", (wk,))
     cand = store().rows("SELECT COUNT(*) n FROM inspiracije WHERE status=?", (CANDIDATE,))[0]["n"]
-    lines = [f"## Sedmični pregled ideja — {wk}", "",
-             f"Prikazano {len(rows)} od najviše {cap()} · kandidata na čekanju: {cand}", ""]
+    from ..i18n import tr
+    lines = [tr("## Sedmični pregled ideja — {0}").format(wk), "",
+             tr("Prikazano {0} od najviše {1} · kandidata na čekanju: {2}").format(len(rows), cap(), cand), ""]
     for r in rows:
         mt = (MIS.get(r["mission_id"]) or {}).get("title", r["mission_id"])
-        lines.append(f"- **{r['status']}** · {r['title']} · misija: {mt} · izvor `{r['source_ref']}`")
+        lines.append(tr("- **{0}** · {1} · misija: {2} · izvor `{3}`").format(
+            tr(r["status"]), r["title"], mt, r["source_ref"]))
     if not rows:
-        lines.append("- _(ove sedmice nema prikazanih ideja)_")
+        lines.append(tr("- _(ove sedmice nema prikazanih ideja)_"))
     return "\n".join(lines)
 
 

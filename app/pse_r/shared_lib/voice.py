@@ -141,41 +141,47 @@ def _fmt(v) -> str:
 def human(question: str, res: dict, cites: list) -> str:
     """Plan 33e: the same facts, said like a colleague at work ("ti"), with no
     model. Only values from the rows appear; every sentence keeps its [cite]."""
+    from ..i18n import tr
     cols, rows = res["columns"], res["rows"]
     if not rows:
-        return "Toga nema u biblioteci — nemam red koji bi to potvrdio (UNKNOWN)."
+        return tr("Toga nema u biblioteci — nemam red koji bi to potvrdio (UNKNOWN).")
     ds = [dict(zip(cols, r)) for r in rows]
     q = (question or "").lower()
     n = len(ds)
-    more = " (prikazujem prve)" if res.get("truncated") else ""
+    more = tr(" (prikazujem prve)") if res.get("truncated") else ""
 
     def cite(i):
         return cites[i] if i < len(cites) else ""
     if "misij" in q and "best_B" in cols:
         parts = []
         for i, d in enumerate(ds):
-            b = f", front B = {_fmt(d['best_B'])}" if d.get("best_B") is not None else ", bez fronta"
+            b = (tr(", front B = {0}").format(_fmt(d["best_B"])) if d.get("best_B") is not None
+                 else tr(", bez fronta"))
             name = d.get("title") or d.get("id")
             st = str(d.get("state") or "")
             st = st if len(st) <= 90 else st[:89] + "…"
-            parts.append(f"„{name}“ — stanje: {st}{b} {cite(i)}")
-        return f"Imaš {n} misij{'u' if n == 1 else 'e'}{more}: " + "; ".join(parts) + "."
+            parts.append(tr("„{0}“ — stanje: {1}{2} {3}").format(name, st, b, cite(i)))
+        head = tr("Imaš {0} misiju{1}: ") if n == 1 else tr("Imaš {0} misije{1}: ")
+        return head.format(n, more) + "; ".join(parts) + "."
     if "metod" in q and "title" in cols:
-        return (f"U biblioteci je {n} metod{'a' if n == 1 else 'a'}{more}: " +
-                "; ".join(f"{d['title']} (nivo {d.get('tier')}, {d.get('status')}) {cite(i)}"
+        return (tr("U biblioteci je {0} metoda{1}: ").format(n, more) +
+                "; ".join(tr("{0} (nivo {1}, {2}) {3}").format(d["title"], d.get("tier"),
+                                                                d.get("status"), cite(i))
                           for i, d in enumerate(ds)) + ".")
     if "lab" in q and "experiment" in cols:
-        return (f"Zadnja lab računanja{more}: " +
-                "; ".join(f"{d['experiment']} — {d.get('reading') or 'bez očitavanja'} {cite(i)}"
+        return (tr("Zadnja lab računanja{0}: ").format(more) +
+                "; ".join(f"{d['experiment']} — {d.get('reading') or tr('bez očitavanja')} {cite(i)}"
                           for i, d in enumerate(ds[:10])) + ".")
     if ("čeka" in q or "skeptik" in q) and "title" in cols:
-        return (f"Na tebe čeka {n} stavk{'a' if n == 1 else 'i'}{more}: " +
+        return ((tr("Na tebe čeka {0} stavka{1}: ") if n == 1 else
+                 tr("Na tebe čeka {0} stavki{1}: ")).format(n, more) +
                 "; ".join(f"{d['title']} {cite(i)}" for i, d in enumerate(ds[:10])) + ".")
     if "title" in cols:
-        return (f"Našao sam {n} {'red' if n == 1 else 'redova'}{more}: " +
+        return ((tr("Našao sam {0} red{1}: ") if n == 1 else
+                 tr("Našao sam {0} redova{1}: ")).format(n, more) +
                 "; ".join(f"{d['title']} {cite(i)}" for i, d in enumerate(ds[:10])) + ".")
     first = ", ".join(f"{k} {_fmt(v)}" for k, v in ds[0].items() if v not in (None, ""))
-    return f"Našao sam {n} {'red' if n == 1 else 'redova'}{more}; prvi: {first} {cite(0)}."
+    return tr("Našao sam {0} redova{1}; prvi: {2} {3}.").format(n, more, first, cite(0))
 
 
 def ask(question: str, translate: Optional[Callable[[str, dict], str]] = None,

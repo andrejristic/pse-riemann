@@ -34,3 +34,15 @@ def test_main_window_builds_in_english(operator, monkeypatch):
     assert "Overview" in titles and "Awaiting your decision" in titles
     import shiboken6
     shiboken6.delete(w)
+
+
+def test_language_audit_live_is_clean():
+    """Faza 6d, rule 34: strings are collected from the code AS IT IS NOW, so a
+    new string without English, or text handed to a widget without tr(), fails."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    r = subprocess.run([sys.executable, str(root / "tools" / "i18n_audit.py")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout[-3000:]

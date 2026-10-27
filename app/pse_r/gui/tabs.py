@@ -106,7 +106,7 @@ class LabTab(QWidget, JobMixin):
         lv.addWidget(QLabel(tr("<b>Eksperimenti</b>")))
         self.list = QListWidget()
         for e in self.catalog:
-            it = QListWidgetItem(f"{e['title']}   ({e['cost']})")
+            it = QListWidgetItem(f"{tr(e['title'])}   ({tr(e['cost'])})")
             it.setData(Qt.UserRole, e["key"])
             self.list.addItem(it)
         self.list.currentRowChanged.connect(self._select)
@@ -170,9 +170,9 @@ class LabTab(QWidget, JobMixin):
         if row < 0:
             return
         e = self.catalog[row]
-        self.title.setText(e["title"])
-        self.question.setText("❓ " + e["question"])
-        self.why.setText(e["why"])
+        self.title.setText(tr(e["title"]))
+        self.question.setText("❓ " + tr(e["question"]))
+        self.why.setText(tr(e["why"]))
         while self.form.rowCount():
             self.form.removeRow(0)
         self.inputs = {}
@@ -186,9 +186,9 @@ class LabTab(QWidget, JobMixin):
                 w.setRange(float(p["lo"]), float(p["hi"]))
                 w.setDecimals(3)
                 w.setValue(float(p["default"]))
-            w.setToolTip(p["help"])
+            w.setToolTip(tr(p["help"]))
             self.inputs[p["name"]] = w
-            self.form.addRow(f"{p['name']} — {p['help']}", w)
+            self.form.addRow(f"{p['name']} — {tr(p['help'])}", w)
 
     def _run(self):
         row = self.list.currentRow()

@@ -13,6 +13,8 @@ silently dropped, so you always see what you wrote.
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 import hashlib
 import html as _html
 import re
@@ -460,7 +462,7 @@ def add_expand(pane, siblings) -> QPushButton:
     (they are hidden); ⤡ brings them back."""
     b = QPushButton("⤢", pane)
     b.setObjectName("expandBtn")
-    b.setToolTip("raširi ovaj panel (ponovo = vrati)")
+    b.setToolTip(tr("raširi ovaj panel (ponovo = vrati)"))
     b.setCursor(Qt.PointingHandCursor)
     b.setStyleSheet("QPushButton#expandBtn { padding:0px 6px; min-width:0px; border-radius:6px;"
                     " background:rgba(34,42,55,0.85); }")
