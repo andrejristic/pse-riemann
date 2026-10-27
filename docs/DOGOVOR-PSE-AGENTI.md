@@ -104,3 +104,23 @@ Ništa. Sve stavke su odlučene 2026-10-27 (pravila 13–26). Andrej je dao „k
 Posle svake faze: izvještaj, testovi i stanje „ko je sada PSE sazdan“.
 
 **Bez međuizdanja (pravilo 25):** P0–P3 se rade do kraja, pa tek onda jedan deb. Na kraju: svi testovi, provjera u pokrenutoj aplikaciji, živi test po vodiču.
+
+## 7. Dogovor, druga runda (2026-10-27): ostatak izdanja 0.3.0
+
+| # | Tema | Dogovor |
+|---|---|---|
+| 27 | Redoslijed | P3 (agent misije) → 33d → 33e → 33b → traka menija → dva deb-a → vodiči → deb-ovi ponovo sa vodičem unutra |
+| 28 | Agent misije: gdje | dugme „Razgovaraj o misiji“ u tabu Misije; razgovor se otvara u istom tabu |
+| 29 | Agent misije: radovi | svi radovi vezani za misiju (kartice korpusa + arXiv radovi misije), lista sa kvačicama i „označi sve“; puni tekst samo za arXiv (ar5iv) i samo na zahtjev, za ostale samo sažetak (agent to kaže) |
+| 30 | Agent misije: jedinica | jedna jedinica po misiji (`mission-agent:<misija>`), otvoren vijek dok je misija otvorena; zatvorena misija ⇒ smrt jedinice ⇒ sve u SHARED_LIB (za ovu verziju) |
+| 31 | Agent misije: razgovor | najviše 3 pitanja po potezu; skeptik napada samo odgovore sa tvrdnjom; „Sastavi zaključak“ ⇒ svaki prijedlog posebna stavka u redu, grupisana pod misiju; bez AI-ja agent misije ne radi i to kaže |
+| 32 | Red po grupama (33d) | teme radova po postojećim granama korpusa; grupno smije sve povratno; Doktorove mjere i nepovratne stavke samo jedna po jedna; „Odobri označene“ uvijek prvo traži potvrdu („odobravaš N stavki“) |
+| 33 | Ljudski glas (33e) | obraćanje sa „ti“; glas sastavlja odgovor kroz svoju jedinicu (čitač, Doktor) |
+| 34 | Jezik interfejsa (33b) | PROVJERA, ne pretpostavka: svi prozori i tabovi na SR i na EN (snimci + alat za neprevedene natpise); sve neprevedeno, pomiješano ili pogrešno se popravlja; test pada na novi natpis bez prevoda |
+| 35 | Prevod sadržaja (33b) | sadržaj se ne prevodi unaprijed. Zajednički preglednik dobija meni (desni klik + „⋯“): „Prevedi na srpski“, „Prevedi na engleski“, „Prikaži original“; Editor isto (prevod pored originala). Prevodi **prevodilac**, PSE jedinica, samo kad ga operater pokrene; glavni AI (cloud ili GGUF); oznaka „mašinski prevod (model, datum)“; original se nikad ne mijenja; keš u SHARED_LIB-u (hash originala + jezik) **i fajl pored originala** `<ime>.en-masinski.md` / `.sr-masinski.md` (indeks i kapija ih preskaču); novi original ⇒ novi prevod na klik, stari dobija datum u imenu; mješavina jezika ⇒ cilj bira operater; puni tekst rada: prvo procjena cijene/vremena; licencirani radovi (`papers-local`) samo lokalni GGUF |
+| 36 | Dokumenti iz repoa | ostaju van aplikacije |
+| 37 | Traka menija | SHARED_LIB (Težine glasova, Čeka tvoju odluku, Stanje roja) · Laboratorija · Podešavanje · Jezik SR/EN · Pomoć → Vodič |
+| 38 | Paketi | samo najveći (full), dva: `pse-riemann-andrej` (3 misije + QRH sadržaj, samo lokalno, nikad na GitHub) i `pse-riemann` (prazne misije, prazan vault, mašinerija ostaje; na GitHub tek po dogovoru); ne mogu biti instalirani istovremeno; verzija 0.3.0~rc1; .exe tek po dogovoru |
+| 39 | Vodiči | (1) kompletan vodič za cijelu aplikaciju `VODIC-SR` / `GUIDE-EN`, isti sadržaj, za 0.3.0, u paketu (md u aplikaciji „Pomoć → Vodič“ + docx), piše se posljednji iz instalirane verzije; lični paket dobija dodatak „Tvoje misije“. (2) vodič za instalaciju i živi test `PSE Riemann — VODIC 0.3.0 INSTALACIJA I ZIVI TEST.docx` + EN, samo za Andreja, ne ulazi u paket |
+| 40 | Kalibracija i vijek | θ doslovno po potezu do živog testa; N_max za chat i glas = 1000 |
+| 41 | Način rada | Andrej spava: radim sve iz plana bez pitanja; commitovi lokalno; na kraju spisak commitova za odobrenje + šta nisam mogao (`ZA-ANDREJA.md`) |

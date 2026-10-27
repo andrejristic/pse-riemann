@@ -48,3 +48,20 @@ Jedinica prvog kontakta napravljena od nule na P0: izbor radova + misija → či
 ## Procjena
 
 P0 ≈ 20–30 h · P1 ≈ 12–18 h · P2 ≈ 8–12 h · P3 ≈ 6–10 h · 33b/33d/33e ≈ 14–22 h · deb i provjera ≈ 3–5 h. Ukupno **≈ 63–97 h** rada.
+
+## Druga runda (2026-10-27, dogovor pravila 27–41): plan do 0.3.0~rc1
+
+Stanje: P0, P1, P2 gotovi (`e15e252`, `f27680b`, `fe1a079`, pushano). Andrej spava; radim bez pitanja, commitovi lokalno.
+
+| # | Korak | Šta tačno | Gotovo kada | Procjena |
+|---|---|---|---|---|
+| R1 | P3 · agent misije (33f) | jedinica po misiji `mission-agent:<id>` (otvoren vijek, smrt pri zatvaranju misije); dugme „Razgovaraj o misiji“ u Misijama; izbor radova sa kvačicama; čitanje sažetaka, puni tekst samo arXiv na zahtjev; razgovor u oba smjera (≤ 3 pitanja po potezu), skeptik samo na tvrdnje; „Sastavi zaključak“ ⇒ stavke u redu po vrsti; razgovor u rezultatima (NAŠE-NERECENZIRANO) + „gdje si stao“; bez AI-ja jasna poruka | testovi sa lažnim modelom, snimak taba | 6–10 h |
+| R2 | 33d · red po grupama | stablo vrsta → misija/tema (grane korpusa); kvačice; grupno samo povratno; Doktorove mjere i nepovratno jedna po jedna; potvrda „odobravaš N stavki“; klik = cijeli sažetak | testovi + snimak | 4–6 h |
+| R3 | 33e · ljudski glas | odgovor glasom asistenta (ti), činjenice samo iz SELECT; „prikaži odakle“ (SQL + redovi sklopljeni); bez AI-ja šablonske ljudske rečenice; sve kroz jedinicu glasa | testovi | 4–7 h |
+| R4 | 33b · jezik + prevod | (a) revizija interfejsa SR i EN (alat + snimci), popravke, test za nove natpise; (b) prevodilac kao PSE jedinica; meni u pregledniku i Editoru; keš + fajl `-masinski.md`; indeks/kapija ih preskaču; procjena za puni tekst; `papers-local` samo GGUF | test revizije prazan, testovi prevoda | 6–9 h |
+| R5 | Traka menija | SHARED_LIB · Laboratorija · Podešavanje · Jezik · Pomoć → Vodič | snimak | 1 h |
+| R6 | Dva deb-a | `pse-riemann-andrej` (misije + QRH) i `pse-riemann` (prazno), full, 0.3.0~rc1, konflikt jedan s drugim; selftest iz raspakovanog paketa | selftest prolazi za oba | 2–3 h |
+| R7 | Vodiči | kompletan `VODIC-SR` / `GUIDE-EN` (isti sadržaj, + dodatak „Tvoje misije“ u ličnom), md + docx, snimci iz paketa; vodič za instalaciju i živi test (docx SR + EN) | docx pregledan kao PDF | 4–6 h |
+| R8 | Deb-ovi ponovo | sa vodičem unutra; svi testovi; revizija PSE; WORKLOG, ZA-ANDREJA, plan docx | sve zeleno | 1–2 h |
+
+Ukupno oko 28–44 h. Na kraju: spisak lokalnih commitova za odobrenje push-a i šta nisam mogao.

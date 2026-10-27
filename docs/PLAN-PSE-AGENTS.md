@@ -48,3 +48,20 @@ A first-contact unit built from scratch on P0: choose papers + mission → readi
 ## Estimate
 
 P0 ≈ 20–30 h · P1 ≈ 12–18 h · P2 ≈ 8–12 h · P3 ≈ 6–10 h · 33b/33d/33e ≈ 14–22 h · deb and checks ≈ 3–5 h. Total **≈ 63–97 h** of work.
+
+## Second round (2026-10-27, agreement rules 27–41): plan to 0.3.0~rc1
+
+State: P0, P1, P2 done (`e15e252`, `f27680b`, `fe1a079`, pushed). Andrej sleeps; I work without asking, commits local.
+
+| # | Step | What exactly | Done when | Estimate |
+|---|---|---|---|---|
+| R1 | P3 · mission agent (33f) | one unit per mission `mission-agent:<id>` (open lifespan, dies when the mission closes); "Talk about the mission" button in Missions; paper checklist; reads abstracts, full text arXiv only on request; two-way conversation (≤ 3 questions per move), skeptic only on claims; "Compose conclusion" ⇒ queue items by kind; conversation saved in results (OURS-UNREVIEWED) + "where you left off"; without AI a clear message | tests with a fake model, tab screenshot | 6–10 h |
+| R2 | 33d · queue in groups | tree kind → mission/topic (corpus branches); checkboxes; bulk only reversible; Doctor's measures and irreversible one by one; confirmation "approving N items"; click = full abstract | tests + screenshot | 4–6 h |
+| R3 | 33e · human voice | the answer in an assistant's voice (ti), facts only from SELECT; "show where from" (SQL + rows collapsed); without AI human template sentences; all through the voice unit | tests | 4–7 h |
+| R4 | 33b · language + translation | (a) interface audit SR and EN (tool + screenshots), fixes, a test for new strings; (b) the translator as a PSE unit; menu in the viewer and the Editor; cache + `-masinski.md` file; skipped by index/gate; estimate for full text; `papers-local` GGUF only | audit test empty, translation tests | 6–9 h |
+| R5 | Menu bar | SHARED_LIB · Laboratory · Settings · Language · Help → Guide | screenshot | 1 h |
+| R6 | Two debs | `pse-riemann-andrej` (missions + QRH) and `pse-riemann` (empty), full, 0.3.0~rc1, conflicting with each other; selftest from the unpacked package | selftest passes for both | 2–3 h |
+| R7 | Guides | complete `VODIC-SR` / `GUIDE-EN` (same content, + "Your missions" in the personal one), md + docx, screenshots from the package; install and live-test guide (docx SR + EN) | docx reviewed as PDF | 4–6 h |
+| R8 | Debs again | with the guide inside; all tests; PSE audit; WORKLOG, ZA-ANDREJA, plan docx | all green | 1–2 h |
+
+Total about 28–44 h. At the end: the list of local commits for push approval and what I could not do.

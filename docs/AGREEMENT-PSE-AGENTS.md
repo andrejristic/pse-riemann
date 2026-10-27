@@ -104,3 +104,23 @@ Nothing. Every item was decided on 2026-10-27 (rules 13–26). Andrej gave "go" 
 After every phase: report, tests, and the state "who is now built as a PSE unit".
 
 **No interim release (rule 25):** P0–P3 are done to the end, and only then one deb. At the end: all tests, a check in the running app, a live test following the guide.
+
+## 7. Agreement, second round (2026-10-27): the rest of release 0.3.0
+
+| # | Topic | Agreement |
+|---|---|---|
+| 27 | Order | P3 (mission agent) → 33d → 33e → 33b → menu bar → two debs → guides → debs again with the guide inside |
+| 28 | Mission agent: where | a "Talk about the mission" button in the Missions tab; the conversation opens in the same tab |
+| 29 | Mission agent: papers | every paper tied to the mission (corpus cards + the mission's arXiv papers), a checklist with "select all"; full text only for arXiv (ar5iv) and only on request, otherwise the abstract only (the agent says so) |
+| 30 | Mission agent: unit | one unit per mission (`mission-agent:<mission>`), open lifespan while the mission is open; a closed mission ⇒ the unit dies ⇒ everything to SHARED_LIB (for this version) |
+| 31 | Mission agent: conversation | at most 3 questions per move; the skeptic attacks only replies that contain a claim; "Compose conclusion" ⇒ every proposal a separate queue item, grouped under the mission; without AI the mission agent does not work and says so |
+| 32 | Queue in groups (33d) | paper topics by the existing corpus branches; anything reversible may be decided in bulk; Doctor's measures and irreversible items one by one only; "Approve selected" always confirms first ("you are approving N items") |
+| 33 | Human voice (33e) | informal "ti"; the voice composes through its unit (reader, Doctor) |
+| 34 | Interface language (33b) | a CHECK, not an assumption: every window and tab in SR and in EN (screenshots + a tool for untranslated strings); everything untranslated, mixed or wrong is fixed; a test fails on any new string without a translation |
+| 35 | Content translation (33b) | content is not translated in advance. The shared viewer gets a menu (right click + "⋯"): "Translate to Serbian", "Translate to English", "Show original"; the Editor the same (translation beside the original). Translated by the **translator**, a PSE unit, only when the operator starts it; the main AI (cloud or GGUF); label "machine translation (model, date)"; the original never changes; cache in SHARED_LIB (hash of the original + language) **and a file beside the original** `<name>.en-masinski.md` / `.sr-masinski.md` (skipped by the index and the gate); a new original ⇒ a new translation on click, the old one gets a date in its name; mixed languages ⇒ the operator picks the target; full paper text: a cost/time estimate first; licensed papers (`papers-local`) only by the local GGUF |
+| 36 | Repository documents | stay outside the app |
+| 37 | Menu bar | SHARED_LIB (Vote weights, Awaiting your decision, Swarm state) · Laboratory · Settings · Language SR/EN · Help → Guide |
+| 38 | Packages | only the largest (full), two: `pse-riemann-andrej` (3 missions + QRH content, local only, never on GitHub) and `pse-riemann` (empty missions, empty vault, all machinery; on GitHub only when agreed); cannot be installed together; version 0.3.0~rc1; .exe only when agreed |
+| 39 | Guides | (1) the complete guide for the whole app `VODIC-SR` / `GUIDE-EN`, same content, for 0.3.0, in the package (md in the app "Help → Guide" + docx), written last from the installed version; the personal package adds "Your missions". (2) the install and live-test guide `PSE Riemann — VODIC 0.3.0 INSTALACIJA I ZIVI TEST.docx` + EN, for Andrej only, not in the package |
+| 40 | Calibration and lifespan | θ literally per move until the live test; N_max for chat and voice = 1000 |
+| 41 | Way of working | Andrej sleeps: I do everything in the plan without asking; commits local; at the end a list of commits to approve + what I could not do (`ZA-ANDREJA.md`) |
