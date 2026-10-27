@@ -164,6 +164,7 @@ STRINGS = [
 "<b>Ne radi:</b>",
 "<b>Nijedan izvor ne traži plaćen ključ.</b> Većina ne traži nikakav. Dva imaju opcioni besplatan ključ koji samo diže kvotu. Jedino što aplikacija stvarno traži od tebe je email — i to samo zato što Crossref i OpenAlex mole da se predstaviš; ide u User-Agent i u <code>mailto</code> parametar, nigdje drugdje.",
 "<b>Pamćenje misije</b> · {0}",
+"<b>Pamćenje misije</b> — prazno",
 "<b>Pamćenje misije</b> — prazno. Agent ga predlaže na kraju sesije (Završi razgovor, druga misija, zatvaranje aplikacije).",
 "<b>Parametri</b> (klizači)",
 "<b>Pregled</b>",

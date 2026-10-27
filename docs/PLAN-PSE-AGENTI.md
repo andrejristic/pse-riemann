@@ -80,3 +80,5 @@ Stanje: rc1 izgrađen i pushan (`0cb32d4`); prvi živi test našao dva velika pr
 | R14 | Izdanje rc2 (49) | svi testovi, PSE revizija, revizija jezika; paketi 0.3.0~rc2 (lični i javni), selftest iz oba; vodiči (SR/EN, md + docx, slike iz paketa) i vodič za živi test ažurirani; WORKLOG, ZA-ANDREJA; commitovi lokalno, push na odobrenje | sve zeleno | 2–3 h |
 
 Ukupno oko 11–15,5 h.
+
+**Stanje (2026-10-27, noć):** R9–R14 urađeni — `7bc0a4d` (R9), `c1ab293` (R10), `0b9960d` (R11–R13), zatim izdanje R14. pytest 369/369, selftest iz oba paketa 0.3.0~rc2: SVE PROLAZI. Čeka Andreja: push, živi test rc2, „spoji u main“ (`docs/ZA-ANDREJA.md`).

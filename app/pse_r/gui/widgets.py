@@ -227,6 +227,9 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
             f'line-height:1.5;color:{fg}">{html}</div>')
 
 
+_GUTTER = 26                                     # px right of the text, for the "⋯"
+
+
 class MarkdownView(QTextBrowser):
     """Read-only markdown + math. Emits card links via `on_card`.
 
@@ -258,11 +261,16 @@ class MarkdownView(QTextBrowser):
         self._more.setAutoRaise(True)
         self._more.clicked.connect(lambda: self._tr_menu().exec(
             self._more.mapToGlobal(self._more.rect().bottomLeft())))
+        # the "⋯" lives in its own right-hand gutter, never on top of the text
+        self.setViewportMargins(0, 0, _GUTTER, 0)
 
     def resizeEvent(self, e):                    # noqa: N802 (Qt)
         super().resizeEvent(e)
-        # left of the panel's ⤢ button, which sits in the top-right corner
-        self._more.move(max(0, self.viewport().width() - self._more.sizeHint().width() - 40), 2)
+        sb = self.verticalScrollBar()
+        sbw = sb.width() if sb is not None and sb.isVisible() else 0
+        # in the gutter; below the panel's ⤢ (top-right corner) when there is room
+        y = 30 if self.height() > 70 else 2
+        self._more.move(max(0, self.width() - self.frameWidth() - sbw - _GUTTER + 2), y)
 
     def set_markdown(self, md: str) -> None:
         """New content from the owner: any translation on screen is dropped."""

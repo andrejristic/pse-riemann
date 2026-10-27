@@ -1212,4 +1212,5 @@ EN = {
 'izvještaj': 'report',
 'bilješka': 'note',
 'arXiv (čuvano)': 'arXiv (kept)',
+'<b>Pamćenje misije</b> — prazno': '<b>Mission memory</b> — empty',
 }

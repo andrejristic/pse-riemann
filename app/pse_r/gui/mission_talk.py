@@ -89,6 +89,7 @@ class MissionTalk(QWidget):
             row.addWidget(b)
         row.addStretch(1)
         v.addLayout(row)
+        self._count()
         self._buttons()
 
     # ------------------------------------------------------------------ #

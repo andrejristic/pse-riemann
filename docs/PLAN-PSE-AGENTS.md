@@ -80,3 +80,5 @@ State: rc1 built and pushed (`0cb32d4`); the first live test found two big probl
 | R14 | Release rc2 (49) | all tests, PSE audit, language audit; packages 0.3.0~rc2 (personal and public), selftest from both; guides (SR/EN, md + docx, screenshots from the package) and the live-test guide updated; WORKLOG, ZA-ANDREJA; commits local, push on approval | all green | 2–3 h |
 
 Total about 11–15.5 h.
+
+**Status (2026-10-27, night):** R9–R14 done — `7bc0a4d` (R9), `c1ab293` (R10), `0b9960d` (R11–R13), then the R14 release. pytest 369/369, selftest from both 0.3.0~rc2 packages: ALL PASS. Waiting for Andrej: push, the rc2 live test, "merge into main" (`docs/ZA-ANDREJA.md`).

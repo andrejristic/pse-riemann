@@ -61,8 +61,9 @@ class MemoryPanel(QWidget):
         self.list.clear()
         mem = MA.memory(mid) if mid else None
         if not mem or not mem.get("items"):
-            self.head.setText(tr("<b>Pamćenje misije</b> — prazno. Agent ga predlaže na kraju "
-                                 "sesije (Završi razgovor, druga misija, zatvaranje aplikacije)."))
+            self.head.setText(tr("<b>Pamćenje misije</b> — prazno"))
+            self.head.setToolTip(tr("<b>Pamćenje misije</b> — prazno. Agent ga predlaže na kraju "
+                                    "sesije (Završi razgovor, druga misija, zatvaranje aplikacije)."))
             return
         state = tr("pregledano") if mem.get("reviewed") else tr("<span style='color:#ffcf7a'>"
                                                                "nepregledano — prijedlog agenta</span>")
@@ -183,10 +184,9 @@ class MissionsTab(QWidget):
         self.b_goal.setMenu(self.m_goal)
         self.m_goal.aboutToShow.connect(self._fill_goal_menu)
         self.b_activate = button(tr("Aktiviraj"), self._activate, kind="go")
-        uv.addWidget(flow_row(self.b_activate,
-                              button(tr("Ostavi za kasnije…"), self._park),
-                              button(tr("Zatvori misiju…"), self._close_mission, kind="no"),
-                              self.b_goal))
+        self.b_park = button(tr("Ostavi za kasnije…"), self._park)
+        self.b_close = button(tr("Zatvori misiju…"), self._close_mission, kind="no")
+        uv.addWidget(flow_row(self.b_activate, self.b_park, self.b_close, self.b_goal))
         dsplit = QSplitter(Qt.Horizontal)               # rule 46: side by side
         self.view = MarkdownView()                      # details + „Gdje si stao“ (operator's)
         dsplit.addWidget(self.view)
@@ -305,6 +305,8 @@ class MissionsTab(QWidget):
     def _show(self) -> None:
         mid = self.mid
         m = MIS.get(mid) if mid else None
+        for b in (self.b_activate, self.b_park, self.b_close, self.b_goal):
+            b.setEnabled(m is not None)
         if m is None:
             self.head.setText("")
             self.memory.show_for(None)

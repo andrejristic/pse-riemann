@@ -22,7 +22,7 @@ Several "agents" work inside (chat, skeptic, paper reader, guardians…). In ver
 **Installing** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc1_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc2_amd64.deb
 ```
 
 The package carries all its own Python libraries (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) and does not touch the system Python. Removing: `sudo apt remove pse-riemann` — your data stays.
@@ -60,13 +60,12 @@ You change all of this later in **Settings** (menu bar or the last tab "⚙ Sett
 
 **Overview** — every number is a query over the library: the mission frontier, the decision queue, methods, seals, cards, lab, journal; latest events.
 
-**Missions** — standing research questions. For each: the question, the state, the frontier (lowest B), the goal, the step log (state → action → outcome). Buttons:
-- *New mission…* — a title + a question; the mission starts as "open";
-- *Talk about the mission* — a conversation with the mission agent (§6);
-- *Switch to selected*, *Next mission ⟳*, *Leave for later…* (a "where you left off" note + an automatic snapshot), *While waiting* (fully frozen or quietly collecting);
-- *Mission goal* — only you change it; the app can only propose;
-- *Close the mission…* — the mission agent dies, everything in it goes to SHARED_LIB;
-- *Check arXiv now*, *Export mission report*, *Adversarial mode…*, *Working paper…*.
+**Missions** — the missions' workspace:
+- **on the left** the missions as cards (title, short state, frontier, number of papers, how many items await you) and *+ New mission*; ▶ = active, ⏸ = saved for later;
+- **a click on a mission** opens its workspace and starts the mission agent at once (§6);
+- **upper right:** the chosen mission's details (question, state, goal, frontier, last steps) and your **"Where you left off"** note, and beside them the **mission memory** (§6); buttons *Activate*, *Save for later…* (a "where you left off" note + an automatic snapshot), *Close the mission…* (the mission agent dies, everything in it goes to SHARED_LIB) and *Goal and background ▾* (only you change the goal; "while it waits": fully frozen or quietly collecting);
+- **lower right:** the paper strip and the conversation with the agent; drag the border between the upper and lower part with the mouse;
+- **at the top of the tab** is what holds for all missions: *Check arXiv now*, *Adversarial mode…*, *Working paper…*, *Export mission report*.
 
 ![The Missions tab](vodic-slike/en/02_misije.png)
 
@@ -113,25 +112,38 @@ Everything that changes your data or needs your word comes here: new papers (ext
 
 ---
 
-## 6. Talking about a mission (the mission agent)
+## 6. Talking about a mission (the mission agent) and the mission memory
 
-In the Missions tab: *Talk about the mission* →
+**A click on a mission** in the Missions tab starts the mission agent: it reads the mission's state, **the memory of the last session**, your "where you left off" note and the papers, writes the first message (what it sees, where you stopped, at most 3 questions) and waits for you. The first model call costs.
 
-1. choose the mission's papers (one, several or all — *Select all*);
-2. *Start the conversation* — the agent reads the abstracts and the state of the mission, says what it sees and asks you (at most 3 questions per reply);
-3. you talk both ways; **the skeptic attacks every reply that contains a claim** (a number, "holds", "follows");
-4. *Full text (arXiv)…* — the full text only for arXiv papers and only when you ask; for the others the agent reads the abstract and says so;
-5. *Compose conclusion* — the proposals (mission steps, open questions, ideas, a goal, a method for the door) each go **separately** into "Awaiting your decision". Nothing is written on its own.
+**Which papers it reads:** the first time all of the mission's papers (abstracts). After that the papers you chose last time plus the papers that arrived since — those are marked **🆕 new** in the strip. The strip *"N of M papers chosen ▾"* folds open; tick or untick, and the agent reads the new choice from its next move.
 
-![Talking about a mission](vodic-slike/en/03_razgovor_o_misiji.png)
+**Give it to read…** — hand the agent more reading: a paper from the list, **the full text of an arXiv paper** (arXiv only, only when you ask), a card, a report or your own note.
 
-The conversation is saved in the results (`razgovori-o-misiji/`, label NAŠE-NERECENZIRANO / OURS-UNREVIEWED) and appears in "Where you left off". Every mission has its own agent (a PSE unit with an open lifespan); closing the mission ends it. **Without AI the mission agent does not work** and says so.
+In the conversation:
+1. you write and *Send*; the agent answers with a source (a paper's [ref] or a mission step), at most 3 questions per reply;
+2. **the skeptic attacks every reply that contains a claim** (a number, "holds", "follows");
+3. *Compose conclusion* — the proposals (mission steps, open questions, ideas, a goal, a method for the door) each go **separately** into "Awaiting your decision". Nothing is written on its own.
+
+![The mission workspace: cards on the left, details and memory above, the conversation below](vodic-slike/en/03_razgovor_o_misiji.png)
+
+**The mission memory.** The next session does not get the old conversation, **only what matters**: what was decided or agreed, what was established (always with a source), open questions and the agreed next step.
+- The agent **proposes** the memory at the end of a session: when you click *End the conversation*, when you switch to another mission, or when you close the app.
+- The proposal is saved at once, marked **"unreviewed"**, so it stands even if you never decide.
+- You review it upper right: tick what stays, double-click to correct the text, *Add* or *Delete* an item, then **Save the memory**.
+
+![The mission memory: the agent's proposal, you review and save it](vodic-slike/en/03b_pamcenje_misije.png)
+
+The whole conversation is still saved in the results (`razgovori-o-misiji/`, label NAŠE-NERECENZIRANO / OURS-UNREVIEWED), but the agent no longer reads it. Every mission has its own agent (a PSE unit with an open lifespan); closing the mission ends it. **Without AI the mission agent does not work** and says so in the conversation itself.
 
 ---
 
 ## 7. Chat and the SHARED_LIB voice
 
 - **"SHARED_LIB (facts)"** (default): your question → **one read-only SELECT** over the library → an answer in sentences, like a colleague at work, with `[id]` citations. Below it is **▸ show where from** — the exact SQL and the rows. When the data is not there: "That is not in the library (UNKNOWN)", never a guess. You can also type SQL directly. Without a model it works for known questions (missions, methods, cards, lab, awaiting) with template sentences.
+  - **Mission names are links**: a click opens that mission's workspace.
+  - To a **question that asks for judgment** ("what is the next step", "what should I do") the base gives no answer and says so, with a link **"Talk about the mission: X"** — that is the mission agent's job.
+  - If the model writes invalid SQL, the voice tries once more with the error; if that fails too, you get a plain sentence, and the technical detail is under "show where from".
 
 ![The SHARED_LIB voice: sentences, with "show where from" below](vodic-slike/en/08_chat_shared_lib.png)
 

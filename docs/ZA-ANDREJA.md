@@ -1,30 +1,56 @@
 # Za Andreja: šta čeka tebe
 
-Stanje 2026-10-27, jutro. Plan R1–R8 je **urađen**. Ovdje je sve što ne mogu bez tebe.
+Stanje 2026-10-27, noć. Treća runda (R9–R14, izdanje **0.3.0~rc2**) je **urađena**. Ovdje je sve što ne mogu bez tebe, redom kojim predlažem da ide.
 
-## 1. Commitovi za odobrenje (push grane `feature/runda3`)
+## 1. Push grane `feature/runda3` (na tvoje „pushuj“)
 
-Lokalno, posle zadnjeg push-a (`32c0999`):
+Na GitHubu je zadnji `5c2288a` (dogovor treće runde i plan R9–R14). Lokalno čekaju:
 
 | commit | šta |
 |---|---|
-| `f91bfa2` | R1 — agent misije (P3, 33f) + popravka pravog buga u putu jedinice (`m.text`) |
-| `bcaf539` | R2 — „Čeka tvoju odluku“ po grupama (33d) |
-| `694de0b` | R3 — SHARED_LIB razgovara ljudski (33e) |
-| `af07888` | R4a — revizija jezika interfejsa SR/EN (33b) |
-| `b529808` | R4b — prevodilac na zahtjev (33b) |
-| `0cf2b88` | R5 — traka menija |
-| `6a19769` | R6 — dva paketa (lični `pse-riemann-andrej`, javni `pse-riemann`) |
-| `71dffe2` | R7 (1/2) — kompletan vodič SR/EN + dodatak „Tvoje misije“ |
-| `1de8f55` | R7 (2/2) + R8 — slike vodiča, docx, konačni paketi, WORKLOG, ovaj fajl |
+| `7bc0a4d` | R9 — pravilo 48 a, b, d: budžet razmišljanja iznad limita odgovora, ponovni pokušaj odsječenog odgovora, „čitač odsječen“ |
+| `c1ab293` | R10 — pravila 47 i 48 c: misije kao linkovi, pitanje koje traži sud ide agentu misije, SQL: jedan ponovni pokušaj pa rečenica |
+| `0b9960d` | R11–R13 — radni prostor misije, razgovor na klik, „Zadaj da čita…“, pamćenje misije |
+| (zadnji) | R14 — izdanje 0.3.0~rc2: vodiči, slike iz paketa, docx, WORKLOG, ovaj fajl |
 
-Kad kažeš, pushujem (bez force-a). Paketi (`*.deb`) nikad ne idu u git.
+Push je bez force-a. Paketi (`*.deb`) nikad ne idu u git.
 
-## 2. Živi test (tvoj posao)
+## 2. Instalacija rc2 i živi test (tvoj posao)
 
-Vodič: **`PSE Riemann — VODIC 0.3.0 INSTALACIJA I ZIVI TEST.docx`** u `~/Desktop/PSE Riemann` (EN: `… GUIDE 0.3.0 INSTALL AND LIVE TEST.docx`). Instalacija traži `sudo` — to ne mogu ja.
+Vodič je **`PSE Riemann — VODIC 0.3.0 INSTALACIJA I ZIVI TEST.docx`** u `~/Desktop/PSE Riemann` (EN: `… GUIDE 0.3.0 INSTALL AND LIVE TEST.docx`). U njemu je 16 koraka, sa naglaskom na četiri stvari koje su pukle u rc1. Instalacija traži `sudo`, a to ne mogu ja.
 
-## 3. Kalibracija — najvažnije za živi test
+Paketi u `~/Desktop/PSE Riemann/`:
+- `pse-riemann-andrej_0.3.0~rc2_amd64.deb` (tvoj);
+- `pse-riemann_0.3.0~rc2_amd64.deb` (javni).
+
+Selftest iz oba raspakovana paketa daje **SVE PROLAZI**. Paketi rc1 su još tu; obriši ih kad ti više ne trebaju.
+
+Posle živog testa slijedi **„spoji u main“**, i to samo kad kažeš.
+
+## 2a. Moja tumačenja treće runde (provjeri, ništa ne blokira)
+
+1. **Budžet razmišljanja po ulozi** ide preko „effort“ uloge: low = 512, medium = 1024, high = 4096 tokena, uvijek **iznad** limita odgovora.
+   - Čitač i senzori: low, pa je čitač 200 + 512.
+   - Glas i chat: medium, pa je SQL 600 + 1024, a odgovor 900 + 1024.
+   - Matematika: high.
+   - Važi za modele koji razmišljaju (Gemini 2.5/3, DeepSeek R1, o-serija, Claude 5, `openrouter/auto` …); kod ostalih se ništa ne mijenja.
+2. **Ponovni pokušaj** (48 b) ide sa **dvostrukim** limitom odgovora. Ako i on bude odsječen, na kraj odgovora ide „[odgovor odsječen: ni dvostruki limit nije bio dovoljan …]“. Važi za sve provajdere (MAX_TOKENS / max_tokens / length).
+3. **Pitanje koje traži sud** prepoznajem po izrazima („sljedeći korak“, „šta da radim“, „preporuči“, „najlakši“, „trebam li“, „what should“ …). Glas tada ne pravi SQL. Ako pitanje imenuje misiju, link vodi na nju; inače na sve otvorene misije, aktivna prva.
+4. **Pamćenje** se čuva odmah kao „nepregledano“, čim ga agent predloži. Tvoj pregled ga zamjenjuje. Stavke „utvrđeno“ bez izvora dobijaju izvor „razgovor <id>“, a tvrdnje o dokazu se odbacuju.
+5. **Zatvaranje aplikacije** čeka prijedlog pamćenja najviše 30 s. Ako model ne stigne, razgovor ostaje sačuvan u rezultatima, ali bez pamćenja.
+6. **Prelazak na drugu misiju** (klik na drugu karticu) završava sesiju prethodne i pokreće prijedlog njenog pamćenja u pozadini.
+7. **Cilj i „dok čeka“** su u jednom meniju „Cilj i pozadina ▾“, da gornji dio stane na Acer (1366 piksela).
+8. **„Sljedeća misija ⟳“ i „Pređi na izabranu“** više ne postoje. Zamjenjuju ih klik na karticu i „Aktiviraj“.
+
+## 2b. Jedna moja greška (iskreno)
+
+Pri provjeri javnog paketa (R14) jedna moja skripta zbog greške u lancu komandi nije napravila privremeni HOME. Zbog toga je jedno pokretanje GUI-ja (oko 10 s) koristilo **razvojni** `vault/` i `models/` u repou umjesto privremenih foldera.
+- **Tvoj pravi vault („PSE Riemann rezultati“) nije bio u igri.**
+- U razvojni `vault/.state/` (gitignored) upisani su redovi o pokretanju (operater „Ana“, događaji pokretanja).
+- `config/` i `.cache/` koje je skripta napravila u korijenu repoa sam obrisao.
+- Provjeru sam ponovio ispravno, sa privremenim HOME-om.
+
+## 3. Kalibracija — najvažnije za živi test (ostalo iz rc1)
 
 1. **Koliko često Doktor zove tebe.** θ se uzima doslovno po potezu (pravilo 40). Jedan odgovor sa „naravno, evo“ i bez provjere daje θ oko 45. Zamah je tada 15, a to je veće od amplitude 10, pa je atraktor borderline i Doktorova mjera ide tebi. Na mom malom korpusu (23 bezazlena odgovora) okidač je bio na 2 poteza, a nijedan nije postao mjera. Ako u živom radu bude previše, postoje dvije opcije:
    - (a) klizni prosjek θ (λ = 0,2);

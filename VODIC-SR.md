@@ -22,7 +22,7 @@ Unutra radi više „agenata“ (chat, skeptik, čitač radova, čuvari…). U v
 **Instalacija** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc1_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc2_amd64.deb
 ```
 
 Paket nosi sve svoje Python biblioteke (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) i ne dira sistemski Python. Uklanjanje: `sudo apt remove pse-riemann` — tvoji podaci ostaju.
@@ -59,13 +59,12 @@ Sve ovo kasnije mijenjaš u **Podešavanje** (traka menija ili posljednji tab �
 
 **Pregled** — sve brojke su upiti nad bibliotekom: front misije, red odluka, metode, pečati, kartice, lab, dnevnik; zadnji događaji.
 
-**Misije** — stojeća istraživačka pitanja. Za svaku: pitanje, stanje, front (najniže B), cilj, dnevnik koraka (stanje → akcija → ishod). Dugmad:
-- *Nova misija…* — naslov + pitanje; misija počinje kao „otvorena“;
-- *Razgovaraj o misiji* — razgovor sa agentom misije (§6);
-- *Pređi na izabranu*, *Sljedeća misija ⟳*, *Ostavi za kasnije…* (bilješka „gdje si stao“ + automatski snimak stanja), *Dok čeka* (potpuno zamrznuta ili tiho skuplja);
-- *Cilj misije* — mijenjaš samo ti; aplikacija može samo predložiti;
-- *Zatvori misiju…* — agent misije umire, sve iz njega ide u SHARED_LIB;
-- *Provjeri arXiv sada*, *Izvezi izvještaj misije*, *Adversarijalni mod…*, *Radni tekst…*.
+**Misije** — radni prostor misija:
+- **lijevo** su misije kao kartice (naslov, kratko stanje, front, broj radova, koliko stavki čeka tebe) i *+ Nova misija*; ▶ = aktivna, ⏸ = ostavljena za kasnije;
+- **klik na misiju** otvara njen radni prostor i odmah pokreće agenta misije (§6);
+- **desno gore:** detalji izabrane misije (pitanje, stanje, cilj, front, zadnji koraci) i tvoja bilješka **„Gdje si stao“**, a pored njih **pamćenje misije** (§6); dugmad *Aktiviraj*, *Ostavi za kasnije…* (bilješka „gdje si stao“ + automatski snimak stanja), *Zatvori misiju…* (agent misije umire, sve iz njega ide u SHARED_LIB) i *Cilj i pozadina ▾* (cilj mijenjaš samo ti; „dok čeka“: potpuno zamrznuta ili tiho skuplja);
+- **desno dolje:** traka radova i razgovor sa agentom; granicu između gornjeg i donjeg dijela vučeš mišem;
+- **gore u tabu** je ono što važi za sve misije: *Provjeri arXiv sada*, *Adversarijalni mod…*, *Radni tekst…*, *Izvezi izvještaj misije*.
 
 ![Tab Misije](vodic-slike/sr/02_misije.png)
 
@@ -112,25 +111,38 @@ Sve što mijenja tvoje podatke ili traži tvoju riječ dolazi ovdje: novi radovi
 
 ---
 
-## 6. Razgovor o misiji (agent misije)
+## 6. Razgovor o misiji (agent misije) i pamćenje misije
 
-U tabu Misije: *Razgovaraj o misiji* →
+**Klik na misiju** u tabu Misije pokreće agenta misije: on pročita stanje misije, **pamćenje prošle sesije**, tvoju bilješku „gdje si stao“ i radove, napiše prvu poruku (šta vidi, gdje ste stali, najviše 3 pitanja) i čeka tebe. Prvi poziv modela košta.
 
-1. izaberi radove misije (jedan, više ili sve — *Označi sve*);
-2. *Počni razgovor* — agent pročita sažetke i stanje misije, kaže šta vidi i pita te (najviše 3 pitanja po odgovoru);
-3. razgovarate u oba smjera; **skeptik napada svaki odgovor koji sadrži tvrdnju** (broj, „važi“, „slijedi“);
-4. *Puni tekst (arXiv)…* — puni tekst samo za arXiv radove i samo na tvoj zahtjev; za ostale agent čita sažetak i to kaže;
-5. *Sastavi zaključak* — prijedlozi (koraci misije, otvorena pitanja, ideje, cilj, metoda za vrata) idu **svaki posebno** u „Čeka tvoju odluku“. Ništa se ne upisuje samo.
+**Koje radove čita:** prvi put sve radove misije (sažetke). Posle toga radove koje si izabrao prošli put i radove koji su stigli od tada — oni su u traci označeni **🆕 novo**. Traka *„N od M radova izabrano ▾“* se rasklapa; štikliraj ili odštikliraj, a agent novi izbor čita od sljedećeg poteza.
 
-![Razgovor o misiji](vodic-slike/sr/03_razgovor_o_misiji.png)
+**Zadaj da čita…** — daš agentu još štiva: rad iz liste, **puni tekst arXiv rada** (samo arXiv, samo na tvoj zahtjev), karticu, izvještaj ili svoju bilješku.
 
-Razgovor se čuva u rezultatima (`razgovori-o-misiji/`, oznaka NAŠE-NERECENZIRANO) i pojavljuje se u „Gdje si stao“. Svaka misija ima svog agenta (PSE jedinica otvorenog vijeka); zatvaranje misije ga gasi. **Bez AI-ja agent misije ne radi** i to jasno kaže.
+U razgovoru:
+1. pišeš i *Pošalji*; agent odgovara uz izvor ([ref] rada ili korak misije), najviše 3 pitanja po odgovoru;
+2. **skeptik napada svaki odgovor koji sadrži tvrdnju** (broj, „važi“, „slijedi“);
+3. *Sastavi zaključak* — prijedlozi (koraci misije, otvorena pitanja, ideje, cilj, metoda za vrata) idu **svaki posebno** u „Čeka tvoju odluku“. Ništa se ne upisuje samo.
+
+![Radni prostor misije: kartice lijevo, detalji i pamćenje gore, razgovor dolje](vodic-slike/sr/03_razgovor_o_misiji.png)
+
+**Pamćenje misije.** U sljedeću sesiju se ne prenosi stari razgovor, nego **samo bitno**: šta je odlučeno ili dogovoreno, šta je utvrđeno (uvijek sa izvorom), otvorena pitanja i dogovoreni sljedeći korak.
+- Agent **predlaže** pamćenje na kraju sesije: kad klikneš *Završi razgovor*, kad pređeš na drugu misiju ili kad zatvoriš aplikaciju.
+- Prijedlog se odmah čuva, označen **„nepregledano“**, pa ostaje i ako ništa ne odlučiš.
+- Ti ga pregledaš gore desno: štikliraj šta ostaje, dvoklikom ispravi tekst, *Dodaj* ili *Obriši* stavku, pa **Sačuvaj pamćenje**.
+
+![Pamćenje misije: prijedlog agenta, pregledaš i sačuvaš](vodic-slike/sr/03b_pamcenje_misije.png)
+
+Cijeli razgovor se i dalje čuva u rezultatima (`razgovori-o-misiji/`, oznaka NAŠE-NERECENZIRANO), ali ga agent više ne čita. Svaka misija ima svog agenta (PSE jedinica otvorenog vijeka), a zatvaranje misije ga gasi. **Bez AI-ja agent misije ne radi** i to kaže u samom razgovoru.
 
 ---
 
 ## 7. Chat i glas SHARED_LIB-a
 
 - **„SHARED_LIB (činjenice)“** (podrazumijevano): tvoje pitanje → **jedan read-only SELECT** nad bibliotekom → odgovor rečenicama, kao kolega na poslu, sa citatima `[id]`. Ispod je **▸ prikaži odakle** — tačan SQL i redovi. Kad podatka nema: „Toga nema u biblioteci (UNKNOWN)“, nikad nagađanje. Možeš upisati i SQL direktno. Bez modela radi za poznata pitanja (misije, metode, kartice, lab, čeka) šablonskim rečenicama.
+  - **Imena misija su linkovi**: klik otvara radni prostor te misije.
+  - Na **pitanje koje traži sud** („koji je sljedeći korak“, „šta da radim“) baza ne odgovara i to kaže, a daje link **„Razgovaraj o misiji: X“** — to je posao agenta misije.
+  - Ako model napiše neispravan SQL, glas proba još jednom sa greškom; ako ni tada ne uspije, dobiješ običnu rečenicu, a tehnički detalj je pod „prikaži odakle“.
 ![Glas SHARED_LIB-a: rečenice, a ispod „prikaži odakle“](vodic-slike/sr/08_chat_shared_lib.png)
 
 - Ostali modovi su razgovor sa glavnim AI-jem. Model **ne piše u vault** — predlaže karticu, presudu kapije vidiš prije klika.
