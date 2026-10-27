@@ -365,15 +365,27 @@ class QueueTab(QWidget):
         v.addWidget(self.lb_models)
         v.addWidget(hline())
 
-        v.addWidget(QLabel(tr("<b>Čeka tvoju odluku</b>")))
+        # 33d (rule 32): a tree by kind → mission / topic → item, with checkboxes
+        v.addWidget(QLabel(tr("<b>Čeka tvoju odluku</b> — označi jednu, više ili cijelu grupu; "
+                              "Doktorove mjere i nepovratne odluke idu jedna po jedna")))
+        from PySide6.QtWidgets import QSplitter, QTreeWidget
+        split = QSplitter(Qt.Horizontal)
+        self.tree = QTreeWidget()
+        self.tree.setHeaderHidden(True)
+        self.tree.itemChanged.connect(self._tree_changed)
+        self.tree.currentItemChanged.connect(self._show_item)
+        split.addWidget(self.tree)
         self.view = MarkdownView()
-        v.addWidget(self.view, 1)
-        rowb = QHBoxLayout()
-        self.cb_item = QComboBox()
-        rowb.addWidget(self.cb_item, 1)
-        rowb.addWidget(button(tr("Odobri"), lambda: self._decide(True), kind="go"))
-        rowb.addWidget(button(tr("Ne odobri"), lambda: self._decide(False), kind="no"))
-        v.addLayout(rowb)
+        split.addWidget(self.view)
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 1)
+        v.addWidget(split, 1)
+        self.lb_sel = small("")
+        v.addWidget(flow_row(button(tr("Odobri označene"), lambda: self._decide(True), kind="go"),
+                             button(tr("Ne odobri označene"), lambda: self._decide(False), kind="no"),
+                             button(tr("Označi sve"), lambda: self._check_all(True)),
+                             button(tr("Odznači sve"), lambda: self._check_all(False)),
+                             self.lb_sel))
 
         self._load_models()
         self.refresh()
@@ -453,40 +465,120 @@ class QueueTab(QWidget):
                 tr("Paket NIJE reprodukovao broj iz rada: naš pipeline daje {0:.12f}, paket tvrdi {1:.12f} (razlika {2:.1e}). Nije ušao u red.").format(r['computed_B'], r['claimed_B'], r['error']))
         self.refresh()
 
-    # -- the queue ----------------------------------------------------- #
+    # -- the queue (33d) ------------------------------------------------ #
     def refresh(self):
-        items = store().open_items()
-        self.cb_item.clear()
-        md = [tr("Stavke koje čekaju tvoju odluku:"), ""]
-        if not items:
-            md.append(tr("_Red je prazan._"))
-        for it in items:
-            self.cb_item.addItem(f"[{it['kind']}] {it['title']}", it["id"])
-            md.append(tr("- **[{0}]** {1} — _predložio: {2}_").format(it['kind'], it['title'], it['proposer']))
-            pl = it.get("payload") or {}
-            res = pl.get("result") or {}
-            if res.get("computed_B") is not None:
-                md.append(tr("  - reprodukcija: naš B*={0:.12f}, rad {1}, razlika {2:.1e}; polinom: {3}; narušeni zidovi: {4}").format(res['computed_B'], res.get('claimed_B'), res.get('error', 0), res.get('poly_ok'), res.get('broken_walls') or 'nijedan'))
-            if pl.get("harms"):
-                md.append(tr("  - znaci zla: {0}").format(', '.join(pl['harms'])))
-            if pl.get("evidence"):
-                md.append(tr("  - dokaz: {0}").format(pl['evidence'][0][:160]))
-            if pl.get("abstract"):
-                md.append(tr("  - apstrakt: {0}…").format(pl['abstract'][:240]))
-        self.view.set_markdown("\n".join(md))
+        from PySide6.QtWidgets import QTreeWidgetItem
+        from ..shared_lib import queue_groups as QG
+        self._filling = True
+        self.tree.clear()
+        groups = QG.tree()
+        if not groups:
+            QTreeWidgetItem(self.tree, [tr("Red je prazan.")])
+        for k in groups:
+            n = sum(len(g["items"]) for g in k["groups"])
+            top = QTreeWidgetItem(self.tree, [f"{tr(k['label'])} ({n})" +
+                                              ("" if k["bulk"] else " · " + tr("jedna po jedna"))])
+            top.setFlags(top.flags() | Qt.ItemIsUserCheckable)
+            top.setCheckState(0, Qt.Unchecked)
+            for g in k["groups"]:
+                parent = top
+                if g["name"]:
+                    parent = QTreeWidgetItem(top, [f"{g['name']} ({len(g['items'])})"])
+                    parent.setFlags(parent.flags() | Qt.ItemIsUserCheckable)
+                    parent.setCheckState(0, Qt.Unchecked)
+                for it in g["items"]:
+                    leaf = QTreeWidgetItem(parent, [it["title"]])
+                    leaf.setFlags(leaf.flags() | Qt.ItemIsUserCheckable)
+                    leaf.setCheckState(0, Qt.Unchecked)
+                    leaf.setData(0, Qt.UserRole, it["id"])
+                    leaf.setData(0, Qt.UserRole + 1, k["bulk"])
+            top.setExpanded(True)
+        self.tree.expandAll()
+        self._filling = False
+        self.view.set_markdown(tr("_Klikni stavku da vidiš sve o njoj (i cijeli sažetak)._"))
+        self._count()
         self._show_models()
 
-    def _decide(self, approve: bool):
+    def _leaves(self, node=None):
+        from PySide6.QtWidgets import QTreeWidgetItemIterator
+        out = []
+        itr = QTreeWidgetItemIterator(self.tree)
+        while itr.value():
+            n = itr.value()
+            if n.data(0, Qt.UserRole):
+                out.append(n)
+            itr += 1
+        return out
+
+    def _tree_changed(self, node, col):
+        if getattr(self, "_filling", False):
+            return
+        self._filling = True
+        st = node.checkState(0)
+
+        def down(n):
+            for i in range(n.childCount()):
+                n.child(i).setCheckState(0, st)
+                down(n.child(i))
+        down(node)
+        self._filling = False
+        self._count()
+
+    def _check_all(self, on: bool):
+        self._filling = True
+        for n in self._leaves():                    # one-by-one items are never ticked in bulk
+            if on and not n.data(0, Qt.UserRole + 1):
+                continue
+            n.setCheckState(0, Qt.Checked if on else Qt.Unchecked)
+        self._filling = False
+        self._count()
+
+    def _checked(self) -> list:
+        return [n.data(0, Qt.UserRole) for n in self._leaves() if n.checkState(0) == Qt.Checked]
+
+    def _count(self):
+        self.lb_sel.setText(tr("označeno: {0}").format(len(self._checked())))
+
+    def select(self, pid: str) -> bool:
+        for n in self._leaves():
+            if n.data(0, Qt.UserRole) == pid:
+                n.setCheckState(0, Qt.Checked)
+                self.tree.setCurrentItem(n)
+                return True
+        return False
+
+    def _show_item(self, cur, _prev=None):
+        from ..shared_lib import queue_groups as QG
+        pid = cur.data(0, Qt.UserRole) if cur is not None else None
+        if not pid:
+            return
+        it = store().get(pid)
+        if it:
+            self.view.set_markdown(QG.detail_md(it))
+
+    def _decide(self, approve: bool, ask: bool = True):
+        from ..shared_lib import queue_groups as QG
         if not OP.current():
             QMessageBox.warning(self, tr("Operater"), tr("Prvo se prijavi kao operater."))
             return
-        pid = self.cb_item.currentData()
-        if not pid:
+        ids = self._checked()
+        if not ids:
+            cur = self.tree.currentItem()
+            pid = cur.data(0, Qt.UserRole) if cur is not None else None
+            ids = [pid] if pid else []
+        if not ids:
+            return
+        if ask and QMessageBox.question(
+                self, tr("Odluka"),
+                (tr("Odobravaš {0} stavki?") if approve else tr("Ne odobravaš {0} stavki?")).format(len(ids))) \
+                != QMessageBox.Yes:
             return
         try:
-            store().decide(pid, approve)
-        except (KeyError, ValueError, OP.NoOperator) as e:
+            out = QG.decide_many(ids, approve)
+        except ValueError as e:
             QMessageBox.warning(self, tr("Odluka"), str(e))
             return
+        if out["failed"]:
+            QMessageBox.warning(self, tr("Odluka"), "\n".join(f"{k}: {v}" for k, v in out["failed"].items()))
         self.decided.emit()
         self.refresh()
