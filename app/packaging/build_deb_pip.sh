@@ -141,6 +141,11 @@ cp -r packaging "$STAGE/opt/$APP/app/" 2>/dev/null || true
 if [ "$EDITION" = "andrej" ] && [ -d ../research/qrh-2026-10/method-packs ]; then
     cp -r ../research/qrh-2026-10/method-packs "$STAGE/opt/$APP/app/method-packs"
 fi
+# rule 39: the complete guide (SR + EN) with its pictures; the personal edition adds "Tvoje misije"
+[ -d ../vodic-slike ] && cp -r ../vodic-slike "$STAGE/usr/share/doc/$APP/"
+if [ "$EDITION" = "andrej" ]; then
+    for f in ../VODIC-SR-MISIJE.md ../GUIDE-EN-MISSIONS.md; do [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"; done
+fi
 for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md ../SUDOERS-SR.md ../SUDOERS-EN.md \
          ../docs/VODIC-GRAFOVI-SR.md ../docs/VODIC-GRAFOVI-EN.md ../docs/BENCHMARK.md; do
     [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"

@@ -1071,4 +1071,5 @@ EN = {
 'Nova misija': 'New mission',
 'Naslov misije:': 'Mission title:',
 'Pitanje misije (šta tačno želiš da saznaš):': "The mission's question (what exactly you want to find out):",
+'Doktor: {0} za {1}': 'Doctor: {0} for {1}',
 }

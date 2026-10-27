@@ -77,6 +77,26 @@ def subgroup(item: dict) -> str:
     return ""
 
 
+def title_of(item: dict) -> str:
+    """The item's title in the interface language. A Doctor's measure is composed
+    from its payload (it is stored before anyone knows the reader's language)."""
+    if item.get("kind") != "doctor-measure":
+        return item.get("title", "")
+    from ..i18n import lang, tr
+    from ..pse import doctor as DR
+    p = item.get("payload") or {}
+    lad = (DR.LADDER_EN if lang() == "en" else DR.LADDER_SR).get(p.get("measure"), p.get("measure"))
+    return tr("Doktor: {0} za {1}").format(lad, p.get("unit", ""))
+
+
+def _why(p: dict) -> str:
+    from ..i18n import lang
+    f = p.get("finding") or {}
+    labels = p.get("labels_en" if lang() == "en" else "labels_sr") or f.get("triggers") or []
+    att = f.get("attractor")
+    return ", ".join(labels) + (f" · θ: {att}" if att and att not in ("H", "?") else "")
+
+
 def tree(items: Optional[list] = None) -> list[dict]:
     """[{kind, label, bulk, groups: [{name, items: [...]}]}], sorted by kind label."""
     items = store().open_items() if items is None else items
@@ -115,7 +135,7 @@ def detail_md(item: dict) -> str:
     """Everything about one item (the full abstract included), SR or EN."""
     from ..i18n import lang, tr
     p = item.get("payload") or {}
-    L = [f"### {item['title']}", "",
+    L = [f"### {title_of(item)}", "",
          tr("**{0}** · predložio: {1}").format(tr(KIND_LABEL.get(item["kind"], item["kind"])),
                                               item.get("proposer", ""))
          + ("" if bulk_allowed(item) else f" · _{tr(ONE_BY_ONE_REASON)}_"), ""]
@@ -127,7 +147,7 @@ def detail_md(item: dict) -> str:
         f = p.get("finding") or {}
         labels = p.get("labels_en" if lang() == "en" else "labels_sr") or f.get("triggers") or []
         L += [tr("**Jedinica:** {0} · **mjera:** {1}").format(p.get("unit"), p.get("measure")),
-              tr("**Zašto:** {0}").format(f.get("why", "")),
+              tr("**Zašto:** {0}").format(_why(p)),
               tr("**Okidači:** {0}").format(", ".join(labels))]
     res = p.get("result") or {}
     if res.get("computed_B") is not None:

@@ -7,7 +7,7 @@ const path = require("path");
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
   WidthType, ShadingType, BorderStyle, AlignmentType, Footer, PageNumber,
-  TableOfContents, LevelFormat,
+  TableOfContents, LevelFormat, ImageRun,
 } = require("docx");
 
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -87,6 +87,22 @@ function convert(md) {
     const raw = lines[i];
     const line = raw.replace(/\s+$/, "");
     if (!line.trim()) continue;
+    const im = line.trim().match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (im) {                                         // a picture (PNG), scaled to the page
+      const base = global.__MD_DIR || ROOT;
+      const f = path.resolve(base, im[2]);
+      if (fs.existsSync(f)) {
+        const buf = fs.readFileSync(f);
+        const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
+        const maxW = Math.floor(CONTENT_W / 15);      // twips → px at 96 dpi
+        const sw = Math.min(maxW, w), sh = Math.round(h * sw / w);
+        out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 },
+          children: [new ImageRun({ type: "png", data: buf, transformation: { width: sw, height: sh } })] }));
+        if (im[1]) out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 },
+          children: [new TextRun({ text: im[1], italics: true, size: 18, color: "666666" })] }));
+      }
+      continue;
+    }
     if (/^```/.test(line.trim())) {                  // fenced code: grey monospace box
       i++;
       while (i < lines.length && !/^```/.test(lines[i].trim())) {
@@ -176,6 +192,7 @@ const today = new Date().toISOString().slice(0, 10);
 const argv = process.argv.slice(2);
 const ARG_MD = argv.includes("--md") ? argv[argv.indexOf("--md") + 1] : null;
 const ARG_OUT = argv.includes("--out") ? argv[argv.indexOf("--out") + 1] : null;
+if (ARG_MD) global.__MD_DIR = path.dirname(path.resolve(ROOT, ARG_MD));
 const children = ARG_MD ? convert(fs.readFileSync(path.resolve(ROOT, ARG_MD), "utf8")) : [
   new Paragraph({ spacing: { before: 1200, after: 120 }, children: [new TextRun({ text: "PSE Riemann", bold: true, size: 56, color: DARK })] }),
   new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: "Plan rada — runda 2 i runda 3", size: 32, color: ACCENT })] }),

@@ -507,7 +507,7 @@ class QueueTab(QWidget):
                     parent.setFlags(parent.flags() | Qt.ItemIsUserCheckable)
                     parent.setCheckState(0, Qt.Unchecked)
                 for it in g["items"]:
-                    leaf = QTreeWidgetItem(parent, [it["title"]])
+                    leaf = QTreeWidgetItem(parent, [QG.title_of(it)])
                     leaf.setFlags(leaf.flags() | Qt.ItemIsUserCheckable)
                     leaf.setCheckState(0, Qt.Unchecked)
                     leaf.setData(0, Qt.UserRole, it["id"])

@@ -287,12 +287,17 @@ class MainWindow(QMainWindow):
                      config.APP_ROOT.parent / "docs", Path("/usr/share/doc/pse-riemann")):
             q = base / name
             if q.exists():
+                text = q.read_text(encoding="utf-8")
+                add = base / ("GUIDE-EN-MISSIONS.md" if i18n.lang() == "en" else "VODIC-SR-MISIJE.md")
+                if config.personal() and add.exists():          # rule 39: "Tvoje misije"
+                    text += "\n" + add.read_text(encoding="utf-8")
                 d = QDialog(self)
                 d.setWindowTitle(tr("Vodič"))
                 lay = _V(d)
                 mv = MarkdownView()
                 mv.source_path = str(q)
-                mv.set_markdown(q.read_text(encoding="utf-8"))
+                mv.setSearchPaths([str(base)])                 # the guide's pictures
+                mv.set_markdown(text)
                 lay.addWidget(mv)
                 from .. import screen as SCR
                 SCR.fit(d, 1100, 900)

@@ -235,6 +235,7 @@ STRINGS = [
 "Dnevnik danas",
 "Dok čeka:",
 "Doktor: {0}",
+"Doktor: {0} za {1}",
 "Doktorova mjera ili nepovratna odluka — samo jedna po jedna",
 "Doktorove mjere",
 "Doktorove mjere čekaju: {0}",
