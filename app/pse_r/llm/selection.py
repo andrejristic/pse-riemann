@@ -206,6 +206,7 @@ class _Hosts:
 
 _HOSTS = _Hosts()
 PREV_MAIN_KEY = "ai_main_before_offline"
+PREV_SKEPTIC_KEY = "ai_skeptic_before_offline"
 
 
 def main_reachable(timeout: float = 5.0) -> bool:

@@ -347,12 +347,24 @@ class MainWindow(QMainWindow):
         else:
             r = QMessageBox.question(
                 self, tr("Uključiti online AI?"),
-                tr("Online AI je isključen ({0}).\n\nUključiti ponovo? Ključevi se vraćaju iz secrets.json (ako ih nisi zaboravio), a glavni AI biraš u Modeli.").format(KS.state().get('reason', '')))
+                tr("Online AI je isključen ({0}).\n\nUključiti ponovo? Ključevi se vraćaju iz secrets.json (ako ih nisi zaboravio), a sa njima i glavni AI i skeptik koje si imao.").format(KS.state().get('reason', '')))
             if r == QMessageBox.Yes:
                 try:
-                    KS.reopen(OP.current() or "")
+                    back = KS.reopen(OP.current() or "")
                 except Exception as e:                       # noqa: BLE001
                     QMessageBox.warning(self, tr("Online AI"), str(e))
+                    back = None
+                if back is not None:
+                    self.refresh_status()
+                    if back.get("main"):
+                        QMessageBox.information(self, tr("Online AI"), tr(
+                            "Online AI je uključen. Glavni: {0} · skeptik: {1}.").format(
+                            back["main"], back.get("skeptic") or tr("nedostupan")))
+                    elif QMessageBox.question(self, tr("Online AI"), tr(
+                            "Online AI je uključen, ali glavni AI nije izabran (ključevi su "
+                            "zaboravljeni ili ih nema). Otvoriti Podešavanje da upišeš ključ i "
+                            "izabereš model?")) == QMessageBox.Yes:
+                        self.open_setup()
         self.refresh_status()
 
     def palette_(self):

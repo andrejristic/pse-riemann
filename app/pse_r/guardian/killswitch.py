@@ -92,8 +92,9 @@ def close(reason: str, actor: str = "operator", forget_keys: bool = False,
     return {"hung_up": hung, "fallback": fallback, "revoke": links}
 
 
-def reopen(actor: str) -> None:
-    """Only the operator turns online AI back on."""
+def reopen(actor: str) -> dict:
+    """Only the operator turns online AI back on; the models chosen before come
+    back when their keys are there. Returns {"main", "skeptic"?, "missing"}."""
     from ..shared_lib import operator as OP
     from . import secrets as SEC
     who = OP.require_operator()
@@ -105,8 +106,11 @@ def reopen(actor: str) -> None:
     SEC.store().unlock()
     for it in _store().open_items(CLOSED_KIND):
         _store().withdraw(it["id"], who, "online AI ponovo uključen")
-    J.log(J.SYSTEM, who, {"event": "online_ai_reopened"}, subject="online-ai",
+    back = _restore_after_reopen()
+    J.log(J.SYSTEM, who, {"event": "online_ai_reopened", "restored": back.get("main"),
+                          "missing": back.get("missing", [])}, subject="online-ai",
           verdict="reopened")
+    return back
 
 
 def _fall_back_to_local() -> str:
@@ -116,8 +120,12 @@ def _fall_back_to_local() -> str:
     if main.startswith("gguf:"):
         return main
     ggufs = SEL.gguf_available()
-    if main and not main.startswith("gguf:"):
+    # remember the cloud choice ONCE: a second close (e.g. "forget the keys")
+    # must not overwrite it with "bez AI" — reopen() brings it back
+    if main and main != SEL.NO_AI:
         S.set_(SEL.PREV_MAIN_KEY, main)
+        sk = S.get(SEL.SKEPTIC_KEY) or ""
+        S.set_(SEL.PREV_SKEPTIC_KEY, "" if sk == SEL.NO_SKEPTIC else sk)
     if ggufs:
         S.set_(SEL.SKEPTIC_KEY, ggufs[1] if len(ggufs) > 1 else SEL.NO_SKEPTIC)
         S.set_(SEL.MAIN_KEY, ggufs[0])
@@ -125,6 +133,31 @@ def _fall_back_to_local() -> str:
     S.set_(SEL.MAIN_KEY, SEL.NO_AI)
     S.set_(SEL.SKEPTIC_KEY, SEL.NO_SKEPTIC)
     return "bez AI"
+
+
+def _restore_after_reopen() -> dict:
+    """Bring back the main and skeptic chosen before the switch was closed, when
+    their keys are still there (live test rc2: after Ctrl+K and reopen the app
+    stayed "bez AI" although the keys and models worked)."""
+    from .. import settings as S
+    from ..llm import selection as SEL
+    prev, prev_sk = S.get(SEL.PREV_MAIN_KEY) or "", S.get(SEL.PREV_SKEPTIC_KEY) or ""
+    cur = S.get(SEL.MAIN_KEY) or ""
+    if not prev or prev == SEL.NO_AI:
+        return {"main": None, "missing": []}
+    if cur and cur not in (SEL.NO_AI, prev) and not cur.startswith("gguf:"):
+        return {"main": cur, "missing": []}            # the operator already chose another
+    av = SEL.cloud_available()
+    missing = [m for m in (prev, prev_sk) if m and not m.startswith("gguf:") and m not in av]
+    if prev not in av:
+        return {"main": None, "missing": missing}      # keys forgotten: Podešavanje
+    S.set_(SEL.SKEPTIC_KEY, "")
+    S.set_(SEL.MAIN_KEY, prev)
+    if prev_sk and prev_sk != prev and (prev_sk.startswith("gguf:") or prev_sk in av):
+        S.set_(SEL.SKEPTIC_KEY, prev_sk)
+    S.set_(SEL.PREV_MAIN_KEY, "")
+    S.set_(SEL.PREV_SKEPTIC_KEY, "")
+    return {"main": prev, "skeptic": SEL.get_skeptic(), "missing": missing}
 
 
 def on_startup() -> None:

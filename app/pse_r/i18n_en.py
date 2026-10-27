@@ -1213,4 +1213,8 @@ EN = {
 'bilješka': 'note',
 'arXiv (čuvano)': 'arXiv (kept)',
 '<b>Pamćenje misije</b> — prazno': '<b>Mission memory</b> — empty',
+'Online AI je isključen ({0}).\n\nUključiti ponovo? Ključevi se vraćaju iz secrets.json (ako ih nisi zaboravio), a sa njima i glavni AI i skeptik koje si imao.': 'Online AI is off ({0}).\n\nTurn it back on? The keys come back from secrets.json (unless you forgot them), and with them the main AI and the skeptic you had.',
+'Online AI je uključen, ali glavni AI nije izabran (ključevi su zaboravljeni ili ih nema). Otvoriti Podešavanje da upišeš ključ i izabereš model?': 'Online AI is on, but no main AI is chosen (the keys were forgotten or are missing). Open Setup to enter a key and choose a model?',
+'Online AI je uključen. Glavni: {0} · skeptik: {1}.': 'Online AI is on. Main: {0} · skeptic: {1}.',
+'nedostupan': 'unavailable',
 }
