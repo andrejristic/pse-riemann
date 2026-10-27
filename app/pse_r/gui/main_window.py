@@ -296,7 +296,7 @@ class MainWindow(QMainWindow):
                 lay = _V(d)
                 mv = MarkdownView()
                 mv.source_path = str(q)
-                mv.setSearchPaths([str(base)])                 # the guide's pictures
+                mv.image_base = str(base)                      # the guide's pictures
                 mv.set_markdown(text)
                 lay.addWidget(mv)
                 from .. import screen as SCR

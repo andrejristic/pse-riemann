@@ -92,7 +92,7 @@ _WIKILINK = re.compile(r"\[\[([^\]|#]+)(\|([^\]]+))?\]\]")
 
 
 def markdown_to_html(md: str, doc: QTextDocument | None = None,
-                     fg: str = "#e8e8e8") -> str:
+                     fg: str = "#e8e8e8", base_dir=None) -> str:
     """
     Small, predictable markdown subset: headings, bold/italic, code, lists,
     tables, links, images, wiki-links and math. Deliberately not a full CommonMark
@@ -137,8 +137,13 @@ def markdown_to_html(md: str, doc: QTextDocument | None = None,
     # images ![alt](path)  — resolved relative to the vault
     def _img(m):
         alt, src = m.group(1), m.group(2)
-        p = (config.VAULT / src.lstrip("./")).resolve() if not src.startswith(
-            ("http", "file:")) else None
+        p = None
+        if not src.startswith(("http", "file:")):
+            for base in ([Path(base_dir)] if base_dir else []) + [config.VAULT]:
+                q = (base / src.lstrip("./")).resolve()
+                if q.exists():
+                    p = q
+                    break
         if p is not None and p.exists():
             return f'<img src="file://{p}" width="640">'
         return f'<i>[{_html.escape(alt)}]</i>'
@@ -244,6 +249,7 @@ class MarkdownView(QTextBrowser):
         self._orig = None                        # the original while a translation shows
         self.source_path = None
         self.licensed = False
+        self.image_base = None                   # pictures beside a document (the guide)
         self._tr_done.connect(self._translated)
         from PySide6.QtWidgets import QToolButton
         self._more = QToolButton(self)
@@ -267,7 +273,7 @@ class MarkdownView(QTextBrowser):
         self._md = md or ""
         doc = self.document()
         doc.clear()
-        self.setHtml(markdown_to_html(self._md, doc))
+        self.setHtml(markdown_to_html(self._md, doc, base_dir=getattr(self, "image_base", None)))
         self.verticalScrollBar().setValue(0)     # open at the top, not the bottom
 
     def rerender(self) -> None:

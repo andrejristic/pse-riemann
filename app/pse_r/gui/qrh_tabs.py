@@ -40,12 +40,15 @@ class MissionsTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         v = QVBoxLayout(self)
-        v.addWidget(flow_row(QLabel(tr("<b>Misije</b>")),
-                             button(tr("Provjeri arXiv sada"), self._arxiv_now),
-                             button(tr("Izvezi izvještaj misije"), self._export_report),
-                             button(tr("Adversarijalni mod…"), self._adversary),
-                             button(tr("Radni tekst (misije 2 i 3)…"), self._paper),
-                             button(tr("Osvježi"), self.refresh)))
+        from .. import config as _CFG
+        top = [QLabel(tr("<b>Misije</b>")),
+               button(tr("Provjeri arXiv sada"), self._arxiv_now),
+               button(tr("Izvezi izvještaj misije"), self._export_report),
+               button(tr("Adversarijalni mod…"), self._adversary)]
+        if _CFG.personal():                 # rule 38: missions 2 and 3 are Andrej's
+            top.append(button(tr("Radni tekst (misije 2 i 3)…"), self._paper))
+        top.append(button(tr("Osvježi"), self.refresh))
+        v.addWidget(flow_row(*top))
         # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
         self.cb_mission = QComboBox()
         self.cb_goal = QComboBox()

@@ -146,6 +146,7 @@ fi
 if [ "$EDITION" = "andrej" ]; then
     for f in ../VODIC-SR-MISIJE.md ../GUIDE-EN-MISSIONS.md; do [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"; done
 fi
+for f in ../VODIC-SR.docx ../GUIDE-EN.docx; do [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"; done
 for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md ../SUDOERS-SR.md ../SUDOERS-EN.md \
          ../docs/VODIC-GRAFOVI-SR.md ../docs/VODIC-GRAFOVI-EN.md ../docs/BENCHMARK.md; do
     [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"

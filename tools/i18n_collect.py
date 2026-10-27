@@ -47,6 +47,11 @@ def collect() -> list:
     from pse_r.guardian import host as HOST
     found.update(why for _n, _l, why in HOST._WELL_KNOWN.values())
     found.add("nepoznat servis sluša prema mreži")
+    from pse_r.pse import agents as AG
+    for m, *_r in AG.AGENTS.values():
+        found.update({m.state, m.action, m.outcome})
+    from pse_r.gui import pse_lab as PL
+    found.update(PL.DOC_STATUS.values()); found.update({"tiho", "zvuk", "već-bilo"})
     from pse_r.lab import runner as LR
     for e in LR.catalog():
         found.update({e["title"], e["question"], e["why"], e["cost"]})

@@ -29,6 +29,8 @@ from ..i18n import tr
 from .widgets import MarkdownView, button, flow_row, hline
 
 ACTOR = "operater, iz laboratorije"
+DOC_STATUS = {"ceka": "mjera čeka", "nista": "ništa loše", "odobreno": "odobreno",
+              "odbijeno": "odbijeno", "zamrznuta-dok-mjera-ceka": "zamrznuta dok mjera čeka"}
 _BEEPED = False                       # once per session (process)
 
 
@@ -126,7 +128,7 @@ class LabTab(QWidget):
     def opened(self) -> None:
         """Called when the tab becomes visible."""
         how = alarm()
-        self.state.setText(tr("Alarm: {0}").format(how))
+        self.state.setText(tr("Alarm: {0}").format(tr(how)))
         self.refresh()
 
     def refresh(self) -> None:
@@ -148,7 +150,8 @@ class LabTab(QWidget):
         from ..shared_lib.store import store
         for d in store().rows("SELECT * FROM pse_doctor ORDER BY id DESC LIMIT 60"):
             self.doc.addItem(QListWidgetItem(
-                f"{d['unit_id']} · {d['status']} · {d['measure'] or '—'} · {d['triggers']}"))
+                f"{d['unit_id']} · {tr(DOC_STATUS.get(d['status'], d['status']))} · "
+                f"{d['measure'] or '—'} · {d['triggers']}"))
 
     def _selected(self) -> list:
         lib = _lib()
@@ -174,7 +177,7 @@ class LabTab(QWidget):
         ser = u.theta.series[-30:]
         spark = " ".join(f"{x:.0f}" for x in ser)
         md = [f"### {u.unit_id}",
-              tr("**Misija:** {0} → {1} → {2}").format(*u.core.mission.as_dict().values()),
+              tr("**Misija:** {0} → {1} → {2}").format(*(tr(x) for x in u.core.mission.as_dict().values())),
               tr("**θ:** {0:.2f} · σ(RMSSD) {1:.2f} · obrazac **{2}**").format(
                   u.theta.current, rep.sigma, rep.attractor),
               tr("**θ zadnjih 30:** {0}").format(spark or "—"),
@@ -182,7 +185,7 @@ class LabTab(QWidget):
                                                       for k, e in u.boundary.entities.items()) or "—"),
               tr("**Organeli:** {0}").format(", ".join(f"{k} ({o.weight:.2f}{', privremen' if o.provisional else ''})"
                                                        for k, o in u.organelles.items.items()) or "—"),
-              tr("**Stanje:** {0}").format(u.freeze_reason or ("mjera čeka" if u.restricted else "radi")),
+              tr("**Stanje:** {0}").format(u.freeze_reason or (tr("⏳ mjera čeka") if u.restricted else tr("radi"))),
               "", "```", "\n".join(rep.reasons) or "—", "```"]
         self.view.set_markdown("\n\n".join(md))
 

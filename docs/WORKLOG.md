@@ -59,10 +59,17 @@
 | 2026-10-25 | 19 · pozadinski rad i gašenje | ✅ | pytest 188/188, selftest ✅, živo (proces → SIGTERM → uredno zaustavljen) | `guardian_app.py`: `--guardian` = proces sa ikonom u traci (Otvori · Stanje θ · Prekini online AI · Ugasi čuvara), jedna instanca (lock), glavna aplikacija ga pokreće ako ne radi; `--headless` za servis. Pri zatvaranju: „Ugasi sve“ / „Zatvori prozor, čuvar ostaje“ / „Odustani“. `autostart.py`: XDG autostart (podrazumijevano) ili systemd korisnički servis sa hardeningom (NoNewPrivileges samo kad nema sudoers pravila — inače bi blokirao sudo; zapisano u samom servisu). Guardian tab: stanje SSH čuvara, θ, prava, aktivne blokade, izvori + „Provjeri prava čuvara“. Otvoreni problem QThread pri izlasku riješen (zatvaranje čeka nit) |
 | 2026-10-27 | 6d · dogovor završen + plan izvedbe | ✅ | — | pravila 14–26 (sve odlučeno), `PLAN-PSE-AGENTI.md` / `PLAN-PSE-AGENTS.md` + docx; Andrej: „kreni“, radim bez pitanja, commitovi lokalno, push na kraju; `ZA-ANDREJA.md` |
 | 2026-10-27 | 6d · P0 + P1 + P2: svi agenti su PSE jedinice | ✅ | pytest 313/313; `tools/pse_audit.py` 0 starih ulaza; snimci `6d_*.png` | `e15e252` jezgro (`pse/`: jedinica, mjerač, njihanje, Doktor, fisija/fuzija, DL1, težine); `f27680b` put jedinice (`pse/path.py`), 8 AI + 7 bez modela + Doktor kao jedinice; obrisani globalni θ, stara dijagnoza/liječenje; Laboratorija + Težine glasova. Ostaje P3 (agent misije), 33b, 33d, 33e, deb. Tumačenja i kalibracija: `ZA-ANDREJA.md` |
+| 2026-10-27 | 6d · R1 (P3, 33f) agent misije | ✅ | pytest 7 novih; snimak `6d_misija_razgovor.png` | `f91bfa2`: jedinica po misiji, izbor radova, razgovor u oba smjera (≤ 3 pitanja), skeptik na tvrdnje, zaključak → stavke u redu, zatvaranje misije; nađen i popravljen pravi bug u putu jedinice (`m.content` → `m.text`) + test cijelog puta |
+| 2026-10-27 | 6d · R2 (33d) red po grupama | ✅ | testovi + snimak | `bcaf539`: stablo vrsta → misija/tema, kvačice, grupno samo povratno, Doktorove mjere jedna po jedna, potvrda, cijeli sažetak |
+| 2026-10-27 | 6d · R3 (33e) ljudski glas | ✅ | testovi + snimak | `694de0b`: rečenice kolege (ti), činjenice samo iz SELECT, „prikaži odakle“ |
+| 2026-10-27 | 6d · R4 (33b) jezik + prevod | ✅ | `tools/i18n_audit.py` 0/0, test uživo | `af07888` revizija SR/EN (i tekst koji aplikacija sastavlja); `b529808` prevodilac kao PSE jedinica, meni u pregledniku i Editoru, keš + fajl `-masinski.md` |
+| 2026-10-27 | 6d · R5 traka menija | ✅ | snimak | `0cf2b88` |
+| 2026-10-27 | 6d · R6 dva paketa | ✅ | selftest iz oba raspakovana paketa: SVE PROLAZI | `6a19769`: `pse-riemann-andrej` (misije + QRH) i javni `pse-riemann` (prazno, „Nova misija…“) |
+| 2026-10-27 | 6d · R7 + R8 vodiči i konačni paketi | ✅ | pytest 338/338; selftest iz oba konačna paketa | kompletan `VODIC-SR`/`GUIDE-EN` (+ docx, slike iz paketa, dodatak „Tvoje misije“ samo lično); vodič za instalaciju i živi test (docx SR + EN); paketi u `~/Desktop/PSE Riemann/`. Čeka Andreja: push, živi test, .exe — `ZA-ANDREJA.md` |
 
 **Poznato ograničenje:** obrada prompta (prefill) u llama-cpp se ne može prekinuti usred; rok se provjerava čim stigne prvi token. Kod n_ctx 8K na Aceru to može biti desetine sekundi.
 
-**Sljedeće:** Faza 6d — svi agenti su PSE (P0 jezgro → P1 → P2 → P3), pa 33b, 33d, 33e, 0.3.0~rc1; izdanje 34–38 posljednje (CI, v0.3.0, .deb + .exe, kompletni SR/EN vodiči posle izgradnje, spajanje u main samo na „spoji u main“).
+**Sljedeće:** Faza 6d GOTOVA (P0–P3, 33b, 33d, 33e, 0.3.0~rc1 lični + javni paket). Čeka Andreja: push, živi test, .exe; zatim izdanje 34–38 posljednje (CI, v0.3.0, .deb + .exe, kompletni SR/EN vodiči posle izgradnje, spajanje u main samo na „spoji u main“).
 
 **Preostalo:** oko 10–25 h (samo izdanje).
 
