@@ -16,7 +16,7 @@ Lokalno, posle zadnjeg push-a (`32c0999`):
 | `0cf2b88` | R5 — traka menija |
 | `6a19769` | R6 — dva paketa (lični `pse-riemann-andrej`, javni `pse-riemann`) |
 | `71dffe2` | R7 (1/2) — kompletan vodič SR/EN + dodatak „Tvoje misije“ |
-| (zadnji) | R7/R8 — slike vodiča, docx, konačni paketi, WORKLOG, ovaj fajl |
+| `1de8f55` | R7 (2/2) + R8 — slike vodiča, docx, konačni paketi, WORKLOG, ovaj fajl |
 
 Kad kažeš, pushujem (bez force-a). Paketi (`*.deb`) nikad ne idu u git.
 
