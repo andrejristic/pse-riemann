@@ -67,6 +67,14 @@ class _Worker(QObject):
 FACTS = tr("SHARED_LIB (činjenice)")
 
 
+def _follow_height(view) -> None:
+    """Keep a bubble's text view exactly as tall as its laid-out document: the
+    first measure is taken before the bubble has its real width."""
+    def fit(size, view=view):
+        view.setFixedHeight(max(30, min(int(size.height()) + 16, 4000)))
+    view.document().documentLayout().documentSizeChanged.connect(fit)
+
+
 def _human_warning(w: str) -> bool:
     """A voice warning meant for the reader (a removed number, a refused proof
     claim) — not a technical error (SQL, exception names)."""
@@ -382,15 +390,17 @@ class ChatPanel(QWidget):
         v.addWidget(small(tag, "#ffcf7a" if who == "user" else "#9aa4b5"))
         md = MarkdownView(on_card=self.open_card.emit)
         md.set_markdown(text)
-        md.document().setTextWidth(self.width() - 60)
+        md.document().setTextWidth(self._bubble_width())
         h = int(md.document().size().height()) + 16
         md.setFixedHeight(max(30, min(h, 4000)))
+        _follow_height(md)
         v.addWidget(md)
         if details:                                  # 33e: "prikaži odakle", collapsed
             dv = MarkdownView(on_card=self.open_card.emit)
             dv.set_markdown(details)
-            dv.document().setTextWidth(self.width() - 60)
+            dv.document().setTextWidth(self._bubble_width())
             dv.setFixedHeight(max(30, min(int(dv.document().size().height()) + 16, 4000)))
+            _follow_height(dv)
             dv.hide()
             tg = button(tr("▸ prikaži odakle"))
 
@@ -405,6 +415,12 @@ class ChatPanel(QWidget):
         self.vbox.insertWidget(self.vbox.count() - 1, box)
         bar = self.scroll.verticalScrollBar()
         bar.setValue(bar.maximum())
+
+    def _bubble_width(self) -> int:
+        """The width the text really gets inside a bubble (scroll viewport minus the
+        bubble's frame, margins and the view's own document margin) — measuring
+        wider than that made long answers taller than their bubble."""
+        return max(160, self.scroll.viewport().width() - 56)
 
     def clear(self):
         self.history.clear()

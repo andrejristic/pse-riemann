@@ -33,82 +33,317 @@ from ..llm import selection as SEL
 from .widgets import MarkdownView, button, flow_row, hline, short_combo, small
 
 
+class MemoryPanel(QWidget):
+    """Rules 45–46: the mission memory the agent proposed — tick, delete or add,
+    then „Sačuvaj pamćenje“. It stands beside the operator's „Gdje si stao“."""
+    saved = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from PySide6.QtWidgets import QListWidget
+        self.mid = None
+        v = QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        self.head = QLabel("")
+        self.head.setWordWrap(True)
+        v.addWidget(self.head)
+        self.list = QListWidget()
+        self.list.setWordWrap(True)
+        v.addWidget(self.list, 1)
+        v.addWidget(flow_row(button(tr("Dodaj"), self._add),
+                             button(tr("Obriši"), self._delete),
+                             button(tr("Sačuvaj pamćenje"), self._save, primary=True)))
+
+    def show_for(self, mid: str) -> None:
+        from PySide6.QtWidgets import QListWidgetItem
+        from ..shared_lib import mission_agent as MA
+        self.mid = mid
+        self.list.clear()
+        mem = MA.memory(mid) if mid else None
+        if not mem or not mem.get("items"):
+            self.head.setText(tr("<b>Pamćenje misije</b> — prazno. Agent ga predlaže na kraju "
+                                 "sesije (Završi razgovor, druga misija, zatvaranje aplikacije)."))
+            return
+        state = tr("pregledano") if mem.get("reviewed") else tr("<span style='color:#ffcf7a'>"
+                                                               "nepregledano — prijedlog agenta</span>")
+        self.head.setText(tr("<b>Pamćenje misije</b> · {0}").format(state))
+        for it in mem["items"]:
+            self._item(it)
+
+    def _item(self, it: dict):
+        from PySide6.QtWidgets import QListWidgetItem
+        from ..shared_lib import mission_agent as MA
+        lab = tr(MA.MEMORY_KINDS.get(it.get("kind"), it.get("kind") or ""))
+        src = f" — {it['source']}" if it.get("source") else ""
+        li = QListWidgetItem(f"{lab}: {it['text']}{src}")
+        li.setFlags(li.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
+        li.setCheckState(Qt.Checked)
+        li.setData(Qt.UserRole, dict(it))
+        li.setToolTip(tr("Štikliraj šta ostaje; dvoklik mijenja tekst."))
+        self.list.addItem(li)
+        return li
+
+    def _add(self) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        from ..shared_lib import mission_agent as MA
+        if not self.mid:
+            return
+        kinds = list(MA.MEMORY_KINDS)
+        labels = [tr(MA.MEMORY_KINDS[k]) for k in kinds]
+        lab, ok = QInputDialog.getItem(self, tr("Pamćenje misije"), tr("Vrsta stavke:"), labels, 0, False)
+        if not ok:
+            return
+        txt, ok = QInputDialog.getText(self, tr("Pamćenje misije"), tr("Stavka:"))
+        if ok and txt.strip():
+            self._item({"kind": kinds[labels.index(lab)], "text": txt.strip(), "source": tr("operater")})
+
+    def _delete(self) -> None:
+        for li in self.list.selectedItems():
+            self.list.takeItem(self.list.row(li))
+
+    def items(self) -> list:
+        """The checked items, with the operator's edits."""
+        from ..shared_lib import mission_agent as MA
+        out = []
+        for i in range(self.list.count()):
+            li = self.list.item(i)
+            if li.checkState() != Qt.Checked:
+                continue
+            d = dict(li.data(Qt.UserRole) or {})
+            txt = li.text()
+            lab = tr(MA.MEMORY_KINDS.get(d.get("kind"), d.get("kind") or "")) + ": "
+            if txt.startswith(lab):
+                txt = txt[len(lab):]
+            if d.get("source") and txt.endswith(f" — {d['source']}"):
+                txt = txt[: -len(f" — {d['source']}")]
+            d["text"] = txt.strip()
+            out.append(d)
+        return out
+
+    def _save(self) -> None:
+        from ..shared_lib import mission_agent as MA
+        if not self.mid:
+            return
+        try:
+            MA.save_memory(self.mid, self.items(), reviewed=True)
+        except Exception as e:                       # noqa: BLE001 — e.g. no operator
+            QMessageBox.warning(self, tr("Pamćenje misije"), str(e))
+            return
+        self.show_for(self.mid)
+        self.saved.emit()
+
+
 class MissionsTab(QWidget):
-    """The Missions tab: question, frontier, and the step log (state→action→outcome)."""
+    """Rule 42, layout A: missions as cards on the left; the chosen mission's
+    details, „Gdje si stao“ and its memory upper right; the paper strip and the
+    conversation lower right (the border between them is dragged)."""
     switched = Signal()                 # item 28a: the active mission changed
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        from PySide6.QtWidgets import QListWidget, QSplitter
         v = QVBoxLayout(self)
         from .. import config as _CFG
         top = [QLabel(tr("<b>Misije</b>")),
                button(tr("Provjeri arXiv sada"), self._arxiv_now),
-               button(tr("Izvezi izvještaj misije"), self._export_report),
                button(tr("Adversarijalni mod…"), self._adversary)]
         if _CFG.personal():                 # rule 38: missions 2 and 3 are Andrej's
             top.append(button(tr("Radni tekst (misije 2 i 3)…"), self._paper))
-        top.append(button(tr("Osvježi"), self.refresh))
+        top += [button(tr("Izvezi izvještaj misije"), self._export_report),
+                button(tr("Osvježi"), self.refresh)]
         v.addWidget(flow_row(*top))
-        # round 3, items 26–27: the mission goal is ALWAYS the operator's choice, here
-        self.cb_mission = QComboBox()
-        self.cb_goal = QComboBox()
-        short_combo(self.cb_mission, 22)
-        short_combo(self.cb_goal, 18)
-        for g, txt in MIS.GOALS.items():
-            self.cb_goal.addItem(f"{g} · {tr(txt)}", g)
-        self.cb_mission.currentIndexChanged.connect(self._show_goal)
-        v.addWidget(flow_row(QLabel(tr("Cilj misije:")), self.cb_mission, self.cb_goal,
-                             button(tr("Primijeni cilj"), self._apply_goal)))
-        # round 3, item 28a: one active mission; park the others "for later"
-        self.lb_active = QLabel("")
-        self.lb_active.setWordWrap(True)
-        self.cb_bg = QComboBox()
-        short_combo(self.cb_bg, 16)
-        for k, txt in MIS.BACKGROUND.items():
-            self.cb_bg.addItem(tr(txt), k)
-        self.cb_bg.activated.connect(self._apply_bg)
-        v.addWidget(self.lb_active)
-        v.addWidget(flow_row(button(tr("Pređi na izabranu"), self._switch_selected),
-                             button(tr("Sljedeća misija ⟳"), self._switch_next),
-                             button(tr("Ostavi za kasnije…"), self._park_active),
-                             QLabel(tr("Dok čeka:")), self.cb_bg))
-        # P3 / 33f: talk about the mission, in this tab (agreement rule 28)
-        v.addWidget(flow_row(button(tr("Razgovaraj o misiji"), self._talk, primary=True),
-                             button(tr("Nova misija…"), self._new_mission),
-                             button(tr("Zatvori misiju…"), self._close_mission)))
-        self._card_md = ""
-        v.addWidget(hline())
+
+        split = QSplitter(Qt.Horizontal)
+        # left: the missions as cards + „+ Nova misija“
+        left = QWidget()
+        lv = QVBoxLayout(left)
+        lv.setContentsMargins(0, 0, 0, 0)
+        lv.addWidget(button(tr("+ Nova misija"), self._new_mission, primary=True))
+        self.list = QListWidget()
+        self.list.setSpacing(3)
+        self.list.setWordWrap(True)
+        self.list.itemClicked.connect(self._clicked)
+        lv.addWidget(self.list, 1)
+        split.addWidget(left)
+
+        # right: details (upper) / papers + conversation (lower), border dragged
+        self.rsplit = QSplitter(Qt.Vertical)
+        upper = QWidget()
+        uv = QVBoxLayout(upper)
+        uv.setContentsMargins(0, 0, 0, 0)
+        self.head = QLabel("")
+        self.head.setWordWrap(True)
+        uv.addWidget(self.head)
+        # goal and „while it waits“ in one menu: the upper part stays one row high
+        from PySide6.QtWidgets import QMenu, QToolButton
+        self.b_goal = QToolButton()
+        self.b_goal.setPopupMode(QToolButton.InstantPopup)
+        self.b_goal.setText(tr("Cilj i pozadina ▾"))
+        self.m_goal = QMenu(self.b_goal)
+        self.b_goal.setMenu(self.m_goal)
+        self.m_goal.aboutToShow.connect(self._fill_goal_menu)
+        self.b_activate = button(tr("Aktiviraj"), self._activate, kind="go")
+        uv.addWidget(flow_row(self.b_activate,
+                              button(tr("Ostavi za kasnije…"), self._park),
+                              button(tr("Zatvori misiju…"), self._close_mission, kind="no"),
+                              self.b_goal))
+        dsplit = QSplitter(Qt.Horizontal)               # rule 46: side by side
+        self.view = MarkdownView()                      # details + „Gdje si stao“ (operator's)
+        dsplit.addWidget(self.view)
+        self.memory = MemoryPanel()                     # the memory (agent's, reviewed)
+        self.memory.saved.connect(self._memory_saved)
+        dsplit.addWidget(self.memory)
+        dsplit.setStretchFactor(0, 3)
+        dsplit.setStretchFactor(1, 2)
+        dsplit.setChildrenCollapsible(False)
+        uv.addWidget(dsplit, 1)
+        self.rsplit.addWidget(upper)
         from .mission_talk import MissionTalk
         self.talk = MissionTalk()
-        self.talk.hide()
-        self.talk.closed.connect(self._talk_closed)
         self.talk.proposed.connect(self.refresh)
-        v.addWidget(self.talk, 1)
-        self.view = MarkdownView()
-        v.addWidget(self.view, 1)
+        self.talk.memory_ready.connect(self._memory_ready)
+        self.rsplit.addWidget(self.talk)
+        self.rsplit.setStretchFactor(0, 2)
+        self.rsplit.setStretchFactor(1, 3)
+        self.rsplit.setChildrenCollapsible(False)
+        split.addWidget(self.rsplit)
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 4)
+        split.setChildrenCollapsible(False)
+        left.setMinimumWidth(200)
+        split.setSizes([240, 900])
+        self.rsplit.setSizes([380, 520])
+        v.addWidget(split, 1)
+        self.mid = None
+        self._card_md = ""
+        self._last_md = ""
         self.refresh()
+
+    # ---- the cards (left) ---------------------------------------------- #
+    def _card_html(self, m: dict, act: str, counts: dict) -> str:
+        import html as _h
+        st = str(m.get("state") or "")
+        st = st if len(st) <= 70 else st[:69] + "…"
+        mark = ("▶ " if m["id"] == act and not int(m.get("parked") or 0) else
+                "⏸ " if int(m.get("parked") or 0) else
+                "✕ " if st.startswith("zatvorena") else "")
+        best = tr("front B = {0}").format(f"{m['best_B']:.9f}") if m.get("best_B") is not None \
+            else tr("bez fronta")
+        n_p, n_w = counts.get(m["id"], (0, 0))
+        wait = (f" · <span style='color:#ffcf7a'>{tr('čeka {0}').format(n_w)}</span>" if n_w else "")
+        return (f"<b>{mark}{_h.escape(m['title'])}</b><br>"
+                f"<span style='color:#9aa4b5'>{_h.escape(tr(st))}</span><br>"
+                f"<span style='color:#9aa4b5'>{best} · {tr('radova {0}').format(n_p)}</span>{wait}")
+
+    def refresh(self):
+        from PySide6.QtWidgets import QListWidgetItem
+        from ..shared_lib import mission_agent as MA
+        missions = MIS.all_missions()
+        act = MIS.active()
+        counts = {}
+        for m in missions:
+            try:
+                n_p = len(MA.papers(m["id"]))
+            except Exception:                        # noqa: BLE001
+                n_p = 0
+            counts[m["id"]] = (n_p, len(MIS._related_open_items(m["id"])))
+        if self.mid is None or MIS.get(self.mid) is None:
+            self.mid = act
+        self.list.blockSignals(True)
+        self.list.clear()
+        for m in missions:
+            it = QListWidgetItem()
+            it.setData(Qt.UserRole, m["id"])
+            lb = QLabel(self._card_html(m, act, counts))
+            lb.setWordWrap(True)
+            lb.setTextFormat(Qt.RichText)
+            lb.setContentsMargins(6, 4, 6, 4)
+            lb.setAttribute(Qt.WA_TransparentForMouseEvents)
+            self.list.addItem(it)
+            self.list.setItemWidget(it, lb)
+            self._fit_card(it, lb)
+            if m["id"] == self.mid:
+                it.setSelected(True)
+                self.list.setCurrentItem(it)
+        self.list.blockSignals(False)
+        if not missions:
+            self.view.set_markdown(tr("_Nema misija. „+ Nova misija“ gore lijevo._"))
+        self._show()
+        self._last_md = self._all_md(missions, act)
+
+    def resizeEvent(self, e):                     # noqa: N802 (Qt) — cards re-wrap
+        super().resizeEvent(e)
+        for i in range(self.list.count()):
+            it = self.list.item(i)
+            w = self.list.itemWidget(it)
+            if w is not None:
+                self._fit_card(it, w)
+
+    def _fit_card(self, it, lb) -> None:
+        from PySide6.QtCore import QSize
+        wd = max(160, self.list.viewport().width() - 10)
+        lb.setFixedWidth(wd)
+        it.setSizeHint(QSize(wd, lb.heightForWidth(wd) + 4))
+
+    def _clicked(self, it) -> None:
+        """Rule 43: a click on a mission opens its workspace and starts the agent."""
+        self.open_mission(it.data(Qt.UserRole))
 
     def open_mission(self, mid: str) -> bool:
-        """Select the mission (a `mission:` link from the chat, rule 47)."""
-        self.refresh()
-        i = self.cb_mission.findData(mid)
-        if i < 0:
+        """Select the mission and start its agent (a click, or a `mission:` link, rule 47)."""
+        if MIS.get(mid) is None:
             return False
-        self.cb_mission.setCurrentIndex(i)
-        self._talk()
+        prev = self.mid
+        if prev and prev != mid and self.talk.mid == prev:
+            self.talk.end_session(prev)          # rule 45: switching proposes the memory
+        self.mid = mid
+        self.refresh()
+        self.talk.open_for(mid, autostart=True)
         return True
 
-    def _talk(self):
-        mid = self.cb_mission.currentData() or MIS.active()
-        if not mid:
+    # ---- the chosen mission (right) ------------------------------------ #
+    def _show(self) -> None:
+        mid = self.mid
+        m = MIS.get(mid) if mid else None
+        if m is None:
+            self.head.setText("")
+            self.memory.show_for(None)
             return
-        self.view.hide()
-        self.talk.open_for(mid)
+        act = MIS.active()
+        parked = int(m.get("parked") or 0)
+        mark = (tr(" · ▶ aktivna") if mid == act and not parked else
+                tr(" · ⏸ za kasnije") if parked else "")
+        self.head.setText(f"<span style='font-size:15pt'><b>{m['title']}</b></span>{mark}")
+        self.b_activate.setEnabled(not (mid == act and not parked))
+        best = "—" if m["best_B"] is None else f"{m['best_B']:.12f}"
+        md = [tr("**Pitanje.** {0}").format(m["question"]), "",
+              tr("**Stanje.** {0}").format(m["state"]), "",
+              tr("**Cilj.** {0}").format(tr(MIS.GOALS.get(int(m.get("goal") or 1), ""))), "",
+              tr("**Front (najniže B).** {0}").format(best), "", tr("**Zadnji koraci.**")]
+        steps = m["steps"][-6:]
+        if not steps:
+            md.append(tr("- _(još nema koraka)_"))
+        for s in steps:
+            md.append(f"- {s['action']} → **{s['outcome']}**")
+        if len(m["steps"]) > 6:
+            md.append(tr("_… i još {0} ranijih (Izvezi izvještaj misije)_").format(len(m["steps"]) - 6))
+        try:
+            wmd = where_md(MIS.where_you_stopped(mid))
+        except Exception as e:                       # noqa: BLE001
+            wmd = f"_{e}_"
+        if self._card_md and self._card_md.startswith(tr("### Gdje si stao: {0}").format(m["title"])):
+            wmd = self._card_md                      # right after a switch: with what was released
+        self.view.set_markdown("\n".join(md) + "\n\n---\n\n" + wmd)
+        self.memory.show_for(mid)
 
-    def _talk_closed(self):
-        self.view.show()
-        self.refresh()
+    def _memory_ready(self, mid: str) -> None:
+        if mid == self.mid:
+            self.memory.show_for(mid)
 
+    def _memory_saved(self) -> None:
+        self.talk.state.setText(tr("Pamćenje sačuvano — agent ga čita na početku sljedeće sesije."))
+
+    # ---- mission buttons ------------------------------------------------ #
     def _new_mission(self):
         from PySide6.QtWidgets import QInputDialog
         title, ok = QInputDialog.getText(self, tr("Nova misija"), tr("Naslov misije:"))
@@ -123,13 +358,11 @@ class MissionsTab(QWidget):
         except Exception as e:                       # noqa: BLE001
             QMessageBox.warning(self, tr("Misije"), str(e))
             return
+        self.mid = mid
         self.refresh()
-        i = self.cb_mission.findData(mid)
-        if i >= 0:
-            self.cb_mission.setCurrentIndex(i)
 
     def _close_mission(self):
-        mid = self.cb_mission.currentData()
+        mid = self.mid
         if not mid:
             return
         m = MIS.get(mid)
@@ -139,22 +372,14 @@ class MissionsTab(QWidget):
                 != QMessageBox.Yes:
             return
         from ..shared_lib import mission_agent as MA
+        if self.talk.mid == mid:
+            self.talk.end_session(mid)
         try:
             MA.close_mission(mid)
         except Exception as e:                       # noqa: BLE001
             QMessageBox.warning(self, tr("Misije"), str(e))
         self.refresh()
 
-    def _show_goal(self):
-        mid = self.cb_mission.currentData()
-        m = MIS.get(mid) if mid else None
-        if m:
-            i = self.cb_goal.findData(int(m.get("goal") or 1))
-            self.cb_goal.setCurrentIndex(max(0, i))
-            if hasattr(self, "cb_bg"):
-                self.cb_bg.setCurrentIndex(max(0, self.cb_bg.findData(MIS.background(mid))))
-
-    # ---- missions in turn (item 28a) ---------------------------------- #
     def _ask_note(self) -> "str | None":
         from PySide6.QtWidgets import QInputDialog
         cur = MIS.get(MIS.active() or "")
@@ -163,8 +388,11 @@ class MissionsTab(QWidget):
             tr("Gdje si stao u misiji „{0}“? (jedna rečenica za sebe; front, koraci i otvorene stavke se pamte sami)").format(cur["title"] if cur else "—"))
         return txt if ok else None
 
-    def _switch_to(self, mid):
-        note = self._ask_note() if mid != MIS.active() else ""
+    def _activate(self):
+        mid = self.mid
+        if not mid:
+            return
+        note = self._ask_note() if (MIS.active() and MIS.active() != mid) else ""
         if note is None:
             return
         try:
@@ -176,42 +404,55 @@ class MissionsTab(QWidget):
         self.refresh()
         self.switched.emit()
 
-    def _switch_selected(self):
-        mid = self.cb_mission.currentData()
-        if mid:
-            self._switch_to(mid)
-
-    def _switch_next(self):
-        mid = MIS.next_id()
-        if mid:
-            self._switch_to(mid)
-
-    def _park_active(self):
-        mid = MIS.active()
-        note = self._ask_note()
-        if not mid or note is None:
+    def _park(self):
+        mid = self.mid
+        if not mid:
+            return
+        from PySide6.QtWidgets import QInputDialog
+        m = MIS.get(mid)
+        txt, ok = QInputDialog.getMultiLineText(
+            self, tr("Ostavi za kasnije"),
+            tr("Gdje si stao u misiji „{0}“? (jedna rečenica za sebe; front, koraci i otvorene stavke se pamte sami)").format(m["title"] if m else "—"))
+        if not ok:
             return
         try:
-            MIS.park(mid, note)
+            MIS.park(mid, txt)
         except Exception as e:                       # noqa: BLE001
             QMessageBox.warning(self, tr("Misije"), str(e))
             return
-        self._card_md = tr("_Misija „{0}“ je ostavljena za kasnije. Izaberi drugu ili je nastavi sa „Pređi na izabranu“._").format(MIS.get(mid)["title"])
+        self._card_md = ""
         self.refresh()
         self.switched.emit()
 
-    def _apply_bg(self):
-        mid = self.cb_mission.currentData()
-        if not mid:
+    def _fill_goal_menu(self) -> None:
+        m = MIS.get(self.mid) if self.mid else None
+        self.m_goal.clear()
+        if m is None:
+            return
+        self.m_goal.addSection(tr("Cilj misije"))
+        cur = int(m.get("goal") or 1)
+        for g, txt in MIS.GOALS.items():
+            a = self.m_goal.addAction(f"{g} · {tr(txt)}", lambda g=g: self._apply_goal(g))
+            a.setCheckable(True)
+            a.setChecked(g == cur)
+        self.m_goal.addSection(tr("Dok čeka"))
+        bg = MIS.background(self.mid)
+        for k, txt in MIS.BACKGROUND.items():
+            a = self.m_goal.addAction(tr(txt), lambda k=k: self._apply_bg(k))
+            a.setCheckable(True)
+            a.setChecked(k == bg)
+
+    def _apply_bg(self, mode: str):
+        if not self.mid:
             return
         try:
-            MIS.set_background(mid, self.cb_bg.currentData())
+            MIS.set_background(self.mid, mode)
         except Exception as e:                       # noqa: BLE001
             QMessageBox.warning(self, tr("Misije"), str(e))
         self.refresh()
 
-    def _apply_goal(self):
-        mid, g = self.cb_mission.currentData(), self.cb_goal.currentData()
+    def _apply_goal(self, g: int):
+        mid = self.mid
         if not mid:
             return
         try:
@@ -306,25 +547,9 @@ class MissionsTab(QWidget):
         self.refresh()
         return self._last_md
 
-    def refresh(self):
+    def _all_md(self, missions: list, act) -> str:
+        """Every mission as Markdown — the body of „Izvezi izvještaj misije“."""
         md = [tr("# Misije"), ""]
-        missions = MIS.all_missions()
-        if hasattr(self, "cb_mission"):
-            cur = self.cb_mission.currentData()
-            self.cb_mission.blockSignals(True)
-            self.cb_mission.clear()
-            for m in missions:
-                self.cb_mission.addItem(m["title"], m["id"])
-            self.cb_mission.setCurrentIndex(max(0, self.cb_mission.findData(cur)))
-            self.cb_mission.blockSignals(False)
-            self._show_goal()
-        act = MIS.active()
-        if hasattr(self, "lb_active"):
-            am = MIS.get(act) if act else None
-            self.lb_active.setText(tr("<b>Aktivna:</b> {0}").format(am["title"] if am else "—")
-                                   + (tr(" <i>(ostavljena za kasnije)</i>") if am and int(am.get("parked") or 0) else ""))
-        if getattr(self, "_card_md", ""):
-            md += [self._card_md, "", "---", ""]
         if not missions:
             md.append(tr("_Nema misija._"))
         for m in missions:
@@ -342,8 +567,7 @@ class MissionsTab(QWidget):
             for s in steps:
                 md.append(f"- {s['action']} → **{s['outcome']}**")
             md.append("")
-        self._last_md = "\n".join(md)
-        self.view.set_markdown(self._last_md)
+        return "\n".join(md)
 
 
 def where_md(card: dict) -> str:

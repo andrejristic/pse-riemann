@@ -121,7 +121,10 @@ class MainWindow(QMainWindow):
                         (self.tab_board, tr("Tabla")), (self.tab_editor, tr("Editor")),
                         (self.tab_graph, tr("Graf")), (self.tab_guard, tr("Guardian")),
                         (self.tab_pselab, tr("Laboratorija"))):
-            self._wraps[w] = scroll_wrap(w)              # a narrow screen scrolls the page
+            # a narrow screen scrolls the page; the mission workspace (rule 42) fits
+            # the window itself and scrolls inside its panels, so the talk's input
+            # never drops below the window
+            self._wraps[w] = w if w is self.tab_missions else scroll_wrap(w)
             self.tabs.addTab(self._wraps[w], tr(name))
         # item 33c: the last "tab" is the setup (provider, keys, models, skeptic) — it opens
         # the dialog and goes back to the tab you were on
@@ -755,6 +758,12 @@ class MainWindow(QMainWindow):
                 elif box.clickedButton() is not b_win:
                     e.ignore()
                     return
+        try:                                             # rule 45: closing ends the sessions
+            if self.tab_missions.talk.live():
+                self.statusBar().showMessage(tr("Agent misije predlaže pamćenje sesije…"))
+                self.tab_missions.talk.end_all_blocking(30.0)
+        except Exception:                                # noqa: BLE001 — never block the exit
+            pass
         th = getattr(self, "_net_thread", None)          # no QThread left running at exit
         if th is not None:
             th.quit()
