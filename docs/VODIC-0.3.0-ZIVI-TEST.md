@@ -1,4 +1,4 @@
-# PSE Riemann 0.3.0~rc2 — instalacija i živi test (za Andreja)
+# PSE Riemann 0.3.0~rc3 — instalacija i živi test (za Andreja)
 
 Ovaj vodič je samo za tebe i ne ulazi u paket. Prati ga redom: svaki korak ima „šta treba da vidiš“, a rezultat upiši u tabelu na kraju (ili mi ga samo izdiktiraj).
 
@@ -17,10 +17,10 @@ Ovaj vodič je samo za tebe i ne ulazi u paket. Prati ga redom: svaki korak ima 
 
 ## 1. Instalacija tvog paketa
 
-Paket je `~/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc2_amd64.deb`. Zamjenjuje rc1, a tvoji rezultati u „PSE Riemann rezultati“ ostaju.
+Paket je `~/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc3_amd64.deb`. Zamjenjuje rc1, a tvoji rezultati u „PSE Riemann rezultati“ ostaju.
 
 ```bash
-sudo apt install "$HOME/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc2_amd64.deb"
+sudo apt install "$HOME/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc3_amd64.deb"
 ```
 
 ```bash
@@ -66,7 +66,7 @@ Glavni AI neka bude **Gemini 2.5 Flash** (tu je bio problem), a skeptik/čitač 
 
 ## 4. Javni paket (opciono)
 
-`pse-riemann_0.3.0~rc2_amd64.deb` je za druge ljude: prazne misije, prazan vault i „+ Nova misija“. Ne instaliraj ga preko svog; probaj ga na drugom računaru ili u virtuelnoj mašini.
+`pse-riemann_0.3.0~rc3_amd64.deb` je za druge ljude: prazne misije, prazan vault i „+ Nova misija“. Ne instaliraj ga preko svog; probaj ga na drugom računaru ili u virtuelnoj mašini.
 
 ## 5. Rezultati
 
