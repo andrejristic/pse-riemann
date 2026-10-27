@@ -11,7 +11,7 @@ from ..i18n import tr
 
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QMessageBox, QScrollArea, QStackedWidget,
@@ -38,18 +38,34 @@ class _Job(QObject):
             self.done.emit(e)
 
 
+class _Relay(QObject):
+    """Lives in the GUI thread: the job's result is delivered HERE (queued), never in
+    the worker thread. Live test rc3: the OpenRouter model list (hundreds of names)
+    was put into the combo from the worker thread and the app crashed."""
+
+    def __init__(self, cb, parent):
+        super().__init__(parent)
+        self.cb = cb
+
+    @Slot(object)
+    def deliver(self, res):
+        self.cb(res)
+
+
 def _run_bg(owner, fn, on_done):
     th, job = QThread(), _Job(fn)
     job.moveToThread(th)
     th.started.connect(job.run)
 
     def fin(res):
-        on_done(res)
         th.quit()
         th.wait(2000)
-        owner._jobs.discard((th, job))
-    job.done.connect(fin)
-    owner._jobs.add((th, job))
+        owner._jobs.discard((th, job, relay))
+        relay.deleteLater()
+        on_done(res)
+    relay = _Relay(fin, owner)
+    job.done.connect(relay.deliver)                     # queued: relay is in the GUI thread
+    owner._jobs.add((th, job, relay))
     th.start()
 
 

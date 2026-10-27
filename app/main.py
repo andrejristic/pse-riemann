@@ -306,7 +306,20 @@ def main() -> int:
             pass
     args = sys.argv[1:]
     if args and args[0] == "--selftest":
-        return selftest()
+        # always in a throwaway vault and config (live test rc3: the installed selftest
+        # wrote operator "selftest", probe units and Doctor measures into the real vault)
+        import os as _os, shutil, subprocess, tempfile
+        if _os.environ.get("PSE_RIEMANN_SELFTEST_VAULT"):
+            return selftest()
+        tmp = tempfile.mkdtemp(prefix="pse-riemann-selftest-")
+        env = dict(_os.environ, PSE_RIEMANN_VAULT=_os.path.join(tmp, "vault"),
+                   XDG_CONFIG_HOME=_os.path.join(tmp, "config"),
+                   PSE_RIEMANN_SELFTEST_VAULT="1", PSE_RIEMANN_SILENT="1")
+        try:
+            return subprocess.run([sys.executable] + sys.argv[:1] + ["--selftest"],
+                                  env=env).returncode
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
     if args and args[0] == "--bench":                  # round 3, item 22
         # always in a throwaway vault: the SSH part resets source records
         import json as _json, os as _os, tempfile
