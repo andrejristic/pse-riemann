@@ -11,7 +11,7 @@ Na GitHubu je zadnji `5c2288a` (dogovor treće runde i plan R9–R14). Lokalno �
 | `7bc0a4d` | R9 — pravilo 48 a, b, d: budžet razmišljanja iznad limita odgovora, ponovni pokušaj odsječenog odgovora, „čitač odsječen“ |
 | `c1ab293` | R10 — pravila 47 i 48 c: misije kao linkovi, pitanje koje traži sud ide agentu misije, SQL: jedan ponovni pokušaj pa rečenica |
 | `0b9960d` | R11–R13 — radni prostor misije, razgovor na klik, „Zadaj da čita…“, pamćenje misije |
-| (zadnji) | R14 — izdanje 0.3.0~rc2: vodiči, slike iz paketa, docx, WORKLOG, ovaj fajl |
+| `8004e60` | R14 — izdanje 0.3.0~rc2: vodiči, slike iz paketa, docx, WORKLOG, ovaj fajl |
 
 Push je bez force-a. Paketi (`*.deb`) nikad ne idu u git.
 
