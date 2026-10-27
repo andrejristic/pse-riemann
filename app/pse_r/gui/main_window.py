@@ -517,6 +517,9 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------ #
     def open_card(self, card_id: str):
+        if card_id.startswith("mission:"):              # rule 47: a mission link
+            self.open_mission(card_id[len("mission:"):])
+            return
         from ..vault import store as _VS
         p = _VS.path_of(card_id)
         if p is None:
@@ -525,6 +528,12 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentWidget(self._tab(self.tab_editor))
         self.tab_editor.refresh()
         self.tab_editor.open_path(p)
+
+    def open_mission(self, mid: str):
+        """The mission's workspace in the Missions tab (rules 42, 47)."""
+        self.tabs.setCurrentWidget(self._tab(self.tab_missions))
+        if not self.tab_missions.open_mission(mid):
+            self.statusBar().showMessage(tr("nema misije '{0}'").format(mid), 4000)
 
     def after_write(self):
         self.tab_corpus.refresh()

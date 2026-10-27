@@ -67,6 +67,15 @@ class _Worker(QObject):
 FACTS = tr("SHARED_LIB (činjenice)")
 
 
+def _human_warning(w: str) -> bool:
+    """A voice warning meant for the reader (a removed number, a refused proof
+    claim) — not a technical error (SQL, exception names)."""
+    return not (w.startswith("SQL:") or re.match(r"^[A-Z][A-Za-z]+(Error|Refused|Exception)\b", w))
+
+
+from ..shared_lib import voice as VO  # noqa: E402
+
+
 class _VoiceWorker(QObject):
     """SHARED_LIB's voice: words → ONE read-only SELECT → grounded, cited answer."""
     done = Signal(object, str)
@@ -77,7 +86,6 @@ class _VoiceWorker(QObject):
 
     def run(self):
         from ..shared_lib import views as V
-        from ..shared_lib import voice as VO
         q = self.question.strip()
         try:
             if q.lower().startswith(("select", "with")):
@@ -89,11 +97,15 @@ class _VoiceWorker(QObject):
                                 not res["rows"], "warnings": []}, "")
                 return
 
-            def translate(question, schema):
+            def translate(question, schema, error="", bad_sql=""):
                 cols = "\n".join(f"- {t}({', '.join(c)})" for t, c in schema.items())
                 prompt = ("Prevedi pitanje u JEDAN SQLite SELECT nad ovim pogledima. "
                           "Vrati samo SQL, bez objašnjenja.\n" + cols +
                           "\n\nPitanje: " + question)
+                if error:                               # rule 48 c: the one retry
+                    prompt += ("\n\nPrethodni pokušaj nije prošao:\n" + bad_sql[:2000] +
+                               "\nGreška: " + error[:500] +
+                               "\nIspravi ga: samo jedan SELECT, samo kolone iz pogleda iznad.")
                 txt = PATH.ask("voice", [B.Msg("user", prompt)], max_tokens=600).text
                 m = re.search(r"```(?:sql)?\s*(.*?)```", txt, re.S)
                 return (m.group(1) if m else txt).strip()
@@ -120,8 +132,17 @@ class _VoiceWorker(QObject):
             self.done.emit({"sql": ans.sql, "columns": ans.columns, "rows": ans.rows,
                             "answer": ans.answer, "unknown": ans.unknown,
                             "warnings": ans.warnings, "citations": ans.citations}, "")
-        except Exception as e:                          # noqa: BLE001
-            self.done.emit(None, f"{type(e).__name__}: {e}")
+        except VO.VoiceRefused as e:
+            self.done.emit({"sql": "", "columns": [], "rows": [], "unknown": True,
+                            "answer": tr("Bez modela znam odgovoriti samo na poznata pitanja: "
+                                         "metode, misije, kartice, lab računanja i šta čeka "
+                                         "tvoju odluku. SQL možeš upisati i sam."),
+                            "warnings": [f"VoiceRefused: {e}"]}, "")
+        except Exception as e:                          # noqa: BLE001 — rule 48 c
+            self.done.emit({"sql": "", "columns": [], "rows": [], "unknown": True,
+                            "answer": tr("Nešto je pošlo naopako dok sam čitao bazu, pa "
+                                         "nemam odgovor. Pokušaj ponovo ili pitaj drugačije."),
+                            "warnings": [f"{type(e).__name__}: {e}"]}, "")
 
 
 class GrowingInput(QTextEdit):
@@ -463,7 +484,8 @@ class ChatPanel(QWidget):
             return
         md = []
         say = ans.get("answer") or (tr("Toga nema u biblioteci (UNKNOWN).") if ans.get("unknown") else "")
-        md += [tr("SQL (jedino što je izvršeno):"), "```sql", ans["sql"], "```"]
+        if ans.get("sql"):
+            md += [tr("SQL (jedino što je izvršeno):"), "```sql", ans["sql"], "```"]
         cols, rows = ans.get("columns", []), ans.get("rows", [])
         if cols and rows:
             md.append("| " + " | ".join(map(str, cols)) + " |")
@@ -472,6 +494,10 @@ class ChatPanel(QWidget):
                 md.append("| " + " | ".join(str(v)[:60].replace("|", "/") for v in r) + " |")
             if len(rows) > 15:
                 md.append(tr("_… još {0} redova_").format(len(rows) - 15))
-        warn = "\n".join(f"> ⚠ {w}" for w in ans.get("warnings", []))
+        # rule 48 c: a raw error never reaches the answer — it waits under „prikaži odakle“
+        tech = [w for w in ans.get("warnings", []) if not _human_warning(w)]
+        warn = "\n".join(f"> ⚠ {w}" for w in ans.get("warnings", []) if _human_warning(w))
+        if tech:
+            md += ["", tr("Tehnički detalj:")] + [f"- `{w[:300]}`" for w in tech]
         self._say("assistant", say + ("\n\n" + warn if warn else ""), details="\n".join(md))
 

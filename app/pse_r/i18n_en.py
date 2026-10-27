@@ -1139,4 +1139,13 @@ EN = {
 'bez čitača': 'no reader',
 'čita sam sebe': 'reads itself',
 '[odgovor odsječen: ni dvostruki limit nije bio dovoljan — pitaj kraće ili podijeli pitanje]': '[answer cut off: even twice the limit was not enough — ask more briefly or split the question]',
+'Baza čuva činjenice, a na pitanje koje traži sud ne odgovara — to je posao agenta misije, koji zna stanje, pamćenje i radove. ': "The base keeps facts and does not answer a question that asks for judgment — that is the mission agent's job; it knows the state, the memory and the papers. ",
+'Baza čuva činjenice, a na pitanje koje traži sud ne odgovara. Nema otvorene misije o kojoj bi se razgovaralo — napravi je u tabu Misije.': 'The base keeps facts and does not answer a question that asks for judgment. There is no open mission to talk about — create one in the Missions tab.',
+'Bez modela znam odgovoriti samo na poznata pitanja: metode, misije, kartice, lab računanja i šta čeka tvoju odluku. SQL možeš upisati i sam.': 'Without a model I can only answer the known questions: methods, missions, cards, lab runs and what awaits your decision. You can also type SQL yourself.',
+'Nešto je pošlo naopako dok sam čitao bazu, pa nemam odgovor. Pokušaj ponovo ili pitaj drugačije.': 'Something went wrong while I was reading the base, so I have no answer. Try again or ask differently.',
+'Nisam uspio da to pitanje pretvorim u ispravan upit nad bazom ni iz drugog pokušaja. Probaj ga reći drugačije ili kraće — npr. „koje misije imam“, „šta čeka moju odluku“, „zadnja lab računanja“.': 'I could not turn that question into a valid query over the base, not even on the second try. Try saying it differently or more briefly — e.g. “which missions do I have”, “what awaits my decision”, “latest lab runs”.',
+'Razgovaraj o misiji: {0}': 'Talk about the mission: {0}',
+'Tehnički detalj:': 'Technical detail:',
+"nema misije '{0}'": "no mission '{0}'",
+'{0} — stanje: {1}{2}': '{0} — state: {1}{2}',
 }

@@ -88,6 +88,16 @@ class MissionsTab(QWidget):
         v.addWidget(self.view, 1)
         self.refresh()
 
+    def open_mission(self, mid: str) -> bool:
+        """Select the mission (a `mission:` link from the chat, rule 47)."""
+        self.refresh()
+        i = self.cb_mission.findData(mid)
+        if i < 0:
+            return False
+        self.cb_mission.setCurrentIndex(i)
+        self._talk()
+        return True
+
     def _talk(self):
         mid = self.cb_mission.currentData() or MIS.active()
         if not mid:

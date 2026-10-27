@@ -287,6 +287,8 @@ class MarkdownView(QTextBrowser):
         s = url.toString()
         if s.startswith("card:") and self.on_card:
             self.on_card(s[5:])
+        elif s.startswith("mission:") and self.on_card:     # rule 47: open the workspace
+            self.on_card(s)
         elif s.startswith(("http://", "https://")):
             QDesktopServices.openUrl(url)
 

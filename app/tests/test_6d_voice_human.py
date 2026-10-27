@@ -8,8 +8,8 @@ def test_canned_answer_is_sentences_not_rows(operator):
     MIS.seed_first()
     a = VO.ask("koje misije imam?")
     assert a.answer.startswith("Imaš ") and "stanje:" in a.answer
-    assert "[card:" in a.answer                     # every sentence keeps its citation
-    assert "=" not in a.answer.split("[card:")[0]   # no "col=value" dump
+    assert "(mission:" in a.answer                  # rule 47: the name is the link to the row
+    assert "=" not in a.answer.split("(mission:")[0]   # no "col=value" dump
     assert a.sql.lower().startswith("select")
 
 
