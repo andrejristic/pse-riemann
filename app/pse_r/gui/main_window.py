@@ -199,6 +199,7 @@ class MainWindow(QMainWindow):
         # (legacy labels are still updated by refresh_status but not shown: the
         # top bar replaced them; network/model state is in its pills)
         self.refresh_status()
+        self._build_menu()                              # 6d R5 (rule 37)
         self._start_runtime()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.refresh_status)
@@ -226,6 +227,79 @@ class MainWindow(QMainWindow):
                   lambda: self.tabs.setCurrentIndex(2))
 
     # ------------------------------------------------------------------ #
+    def _build_menu(self):
+        """Menu bar (agreement rule 37): SHARED_LIB · Laboratorija · Podešavanje ·
+        Jezik · Pomoć."""
+        mb = self.menuBar()
+        m = mb.addMenu(tr("SHARED_LIB"))
+        m.addAction(tr("Težine glasova…"), self.open_weights)
+        m.addAction(tr("Čeka tvoju odluku"),
+                    lambda: self.tabs.setCurrentWidget(self._tab(self.tab_queue)))
+        m.addAction(tr("Stanje roja…"), self.open_swarm)
+        m = mb.addMenu(tr("Laboratorija"))
+        m.addAction(tr("Otvori Laboratoriju (utiče na prave agente)"),
+                    lambda: self.tabs.setCurrentWidget(self._tab(self.tab_pselab)))
+        m = mb.addMenu(tr("Podešavanje"))
+        m.addAction(tr("Podešavanje — operater, glavni AI, skeptik, čuvar…"), self.open_setup)
+        m = mb.addMenu(tr("Jezik"))
+        from .. import i18n
+        a_sr = m.addAction(tr("Srpski (SR)"), lambda: i18n.lang() != "sr" and self.toggle_language())
+        a_en = m.addAction(tr("English (EN)"), lambda: i18n.lang() != "en" and self.toggle_language())
+        for a, code in ((a_sr, "sr"), (a_en, "en")):
+            a.setCheckable(True)
+            a.setChecked(i18n.lang() == code)
+        m = mb.addMenu(tr("Pomoć"))
+        m.addAction(tr("Vodič"), self.open_guide)
+
+    def open_swarm(self):
+        from PySide6.QtWidgets import QDialog, QVBoxLayout as _V
+        from ..shared_lib.pse_registry import pse
+        lib = pse()
+        sw = lib.swarm()
+        rows = [r for r in lib.state() if r["alive"] and not r["lab"]]
+        md = [tr("### Stanje roja"), "",
+              tr("Živih jedinica: {0} · prosječan θ {1:.1f} · zamrznute: {2} · Doktorove mjere čekaju: {3}").format(
+                  sw["units"], sw["theta_mean"], len(sw["frozen"]), sw["measures"]), "",
+              "| " + tr("jedinica") + " | θ | " + tr("obrazac") + " | " + tr("stanje") + " |",
+              "|---|---|---|---|"]
+        for r in rows:
+            st = (tr("❄ zamrznuta") if r["frozen"] else tr("⏳ mjera čeka") if r["restricted"]
+                  else tr("radi"))
+            md.append(f"| {r['unit']} | {r['theta']:.1f} | {r['attractor'] or '—'} | {st} |")
+        d = QDialog(self)
+        d.setWindowTitle(tr("Stanje roja"))
+        lay = _V(d)
+        mv = MarkdownView()
+        mv.set_markdown("\n".join(md))
+        lay.addWidget(mv)
+        from .. import screen as SCR
+        SCR.fit(d, 900, 700)
+        d.exec()
+
+    def open_guide(self):
+        """Pomoć → Vodič: the complete guide for the whole app, in the interface
+        language, in the shared viewer (with "Prevedi")."""
+        from pathlib import Path
+        from PySide6.QtWidgets import QDialog, QVBoxLayout as _V
+        from .. import config, i18n
+        name = "GUIDE-EN.md" if i18n.lang() == "en" else "VODIC-SR.md"
+        for base in (config.APP_ROOT.parent, config.APP_ROOT / "docs",
+                     config.APP_ROOT.parent / "docs", Path("/usr/share/doc/pse-riemann")):
+            q = base / name
+            if q.exists():
+                d = QDialog(self)
+                d.setWindowTitle(tr("Vodič"))
+                lay = _V(d)
+                mv = MarkdownView()
+                mv.source_path = str(q)
+                mv.set_markdown(q.read_text(encoding="utf-8"))
+                lay.addWidget(mv)
+                from .. import screen as SCR
+                SCR.fit(d, 1100, 900)
+                d.exec()
+                return
+        QMessageBox.information(self, tr("Vodič"), tr("Vodič nije nađen ({0}).").format(name))
+
     def toggle_language(self):
         """SR/EN for the whole interface (round 3, item 23): saved, then the
         window is reopened in the new language (one restart, no half-translated UI)."""
