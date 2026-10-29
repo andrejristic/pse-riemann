@@ -103,14 +103,18 @@ def extract_pack(ref: str, title: str = "", paper_text: Optional[str] = None,
         paper_text = rep.text
     prompt = PROMPT.format(example=_example(), ref=ref, title=title,
                            paper=focus_text(paper_text))
+    from ..pse import path as PATH
+    src = ref if ref.startswith(("arxiv:", "doi:", "url:")) else f"arxiv:{ref}"
     if ask is None:
         from ..llm import backend as B
-        from ..llm.router import router
-        reply = router().call(B.MATH, [B.Msg("user", prompt)], max_tokens=12000).text
+        reply = PATH.ask("extractor", [B.Msg("user", prompt)], max_tokens=12000,
+                         data_in_context=paper_text[:20000], entity=(src, "document")).text
     else:
         reply = ask(prompt)
-    from ..shared_lib import runtime as RT
-    RT.check_output("extract", reply, data_in_context=paper_text[:20000])
+        from ..pse import measure as PM
+        PATH.words("extractor", reply, message=prompt[:4000], entity=(src, "document"),
+                   actions=[PM.Action("čita spoljni tekst", "f", external=True)],
+                   harms=PATH.screen(reply, data_in_context=paper_text[:20000]), note="ask")
     d = parse_pack_json(reply)
     d["source"] = ref if ref.startswith(("arxiv:", "doi:", "url:")) else f"arxiv:{ref}"
     d.setdefault("name", ref.split(":")[-1])

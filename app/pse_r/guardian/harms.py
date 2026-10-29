@@ -85,6 +85,14 @@ def to_human(text: str, sources: Optional[list] = None,
     return out
 
 
+def chat_human(text: str) -> list[Finding]:
+    """The deterministic leak checks of to_human, for EVERY chat reply too
+    (round 3 benchmark: a key / private address in a chat reply went unseen,
+    because only final outputs were checked)."""
+    keep = {"curenje-IP", "curenje-MAC", "curenje-ključa"}
+    return [f for f in to_human(text, sources=["chat"]) if f.sign in keep]
+
+
 def _looks_assertive(text: str) -> bool:
     """A bald assertion (no hedging), the shape that makes a preprint read as fact."""
     t = (text or "").lower()

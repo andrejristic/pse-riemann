@@ -43,8 +43,11 @@ def test_number_verification_strips_invented_values():
 
 
 def test_read_only_sql_is_enforced_through_translate(operator):
-    with pytest.raises(V.QueryRefused):
-        VOICE.ask("obriši sve", translate=lambda q, schema: "DELETE FROM events")
+    # still refused by the engine — and since rule 48 c the operator gets a
+    # sentence, with the refusal kept under „prikaži odakle“ (warnings)
+    a = VOICE.ask("obriši sve", translate=lambda q, schema: "DELETE FROM events")
+    assert a.unknown and not a.rows and a.sql == ""
+    assert any("QueryRefused" in w for w in a.warnings)
 
 
 def test_composed_prose_is_scrubbed_and_proof_claims_refused(operator):

@@ -98,6 +98,7 @@ class GGUFUnavailable(Exception):
 class _Loaded:
     path: str
     llm: object
+    stamp: tuple = ()               # (size, mtime_ns, inode) at admission
 
 
 class GGUFBackend(Backend):
@@ -112,7 +113,7 @@ class GGUFBackend(Backend):
 
     def __init__(self, model: str = "", lim: Optional[L.Limits] = None):
         super().__init__(model)
-        self.lim = lim or L.Limits()
+        self.lim = lim or L.Limits.from_settings()
 
     # -- availability / verification ------------------------------------- #
     def path(self) -> Path:
@@ -148,6 +149,14 @@ class GGUFBackend(Backend):
                            f"{declared[:16]}…, fajl {actual[:16]}…) — učitavanje odbijeno")
         return True, "sha256 se poklapa sa deklaracijom"
 
+    def _stamp(self) -> tuple:
+        """A changed file (size, mtime or inode) must pass sha256 admission again."""
+        try:
+            st = self.path().stat()
+            return (st.st_size, st.st_mtime_ns, st.st_ino)
+        except OSError:
+            return ()
+
     def _model_gb(self) -> float:
         try:
             return self.path().stat().st_size / (1024 ** 3)
@@ -158,6 +167,9 @@ class GGUFBackend(Backend):
     def _ensure_loaded(self):
         if not have_llama():
             raise GGUFUnavailable("llama-cpp nije instaliran")
+        cur = GGUFBackend._loaded
+        if cur is not None and cur.path == self.model and cur.stamp == self._stamp():
+            return cur.llm                  # admitted at load, file unchanged since
         ok, why = self.verify()
         if not ok:
             raise GGUFUnavailable(why)
@@ -167,9 +179,9 @@ class GGUFBackend(Backend):
                 f"{self.lim.ram_headroom_gb:.1f} GB, slobodno {L.free_ram_gb():.1f} GB")
         with GGUFBackend._lock:
             cur = GGUFBackend._loaded
-            if cur is not None and cur.path == self.model:
+            if cur is not None and cur.path == self.model and cur.stamp == self._stamp():
                 return cur.llm
-            if cur is not None:                     # a different model is resident
+            if cur is not None:                     # another model, or this file changed
                 self._unload_locked()
             import llama_cpp
             llm = llama_cpp.Llama(
@@ -179,7 +191,7 @@ class GGUFBackend(Backend):
                 verbose=False,
                 seed=0,
             )
-            GGUFBackend._loaded = _Loaded(self.model, llm)
+            GGUFBackend._loaded = _Loaded(self.model, llm, self._stamp())
             return llm
 
     @classmethod
@@ -197,8 +209,27 @@ class GGUFBackend(Backend):
             cls._unload_locked()
 
     # -- the call -------------------------------------------------------- #
-    def chat(self, messages, system="", max_tokens=4096, effort="high") -> Reply:
-        llm = self._ensure_loaded()
+    def chat(self, messages, system="", max_tokens=4096, effort="high",
+             cancel: Optional[threading.Event] = None) -> Reply:
+        """
+        Streamed generation under a CallGuard: the timeout covers the wait for
+        the slot and the generation itself (A3); repetition, the RAM floor, the
+        "→ ∞" pause and an external cancel stop the decode while it runs (A2),
+        not after it. Latency and memory feed the live watchdogs (A1).
+        """
+        def refuse_if_stopped():
+            try:
+                L.CallGuard(self.lim, cancel=cancel).check()
+            except L.Aborted as a:
+                raise GGUFUnavailable(str(a)) from None
+        refuse_if_stopped()                             # paused / cancelled up front
+        from .local_only import local_only
+        with local_only(f"gguf:{Path(self.model).name}"):
+            return self._chat_local(messages, system, max_tokens, cancel)
+
+    def _chat_local(self, messages, system, max_tokens, cancel) -> Reply:
+        llm = self._ensure_loaded()                     # one-time load + sha256: not timed
+        guard = L.CallGuard(self.lim, cancel=cancel)    # deadline = wait + generation
         if self.lim.must_unload():
             GGUFBackend.unload()
             raise GGUFUnavailable("slobodan RAM ispod praga — model oslobođen usred reda")
@@ -210,17 +241,56 @@ class GGUFBackend(Backend):
             msgs.append({"role": m.role, "content": m.text or ""})
 
         cap = min(max_tokens, self.lim.think_budget + self.lim.max_output)
-        with L.one_at_a_time(timeout=self.lim.call_timeout_s):
-            out = llm.create_chat_completion(
-                messages=msgs, max_tokens=cap, temperature=0.4, seed=0)
-        ch = (out.get("choices") or [{}])[0]
-        text = (ch.get("message") or {}).get("content") or ""
-        if L.is_looping(text):
-            text = text.rstrip() + "\n\n[prekinuto: detektovano ponavljanje]"
-            stop = "loop"
+        parts: list[str] = []
+        n_out, stop, raw_stop = 0, "", ""
+        wait = guard.remaining()
+        if wait <= 0:
+            raise TimeoutError("isteklo vrijeme prije početka poziva")
+        with L.one_at_a_time(timeout=wait):
+            guard.started()
+            gen = llm.create_chat_completion(
+                messages=msgs, max_tokens=cap, temperature=0.4, seed=0, stream=True)
+            try:
+                for chunk in gen:
+                    ch = (chunk.get("choices") or [{}])[0]
+                    piece = (ch.get("delta") or {}).get("content") or ""
+                    if piece:
+                        parts.append(piece)
+                        n_out += 1
+                    raw_stop = ch.get("finish_reason") or raw_stop
+                    guard.tick("".join(parts) if piece else "")
+            except L.Aborted as a:
+                stop = a.reason
+                if a.reason == "ram":
+                    GGUFBackend.unload()
+            finally:
+                close = getattr(gen, "close", None)
+                if close:
+                    close()                             # stop llama-cpp decoding now
+        spt = guard.finish(n_out)
+        text = "".join(parts)
+        if stop:
+            text = text.rstrip() + f"\n\n[prekinuto: {_STOP_TEXT.get(stop, stop)}]"
         else:
-            stop = ch.get("finish_reason", "")
-        u = out.get("usage", {})
+            stop = raw_stop
         return Reply(text, "gguf", Path(self.model).name,
-                     int(u.get("prompt_tokens", 0)),
-                     int(u.get("completion_tokens", 0)), stop, out)
+                     self._count_prompt(llm, msgs), n_out, stop,
+                     {"stream": True, "s_per_token": round(spt, 4)})
+
+    @staticmethod
+    def _count_prompt(llm, msgs) -> int:
+        try:
+            blob = "\n".join(m["content"] for m in msgs).encode("utf-8")
+            return len(llm.tokenize(blob, add_bos=False))
+        except Exception:           # noqa: BLE001
+            return 0
+
+
+_STOP_TEXT = {
+    "loop": "detektovano ponavljanje",
+    "timeout": "isteklo vrijeme poziva",
+    "ram": "slobodan RAM ispod praga, model oslobođen",
+    "diverging": "„→ ∞“ — memorija iznad granice, pauza do odluke operatera",
+    "paused": "„→ ∞“ pauza — čeka operatera",
+    "cancelled": "prekinuto spolja",
+}

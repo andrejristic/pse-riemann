@@ -13,9 +13,8 @@ decides. The skeptic is always a DIFFERENT model from the main one (selection.py
 skeptic is "unavailable" and only the deterministic checks (reproduction test,
 provenance, gate, tiers) stand against a claim; that is honest, not a failure.
 
-The skeptic is itself a PSE unit: if it degenerates (always "sir yes sir", or
-always maximal severity) it is treated as infected and replaced — but that lives
-with the healing layer (F5); here we just produce and queue objections.
+The skeptic is a PSE unit (Faza 6d): every attack is a move of the skeptic's
+unit — measured, judged by the Doctor, and refused while the unit is frozen.
 """
 from __future__ import annotations
 
@@ -76,13 +75,19 @@ def _parse(text: str) -> list[Objection]:
     return out
 
 
-def _default_ask(claim_title: str, claim_text: str, context: str) -> str:
-    """Call the selected skeptic model through its backend."""
-    back = SEL.role_backend(B.SKEPTIC)
-    user = (f"TVRDNJA: {claim_title}\n\n{claim_text}\n\n"
+def _prompt(claim_title: str, claim_text: str, context: str) -> str:
+    return (f"TVRDNJA: {claim_title}\n\n{claim_text}\n\n"
             + (f"KONTEKST:\n{context}\n\n" if context else "")
             + "Napadni je. Vrati JSON listu prigovora.")
-    reply = back.chat([B.Msg("user", user)], system=_SYSTEM, max_tokens=700)
+
+
+def _default_ask(claim_title: str, claim_text: str, context: str) -> str:
+    """The skeptic's unit calls its model (always a DIFFERENT model) on the
+    unit's path; the move is recorded there."""
+    from ..pse import path as PATH
+    reply = PATH.ask("skeptic", [B.Msg("user", _prompt(claim_title, claim_text, context))],
+                     system_extra=_SYSTEM, max_tokens=700,
+                     data_in_context=claim_text[:20000])
     return reply.text
 
 
@@ -100,9 +105,14 @@ def attack(claim_title: str, claim_text: str, context: str = "",
               subject=subject or claim_title, verdict="unavailable")
         return {"available": False, "objections": [], "pids": []}
 
+    injected = ask is not None
     ask = ask or _default_ask
     try:
         raw = ask(claim_title, claim_text, context)
+        if injected:
+            from ..pse import path as PATH
+            PATH.words("skeptic", raw, message=_prompt(claim_title, claim_text, context),
+                       note="ask")
     except Exception as e:                              # noqa: BLE001
         J.log(SKEPTIC_KIND, "skeptic", {"event": "error", "claim": claim_title,
                                         "error": f"{type(e).__name__}: {e}"},

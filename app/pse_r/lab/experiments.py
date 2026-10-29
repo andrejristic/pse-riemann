@@ -794,6 +794,96 @@ CATALOG: list[Experiment] = [
         _run_qrh_licence, "spor"),
 ]
 
+def _run_qrh_adversary(family: int, eps_exp: int) -> Result:
+    """Item 31: the adversarial mode as a lab run (PNG + card + NAŠE-NERECENZIRANO)."""
+    from ..methods import adversary as A
+    name = "liu" if int(family) == 0 else "xs"
+    rep = A.run(name, eps=10.0 ** (-int(eps_exp)))
+    A._LAST[name] = rep
+    c = rep.certificate
+    r = Result()
+    r.numbers = {"metoda": name, "tvrđeno B": rep.claimed_B, "najbolje B uz uslove": rep.best_B,
+                 "bolje od tvrdnje": rep.better_than_claim, "b*": round(rep.best_at["b"], 9),
+                 "ℓ*": rep.best_at["l"], "κ*": rep.best_at["k"],
+                 "tačaka bolje uz kršenje": len(rep.breaks),
+                 "certifikat: B od": c.get("B_low"), "certifikat: B do": c.get("B_high"),
+                 "certifikat: ćelija": c.get("cells"), "certifikat: neodlučeno": c.get("undecided"),
+                 "certifikat kompletan": c.get("complete"), "sekundi": round(rep.seconds + c.get("seconds", 0), 2)}
+    r.series = {"B_licence(b)": [(b, B) for b, B in rep.curve],
+                "kršenja": [(br["b"], br["B"]) for br in rep.breaks]}
+    r.plots = [{"kind": "line", "series": "B_licence(b)", "marks": "kršenja",
+                "title": f"{name}: najbolje B po b uz licencu (crveno: bolje, ali krši uslov)",
+                "xlabel": "b", "ylabel": "B", "hline": rep.claimed_B}]
+    worst = rep.breaks[0] if rep.breaks else None
+    r.reading = (
+        f"**{rep.summary()}**\n\n"
+        f"(a) Uz uslove metode (licenca κ = 2B − 1, x = 1/2, δ ∈ [dlo, 5/6]) pretraga po b daje "
+        f"najbolje B = {rep.best_B:.12f} kod b = {rep.best_at['b']:.6f}; tvrdnja {rep.claimed_B:.12f} "
+        + ("**nije optimum**." if rep.better_than_claim else "odolijeva u tačnosti pretrage.") + "\n\n"
+        f"(b) Sa slobodnim κ, {len(rep.breaks)} tačaka daje bolje B od tvrdnje — svaka krši bar jedan uslov"
+        + (f"; najniže B = {worst['B']:.9f} krši: {', '.join(worst['krši'])}." if worst else ".") + "\n\n"
+        f"(c) Certifikat praznine (intervalna aritmetika, mpmath.iv): za B ∈ [{c.get('B_low', 0):.6f}, "
+        f"{c.get('B_high', 0):.12f}] NEMA dopustivih parametara u {c.get('cells', 0)} ćelija"
+        + ("" if c.get("complete") else f" — **DJELIMIČNO**: {c.get('undecided')} ćelija neodlučeno") + ". "
+        "Pretpostavke: " + "; ".join(c.get("assumptions", [])) + ". Certifikat važi za E kako je "
+        "implementiran u `methods/core.py` (konstante u double preciznosti). NAŠE-NERECENZIRANO.")
+    if not c.get("complete", True):
+        r.warnings.append("certifikat je djelimičan — povećaj budžet ćelija ili ε")
+    return r
+
+
+def _run_qrh_complex(family: int, n: int) -> Result:
+    """Item 32 (b): E with a complex δ — the boundary as the zero of a discriminant."""
+    from ..methods import complexver as CV
+    fam = "liu" if int(family) == 0 else "xs"
+    r0 = CV.margin_curve(fam, n=int(n))
+    r = Result()
+    r.numbers = {"metoda": fam, "ℓ* (optimum)": r0["l_star"], "ℓ (diskriminanta = 0)": r0["l_disc"],
+                 "razlika": r0["agree"], "δ* (dvostruki korijen)": r0["delta_star"],
+                 "c u |Im δ| ≈ c·√(ℓ* − ℓ)": r0["c"], "b*": r0["b_star"]}
+    r.series = {"|Im δ|": [(l, im) for l, im, *_ in r0["rows"]],
+                "Re δ₁": [(l, a) for l, _im, a, _b, _d in r0["rows"]],
+                "Re δ₂": [(l, b) for l, _im, _a, b, _d in r0["rows"]]}
+    r.plots = [{"kind": "two_lines", "series": ["|Im δ|", "Re δ₁", "Re δ₂"],
+                "labels": ["|Im δ| (metoda prolazi kad je > 0)", "Re δ₁", "Re δ₂"],
+                "title": f"{fam}: korijeni E(δ) = 0 po ℓ (kompleksni par → dvostruki → dva realna)",
+                "xlabel": "ℓ", "ylabel": "δ", "zeroline": True}]
+    r.reading = (
+        f"Brojilac E(δ) pri x = 1/2 je **kvadratni polinom u δ** (tačno, sympy). Za ℓ < ℓ* korijeni su "
+        f"konjugovani par (metoda prolazi), u ℓ* se stapaju u dvostruki korijen δ* = {r0['delta_star']:.10f}, "
+        f"a za ℓ > ℓ* su dva realna (E > 0 između njih — metoda pada). Nula diskriminante daje "
+        f"ℓ = {r0['l_disc']:.15f}, a optimum ℓ* = {r0['l_star']:.15f} (razlika {r0['agree']:.1e}). "
+        f"Udaljenost od granice: |Im δ| ≈ {r0['c']:.4f}·√(ℓ* − ℓ).\n\n"
+        "**Kompleksna verzija ne daje novo B** — daje algebarsku karakterizaciju granice (nula "
+        "diskriminante) i mjeru margine. I to je rezultat. NAŠE-NERECENZIRANO.\n\n"
+        "(a) " + CV.GAMMA_NOTE)
+    try:                                        # the mission records what was computed
+        from ..shared_lib import missions as MIS
+        if MIS.get(MIS.THIRD_ID) is not None:
+            MIS.step(MIS.THIRD_ID, f"(b) lab: korijeni E(δ) u ℂ za {fam}",
+                     f"granica = nula diskriminante (Δℓ = {r0['agree']:.1e}); c = {r0['c']:.4f}; "
+                     "novo B: ne — NAŠE-NERECENZIRANO", MIS.get(MIS.THIRD_ID)["state"], ref=f"lab:qrh_complex:{fam}")
+    except Exception:                           # noqa: BLE001
+        pass
+    return r
+
+
+CATALOG.append(Experiment(
+    "qrh_complex", "QRH: kompleksna verzija (misija 3)",
+    "Šta je E sa kompleksnim δ, i gdje se signal i niska strana sijeku u ℂ?",
+    "Granica metode je nula diskriminante kvadratnog brojioca E(δ); |Im δ| mjeri marginu.",
+    [Param("family", "int", 0, 0, 1, "0=Liu, 1=Xu–Sang"),
+     Param("n", "int", 41, 11, 201, "broj tačaka po ℓ")],
+    _run_qrh_complex, "brz"))
+
+CATALOG.append(Experiment(
+    "qrh_adversary", "QRH: adversarijalni mod",
+    "Da li je tvrđeno B zaista optimum metode, šta treba prekršiti za bolje, i da li je prostor iznad B* prazan?",
+    "Skeptik napada riječima, ovo brojevima: potraga po parametrima + strogi certifikat praznine.",
+    [Param("family", "int", 0, 0, 1, "0=Liu, 1=Xu–Sang"),
+     Param("eps_exp", "int", 6, 4, 7, "ε = 10^−n: koliko blizu B* certifikat ide")],
+    _run_qrh_adversary, "srednji"))
+
 BY_KEY = {e.key: e for e in CATALOG}
 
 # Which ontology branch each experiment belongs to. This is what links a lab
@@ -806,7 +896,7 @@ BRANCH_OF = {
     "gue": "rmt",
     "robin": "equivalences", "mertens": "equivalences",
     "qrh_line": "quasi-rh", "qrh_poly": "quasi-rh", "qrh_transform": "quasi-rh",
-    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh",
+    "qrh_walls": "quasi-rh", "qrh_licence": "quasi-rh", "qrh_adversary": "quasi-rh", "qrh_complex": "quasi-rh",
 }
 
 

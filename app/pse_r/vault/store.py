@@ -24,6 +24,8 @@ def iter_paths(dirs: tuple[str, ...] = CARD_DIRS) -> Iterator[Path]:
         if not d.exists():
             continue
         for p in sorted(d.glob("*.md")):
+            if "-masinski" in p.stem:           # a machine translation is not a card (33b)
+                continue
             yield p
 
 

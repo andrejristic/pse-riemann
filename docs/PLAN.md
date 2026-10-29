@@ -86,16 +86,16 @@ Osnova: [PSE MASTER ARCHITECTURE v4](../../PSE_MASTER_ARCHITECTURE_v4%20(2).pdf)
 | agentu | primljena instrukcija iz podataka (injekcija); radnje izvan misije; odgovor bez provjere ("sir, yes sir", C); skok thete |
 | fajlu | upis mimo kapije, hash ne odgovara a trag vodi do agenta, izmjena/brisanje zapečaćenog fajla |
 
-**Agent sa ijednim zlom je zaražen i mora se liječiti** (master §4 S3, §8 Fizičar, §10.6 dva stepena):
+**Agent sa ijednim zlom je zaražen i mora se liječiti** (master §4 S3, §8 Doktor, §10.6 dva stepena):
 1. **Zadržavanje** (stepen 1, automatski, povratno): zamrznut upis i LLM pozivi; izlazi u "Čeka tvoju odluku"; sve od prvog lošeg traga → SUSPECT
-2. **Dijagnoza** (Fizičar): koje zlo, od kada ("nulti pacijent" iz dnevnika), praćenje kontakata po provenance tragu, atraktor N/B/C/S
+2. **Dijagnoza** (Doktor): koje zlo, od kada ("nulti pacijent" iz dnevnika), praćenje kontakata po provenance tragu, atraktor N/B/C/S
 3. **Liječenje**, od najblažeg: boundary reset → vraćanje fajlova iz pečata i označavanje upisa REFUTED/SUSPECT (ne briše se) → zaštitna fisija S3 (čista A nastavlja, zadržana B za forenziku pa umire; **traži odobrenje**) → zamjena (čuvari/Guardiani se ne popravljaju) → ako je uzrok model: oslobađanje i ponovni prijem (§8)
 4. **Dekontaminacija**: nova čista jedinica ponovo provjerava sve što je zaraženi proizveo; potrošači zagađenih podataka ponovo rade; finalni izvještaji se ponovo pečate tek posle čiste provjere
 5. **Oporavak**: OBSERVE-ONLY, znanje na težini 0.70 dok SHARED_LIB ne potvrdi; puna prava posle N čistih ciklusa
 6. **Imunitet**: potpis infekcije u registar SHARED_LIB-a; izvještaj o slučaju operateru
 7. **Smrt**: ponovna infekcija 3 puta zaredom ("→ ∞") → harvest-and-terminate (samo potvrđeno znanje)
 
-Ko liječi liječnika: SHARED_LIB zamjenjuje bolesnog Fizičara svježim (nasljeđuje registar obrazaca, ne bolesnu thetu). Sve iz stepena 2 (fisija, smrt, vraćanje operaterovih fajlova) odlučuje čovjek.
+Ko liječi liječnika: SHARED_LIB zamjenjuje bolesnog Doktora svježim (nasljeđuje registar obrazaca, ne bolesnu thetu). Sve iz stepena 2 (fisija, smrt, vraćanje operaterovih fajlova) odlučuje čovjek.
 
 ### F6 · GUI u stilu Svaroga (PySide6 + QSS)
 - tamna tema `#12151d`, paneli, ćilibarni akcenat `#ffc257`, zaobljene kartice
@@ -136,7 +136,7 @@ Oko **40–60 sati rada**, kalendarski realno **2–4 dana**. Mogu produžiti: k
 
 ## 6. Runda 3 (dogovorena 2026-10-25; „kreni“ dato 2026-10-25)
 
-Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitHub Release). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
+Završni proizvod: **.deb i .exe** (verzija **0.3.0**, tag `v0.3.0`, `.exe` kao GitHub Release; Andrej 2026-10-27: izdanje se zove v0.3.0, kandidati 0.3.0~rcN). Oznake: S = od Svaroga, P = od Peruna, A = greška nađena poređenjem. Brojevi S/P odgovaraju redovima B/C u [`SLJEDECA-VERZIJA.md`](SLJEDECA-VERZIJA.md) (S2 = B2, P1 = C1 …).
 
 **P4 (prava prijava) je izbačen** (Andrej, 2026-10-25: „zaboravi p4“). Operater ostaje **samo ime**; nema lozinki, šefa ni ranga.
 
@@ -148,7 +148,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 3. Popravke A1–A4: „→ ∞“ čuvar se zaista pokreće; detekcija vrtnje prekida generisanje u toku; timeout pokriva i generisanje; nema trke u redu odluka.
 4. Odobrenje se troši jednom (S2) i atomično rješavanje stavki (P5, **bez ranga**): jedna odluka = jedno izvršenje.
 5. Svaki alat i akcija deklariše povratnost; nedeklarisano = nepovratno (S4). Od toga zavisi šta čuvari i liječenje smiju sami, a šta ide čovjeku.
-6. Ponovljive odluke (P1): svaka odluka se može ponovo izvesti iz dnevnika; neslaganje = narušen integritet.
+6. Ponovljive odluke (P1): svaka odluka se može ponovo izvesti iz dnevnika; neslaganje = narušen integritet. Zapis koji je jednom ponovljen istovjetno se preskače dok se ne promijeni ni on ni kod koji odlučuje (keš po hash-u zapisa + hash koda), jer ponavljanje vrata košta ~10 s po zapisu.
 7. Ograničena retencija + sidra arhive (S8 + P3): dnevnik se skraćuje bez gubitka dokaza; arhiva dobija sha256 i pečat; lanac se nastavlja preko sidra.
 
 ### Faza 2 · Operater i početno podešavanje
@@ -176,7 +176,7 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 18. Uputstvo za usko sudoers pravilo (ufw deny/delete od IP, systemctl stop/start ssh), korak po korak.
 19. Pozadinski rad i gašenje: čuvar je proces sa ikonom u traci (Otvori · Stanje θ · Prekini online AI · Ugasi čuvara); pri zatvaranju pitanje „Ugasi sve“ ili „Zatvori prozor, čuvar ostaje“; korisnički servis po izboru, sa systemd hardeningom (S9).
 
-### Faza 5 · Pametniji Fizičar i mjerenje
+### Faza 5 · Pametniji Doktor (ranije „Fizičar“) i mjerenje
 20. Statistički jača dijagnoza (S5) u liječenju i čuvarima: CUSUM, posterior i pravilo 3-od-3, manje lažnih „infekcija“.
 21. Budžeti otkrivanja + takmičenje hipoteza (P7).
 22. Mjereni benchmark (S7): označeni primjeri za tri zla, SSH napade i prekidač; lažno pozitivni i lažno negativni ulaze u izvještaj.
@@ -185,14 +185,17 @@ Završni proizvod: **.deb i .exe** (verzija 0.2.0, tag `v0.2.0`, `.exe` kao GitH
 23. SR/EN prekidač za cijeli interfejs.
 24. Automatski profil mašine (Dell i5-6600 / Acer i3, oba 16 GB): ograničenja se sama prilagode, kartice „kad birati“ upozore da je DeepSeek spor na Aceru, testovi rade i sa simuliranim Acerom.
 
-### Faza 6b · Druga misija, inspiracije, grafovi (dodato 2026-10-25, radi se prije Faze 7)
+### Faza 6b · Druga misija, inspiracije, grafovi (dodato 2026-10-25; radi se prije Faze 7 — izdanje je uvijek posljednje)
 Sve iz ove faze mora biti u završnom .deb i .exe.
 
-30. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
-31. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 30 završi; ništa od 32 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25.
-32. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori.
-33. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
-34. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
+25. **Istraživanje sa izvorima (internet):** geometrijski Langlands (dokaz 2024); aritmetička funkcionalnost (npr. automorfnost simetričnih stepena); zero-free i zero-density rezultati za L-funkcije višeg stepena (GL(2), Artin); šta u dokazima 7/8, Liu i Xu–Sang zavisi od Dirichletovih karaktera, a šta ne. Rezultat: `research/langlands-2026-10/REPORT.md` + kartice izvora sa nivoima (REFEREED / PREPRINT), označeno DJELIMIČNO gdje treba. Kartice idu u seed vaulta, pa ih paketi nose.
+26. **Dogovor o cilju druge misije** (Andrej odlučuje, prije ubacivanja u softver). Pitam čim 25 završi; ništa od 27 ne počinje prije odgovora. Prijedlozi su u chatu 2026-10-25. **Odluka (Andrej, 2026-10-25):** cilj 1 (mapa prenosivosti) je obavezan i podrazumijevan; ciljevi 2 (E_d i T_d uslovno) i 3 (samo praćenje) su opcije. Promjenu cilja aplikacija NIKAD ne radi sama: predloži je u „Čeka tvoju odluku“ sa obrazloženjem; izbor 1 / 2 / 3 je uvijek dostupan u meniju misije (tab Misije → „Cilj misije“), svaka promjena zapisana sa imenom operatera.
+27. **Misija 2 u aplikaciji:** „Prenosi li se metoda 7/8, Liu ili Xu–Sang na L-funkcije višeg stepena? Ako da, kako se E mijenja sa stepenom d i postoji li T_d između porodica?“ Registar metoda dobija polje *porodica / stepen d*; T_d je podatak, ne kod; misija 2 je otvoreno pitanje dok ga račun ne zatvori. Dodatna polja (Andrej, 2026-10-25, iz skeletona „tri pravca“):
+    - **vrsta rezultata**: poluravan bez nula (npr. 7/8) · gustina nula · udio nula na kritičnoj pravoj (npr. 2/3) — aplikacija nikad ne poredi niti crta zajedno ono što se ne može porediti;
+    - **pretpostavke** (npr. „funkcionalnost do GL(3)“, „pod RH“): kapija odbija bezuslovnu tvrdnju koja se oslanja na nedokazanu pretpostavku, kao što sada traži „pod RH“.
+28a. **Rad po misijama u krug** (Andrej, 2026-10-25; radi se prije 28, jer „Ideje“ treba da znaju aktivnu misiju): u svakom trenutku je **jedna aktivna misija**, vidljiva u gornjoj traci; operater je mijenja slobodno (meni) ili dugmetom **„Sljedeća misija“** (krug 1 → 2 → 3 → 1). **„Ostavi za kasnije“**: misija prelazi u stanje *na čekanju* sa bilješkom „gdje sam stao“ (rečenica operatera + automatski: front B, zadnji korak, otvorene stavke u redu, ideje; kasnije i prikaz u Grafovima). Pri povratku prvo kartica **„Gdje si stao“** (bilješka + šta se desilo u međuvremenu). Misija na čekanju: **podrazumijevano potpuno zamrznuta**; operater je uvijek može prebaciti na „tiho skuplja“ (arXiv, ideje, bez značke; pri nastavku „dok te nije bilo: …“) i nazad. Aktivna misija određuje kontekst chata, rangiranje i značku „Ideja“, podrazumijevani prikaz u Grafovima i cilj adversarijalnog moda. Aplikacija nikad sama ne mijenja misiju (najviše predloži); svaka promjena u dnevniku sa imenom operatera. Misija 3 ulazi u krug kad nastane (stavka 32).
+28. **Engine za inspiracije („Ideje“):** posle čitanja onoga što se dešava na internetu (arXiv i izvori sa allowliste, kroz Guardian egress), predlaže **ideje**, ne tvrdnje. Svaka ideja: oznaka INSPIRACIJA, izvor (kartica), za koju misiju i zašto, šta bi trebalo da postane provjerljiva metoda. Nikad ne ulazi u vault kao činjenica. Operater bira: zadrži · odbaci · pretvori u otvoreno pitanje. **Da ne preplavi:** najviše 3 ideje sedmično (operater mijenja), rangirane po vezi sa misijom, bez duplikata, mala značka umjesto iskačućih prozora, sedmični pregled, „odgodi“. Skeptik napada svaku ideju prije nego što je operater vidi.
+29. **Interaktivni grafovi** (matplotlib je već dio paketa, radi offline): tab **Grafovi** sa zumom, pomjeranjem i očitavanjem vrijednosti pod mišem; klizači za parametre (ℓ, b, κ, t, w, d) koji odmah crtaju funkcije eksponenata, presjeke, zidove i ciljeve (7/8, 0.87, 5/6, 3/4, 1/2); poređenje metoda jednu preko druge; klik na tačku otvara karticu/izvor; izvoz PNG/SVG + podaci CSV; svaki graf označen nivoom (RAD / NAŠE-NERECENZIRANO). Lab grafovi (sada statični PNG) prelaze na isti interaktivni prikaz.
     **Uzor: Android aplikacija „Calculus Tools“** (Andy McSherry, `com.andymc.derivative`; skinuta sa Google Playa 2018). Po izvorima je imala izvode, određene integrale, dužinu luka, Taylorove redove i grafove (kartezijanski, polarni, parametarski, vektorska polja). Interakciju je potvrdio Andrej (ispod). Prevod za naš tab:
     - kartezijanski: funkcije eksponenata E(δ), prava B(ℓ) = 11/12 − ℓ/4, presjeci;
     - parametarski: putanje (ℓ(t), B(t)) za proširenja t i w;
@@ -213,15 +216,40 @@ Sve iz ove faze mora biti u završnom .deb i .exe.
     - između dvije funkcije: osjenčana površina („rezerva“);
     - za misiju: kuda proširenje (t, w, kasnije d) pomjera tačku — bliže ili dalje od cilja.
     Pravila: računa Python deterministički (AI samo objašnjava, i to na zahtjev); red u pozadini sa „prekini“, poštuje limitere (RAM, CPU, „→ ∞“) i profil mašine; rezultat se kešira i bilježi kao lab run u SHARED_LIB-u sa oznakom NAŠE-NERECENZIRANO.
-35. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
+    **Kompleksni brojevi i više dimenzija (Andrej, 2026-10-25):**
+    - funkcije kompleksne promjenljive (f(s) = ζ(s), L(s, χ), bilo šta u s); fazni portret (boja = argument, svjetlina = modul); krive Re f = 0 i Im f = 0 (nule su njihovi presjeci); presjeci duž prave (|ζ(1/2+it)|, Hardyjeva Z(t), Re/Im); oblasti u ravni (poluravan Re s > B, kritična traka, prava 1/2, nule kao tačke); „sve o tački“ za kompleksnu tačku (s, f(s), |f|, arg f, udaljenost do najbliže nule i do prave 1/2, u oblasti bez nula ili ne); računi na zahtjev: kompleksni izvod, nule u pravougaoniku (princip argumenta), rezidui;
+    - **povezani prikazi:** ravan eksponenata (σ, eksponent) i kompleksna ravan — isti broj σ\* je tačka presjeka u prvoj i granica poluravni u drugoj; pomjeranje parametra mijenja oba;
+    - **klizač „niska strana + Δ“:** σ\* = 11/16 + niska strana — koliko gubitka metoda podnosi prije nego što oblast bez nula nestane (σ\* → 1); mjerilo za mapu prenosivosti;
+    - **3D:** površi koje se rotiraju (|ζ(s)| iznad kompleksne ravni — nule su jame; eksponenti iznad (σ, ℓ) — dvije površi se sijeku po krivoj presjeka = B(ℓ)); **4. dimenzija kao boja** (npr. |f| obojen po arg f); **5. i dalje kao klizači ili animacija**; **male slike** (ista površ za više vrijednosti parametra); **paralelne koordinate** za sve parametre metoda odjednom. Pravilo: najviše 3 dimenzije na ekranu, ostale uvijek vidljive kao klizači; profil mašine smanjuje mrežu na Aceru.
+    **Kretanje po grafu i vodič (Andrej, 2026-10-26):** pomjeranje gore/dolje/lijevo/desno prevlačenjem mišem, strelicama na tastaturi (Shift = veći korak) i dugmićima ◀ ▲ ▼ ▶ na ekranu; zum točkićem, „+ / −“ i „⌂“ (vrati pogled). Uz tab ide **detaljan vodič** `docs/VODIC-GRAFOVI-SR.md` i `-EN.md` (otvara se iz taba dugmetom „?“ i iz Pomoći): tri panela, upis funkcija sa primjerima, klizači, kretanje, „sve o tački“, računi na zahtjev i šta znači procjena trajanja, nivoi (RAD / NAŠE-NERECENZIRANO / KORISNIK), kompleksni i 3D prikazi, izvoz; ulazi u paket.
+29b. **Snimak ekrana u bilo kom trenutku** (Andrej, 2026-10-26): dugme 📷 u gornjoj traci i prečica **F12** (cijeli prozor) / **Shift+F12** (samo aktivni tab ili panel); PNG sa datumom i vremenom u imenu ide u `~/Pictures/PSE-Riemann/` (folder mijenja operater u Podešavanju); poruka u statusnoj traci sa putanjom i „Otvori folder“, bez iskačućih prozora; zapis u dnevniku (ime fajla, ne sadržaj). Radi u svakom tabu i dijalogu glavnog prozora. Ide u vodič.
+30. **Graf znanja vizuelno:** tab Graf (sada stablo) dobija i prikaz čvorova i veza (teme, kartice, metode, misije), klik otvara karticu.
+31. **Adversarijalni mod** (iz skeletona „tri pravca“, Andrej, 2026-10-25): deterministička potraga po prostoru parametara (ℓ, b, κ, t, w…) jedne metode traži (a) tačku koja daje **bolje B** od tvrđenog (tvrdnja nije optimum) i (b) tačku u kojoj se **krši zid ili uslov**. Računska dopuna skeptiku (skeptik napada riječima, ovo brojevima). Uz to **certifikat praznine** (pravac A): za datu metodu strogi interval da iznad B* nema dopustivih parametara. Rezultati: „Čeka tvoju odluku“, tab Grafovi (tačka kontraprimjera), lab run NAŠE-NERECENZIRANO; poštuje limitere. Ne ulazi: apstraktna „mašina“ bez implementacije, „Langlands transfer“ kao konstanta (samo kao otvoreno pitanje / INSPIRACIJA, stavka 28), Lean.
+
+### Faza 6c · Misija 3 i radni tekst (dodato 2026-10-25, prije izdanja)
+32. **Misija 3 — kompleksna verzija:** dokaz 7/8 gleda samo σ = Re ρ, jer |X^s| = X^σ; imaginarni dio γ nosi fazu, a poništavanje u dokazu dolazi iz oscilacija. Pitanja: (a) zavisi li granica od visine γ — da li vertikalna prava Re s = B postaje kriva σ\*(γ) i savija li se igdje prema 1/2; (b) šta su funkcije eksponenata kad im se dozvoli kompleksni argument E(s; ℓ, b, κ) i gdje se signal i niska strana „sijeku“ u kompleksnom smislu. Otvoreno pitanje; svaki korak NAŠE-NERECENZIRANO; isti meni ciljeva i isto pravilo (aplikacija predlaže, operater bira).
+33. **Radni tekst rada iz misija 2 i 3:** aplikacija sastavlja radni tekst (uvod, metode, računi sa lab run-ovima, grafovi, izvori sa nivoima, otvorena pitanja), označen NAŠE-NERECENZIRANO; kapija i dalje odbija svaku tvrdnju o dokazu; svaki broj nosi izvor ili lab run; skeptik i adversarijalni mod napadaju tekst prije nego što ga operater vidi. Rezultat „kompleksna verzija ne daje ništa novo“ je takođe rezultat i piše se.
+
+33a. **Nalazi živog testa 0.2.0~rc1** (Andrej, 2026-10-27), popravlja se redom: (1) Gemini u karantinu pri svakom startu — provjera dostupnosti radila `GET /` na API hostu, Google vraća HTML 404, čuvar to čitao kao captive portal → **popravljeno**; (2) karantin nije bilo moguće naći/osloboditi kroz meni → sada stavka u „Čeka tvoju odluku“ (Odobri = oslobodi) i poruka kaže gdje; (3) rezultati instalirane verzije u skrivenom `~/.local/share/pse-riemann/` — Andrej bira vidljivo mjesto; (4) Groq proba vratila 404 (put/model) — provjeriti.
+33b. **Potpuno dvojezično** (Andrej): sve, uključujući planove i sadržaj, mora postojati na SR i EN. (a) sav tekst koji kod sastavlja kroz prevod sa fiksnim EN verzijama; (b) zasijani sadržaj (teme, izvori, misije, koraci, ideje, PLAN, otvorena pitanja) dobija napisanu EN verziju; (c) sve ostalo (planovi, kartice, misije, ideje, odgovori, izvještaji) glavni AI prevodi automatski pri prebacivanju jezika — u pozadini, keširano, označeno „mašinski prevod“, original se nikad ne mijenja. Prije izdanja.
+
+33c. **„⚙ Podešavanje“ u meniju tabova** (Andrej, 2026-10-27): posljednji tab otvara podešavanje (provajder AI-ja, ključevi, modeli, skeptik) — isto kao prvo pokretanje.
+33d. **„Čeka tvoju odluku“ po grupama, sa izborom** (Andrej): stablo po vrsti, a radovi po temama koje mašina sama izvuče iz naslova i sažetaka (deterministički); kvačica na stavci i grupi; „Odobri označene“ / „Ne odobri označene“ — jedna, više ili sve; klik prikaže cijeli sažetak.
+33e. **SHARED_LIB razgovara ljudski** (Andrej): činjenice i dalje samo iz baze (SELECT, nijedan izmišljen broj), ali glasom asistenta na poslu; SQL i redovi sklopljeni ispod („prikaži odakle“); bez AI-ja šablonske ljudske rečenice.
+33f. **Razgovor o misiji — srce misije** (Andrej): izbor jednog, više ili svih radova + misija → agent misije čita (sažetak, na traženje puni tekst) uz stanje misije → razgovor u oba smjera (agent ispituje operatera, operater agenta; skeptik napada tvrdnje u toku) → „Sastavi zaključak“: prijedlozi (koraci misije, otvorena pitanja, ideje, cilj, metoda za vrata) idu u „Čeka tvoju odluku“, ništa se ne upisuje samo; razgovor sačuvan u rezultatima (NAŠE-NERECENZIRANO) i u „gdje si stao“.
+    **Redoslijed:** 33c → 33b (prvo sloj za prevođenje, da 33d–33f nastanu dvojezično) → 33d → 33e → 33f → rc3.
+
+### Faza 6d · SVI AGENTI SU PSE JEDINICE (Andrej, 2026-10-27 — prije svega ostalog)
+Ugovor za izvedbu: [`DOGOVOR-PSE-AGENTI.md`](DOGOVOR-PSE-AGENTI.md) / [`AGREEMENT-PSE-AGENTS.md`](AGREEMENT-PSE-AGENTS.md) (+ docx), pravila 1–26, **sve odlučeno** 2026-10-27. Detaljan plan: [`PLAN-PSE-AGENTI.md`](PLAN-PSE-AGENTI.md) / [`PLAN-PSE-AGENTS.md`](PLAN-PSE-AGENTS.md) (+ docx). Stanje 2026-10-27: 15 agenata, **0 PSE sazdano**, 3 djelimično. P0 jezgro u SHARED_LIB-u → P1 AI agenti → P2 agenti bez modela → P3 agent misije (33f) → 33b → 33d → 33e → 0.3.0~rc1. **Samo PSE native:** stari kod agenata se briše, bez prekidača. **Bez međuizdanja**; commitovi lokalno, push na kraju (Andrej). „Fizičar“ se svuda zove **Doktor**. Šta čeka Andreja: [`ZA-ANDREJA.md`](ZA-ANDREJA.md). **Stanje 2026-10-27 (jutro): R1–R8 GOTOVI** — paketi 0.3.0~rc1 (lični i javni) izgrađeni. Prvi živi test → treća runda dogovora (pravila 42–49) i plan R9–R14 za 0.3.0~rc2 u `PLAN-PSE-AGENTI.md`; čeka „kreni“. Ranije: P0–P2 gotovi; druga runda dogovora (pravila 27–41) i plan R1–R8 u `PLAN-PSE-AGENTI.md`: P3 → 33d → 33e → 33b → traka menija → dva full deb-a (`pse-riemann-andrej`, `pse-riemann`) → vodiči → deb-ovi ponovo.
 
 ### Faza 7 · Dokumentacija i izdanje
-25. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
-26. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
-27. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
-28. Verzija 0.2.0, tag `v0.2.0`, .exe samo kao GitHub Release.
-29. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
+34. Uputstvo za instalaciju .deb, vodiči SR/EN ažurirani.
+    **Redoslijed (Andrej, 2026-10-26):** kompletni SR/EN vodiči za **cijelu aplikaciju** pišu se tek **kad se naprave .deb i .exe**, da opisuju tačno ono što je u paketima (snimci iz instaliranog paketa); posle toga paketi se još jednom grade sa vodičima unutra. Vodiči za pojedine dijelove (npr. `docs/VODIC-GRAFOVI-*`) nastaju usput i ulaze u kompletne.
+35. Detaljan vodič za živi test sa pravim AI-jem (git i računar). Test radi Andrej.
+36. CI koji instalira .deb na čistom sistemu i radi pravi poziv (P9).
+37. Verzija **0.3.0** (Andrej, 2026-10-27; bilo 0.2.0), tag `v0.3.0`, .exe samo kao GitHub Release. Kandidati: 0.3.0~rc1, rc2 … (instaliraju se preko 0.2.0~rc2).
+38. Tri .deb paketa ponovo izgrađena i provjerena, .exe, testovi, snimci ekrana, oba repoa, spajanje u `main` uz odobrenje, odluka o sedmičnom podsjetniku (ostaje ili se briše).
 
 **Ne ulazi sada** (u `SLJEDECA-VERZIJA.md`, odjeljak E): P4 i S1 (prijava), S10 (mTLS federacija), P2 (vanjski merač sa potpisom).
 
-**Procjena:** oko 62–92 sata rada (bez P4) + oko 26–40 sati za Fazu 6b = **oko 88–132 sata**, kalendarski oko 7–11 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.
+**Procjena:** oko 62–92 sata rada (bez P4) + oko 36–55 sati za Fazu 6b (sa stavkom 31 i poljima uz 27) + oko 14–24 h za Fazu 6c i kompleksne/3D grafove = **oko 112–171 sat**, kalendarski oko 8–12 dana (bez auto-nastavka sporije: rad ide samo dok je chat otvoren). Napredak faza po fazu u WORKLOG.

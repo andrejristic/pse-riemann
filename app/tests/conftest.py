@@ -10,6 +10,7 @@ os.environ["XDG_CONFIG_HOME"] = str(_TMP / "config")
 # never let a test see (or load) the operator's real GGUF models
 os.environ["PSE_RIEMANN_MODELS"] = str(_TMP / "models")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ["PSE_RIEMANN_SILENT"] = "1"          # the Laboratory alarm never sounds in tests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest  # noqa: E402

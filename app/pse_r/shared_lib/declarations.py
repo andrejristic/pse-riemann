@@ -23,14 +23,15 @@ from ..core import journal as J
 from . import operator as OP
 from .store import store
 
-KINDS = ("models", "sources", "destinations", "protected", "languages")
+KINDS = ("models", "sources", "destinations", "protected", "languages", "endpoints")
+DICT_KINDS = ("models", "endpoints")         # merged by key; the rest are lists
 PROPOSAL_KIND = "declarations"
 
 
 def current() -> dict:
     r = store().rows("SELECT * FROM declarations ORDER BY version DESC LIMIT 1")
     if not r:
-        return {"version": 0, **{k: {} if k == "models" else [] for k in KINDS}}
+        return {"version": 0, **{k: {} if k in DICT_KINDS else [] for k in KINDS}}
     d = json.loads(r[0]["data"])
     d["version"] = r[0]["version"]
     d["confirmed_by"] = r[0]["confirmed_by"]
@@ -64,10 +65,10 @@ def confirm(changes: dict) -> int:
     """Apply a confirmed change set. Only reachable through a human decision."""
     who = OP.require_operator()
     cur = current()
-    new = {k: cur.get(k, {} if k == "models" else []) for k in KINDS}
+    new = {k: cur.get(k, {} if k in DICT_KINDS else []) for k in KINDS}
     for k, v in changes.items():
-        if k == "models":
-            new["models"] = {**new["models"], **v}
+        if k in DICT_KINDS:
+            new[k] = {**new[k], **v}
         else:
             new[k] = list(v)
     ver = int(cur.get("version", 0)) + 1
@@ -83,6 +84,25 @@ def confirm(changes: dict) -> int:
 def _on_decision(item: dict, approved: bool) -> None:
     if approved:
         confirm(item["payload"]["changes"])
+
+
+def propose_endpoint(name: str, base_url: str, model: str = "",
+                     proposer: str = "operator") -> str:
+    """A new OpenAI-compatible cloud address → a PROPOSAL the operator confirms
+    (plan item 8.4). https only; the key gets its own name, sent only there."""
+    import re
+    import urllib.parse
+    name = re.sub(r"[^a-z0-9-]+", "-", (name or "").lower()).strip("-")[:32]
+    if not name:
+        raise ValueError("ime adrese je prazno")
+    u = urllib.parse.urlsplit(base_url.strip())
+    if u.scheme != "https" or not u.hostname:
+        raise ValueError("adresa mora biti https://…")
+    base = u.path.rstrip("/")
+    ep = {"host": u.hostname.lower(), "path": base + "/chat/completions",
+          "models_path": base + "/models", "model": model,
+          "key_name": "CUSTOM_" + name.upper().replace("-", "_") + "_API_KEY"}
+    return propose({"endpoints": {name: ep}}, proposer)
 
 
 def model_hash(path: str) -> Optional[str]:

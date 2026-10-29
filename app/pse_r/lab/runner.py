@@ -30,7 +30,6 @@ import mpmath as mp
 
 from .. import config
 from ..core import journal as J
-from ..core import theta as TH
 from ..vault.card import Card, COMPUTED
 from ..vault.gate import Verdict, gate
 from . import experiments as EX
@@ -128,6 +127,9 @@ def run(key: str, params: Optional[dict] = None, make_card: bool = True
         "run_id": run_id, "experiment": key, "title": exp.title,
         "params": p, "numbers": res.numbers, "reading": res.reading,
         "warnings": res.warnings, "plots": png_paths,
+        # the specs too, so the Lab tab can redraw them interactively (item 29, step 6);
+        # the PNGs stay — cards link to them and "Sačuvaj PNG" is always there
+        "plot_specs": list(res.plots),
         "elapsed_s": round(elapsed, 3),
         "script_sha256": sha,
         "mpmath": mp.__version__, "python": platform.python_version(),
@@ -138,8 +140,6 @@ def run(key: str, params: Optional[dict] = None, make_card: bool = True
     (run_dir / "result.json").write_text(
         json.dumps(record, indent=1, default=str), encoding="utf-8")
 
-    # A lab run is self-directed work — it is the app producing its own truth.
-    TH.record("lab_run", 1.0, source=f"lab:{key}", note=run_id)
     J.log(J.LAB, "lab",
           {"experiment": key, "params": p, "numbers": res.numbers,
            "elapsed_s": record["elapsed_s"], "sha": sha[:16],

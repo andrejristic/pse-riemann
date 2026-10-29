@@ -2,6 +2,8 @@
 
 Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Claude treba znati o projektu stoji **u ovom repou** (ovaj fajl, `docs/PLAN.md`, `docs/WORKLOG.md`, `docs/SLJEDECA-VERZIJA.md`), a ne u memoriji van repoa.
 
+**Plan u Wordu:** `PSE Riemann — PLAN.docx` u korijenu repoa — Andrej plan kontroliše odatle. Izvor istine je `docs/PLAN.md`; posle SVAKE izmjene plana ili WORKLOG-a pokreni `node tools/plan-docx/make_plan_docx.js` i commituj docx zajedno sa izmjenom.
+
 ## Gdje se piše (strogo)
 - Fajlovi se pišu **samo** u `~/Desktop/PSE Riemann` i na GitHub `andrejristic/pse-riemann`. Ništa drugdje.
 - Privremeni fajlovi idu u `scratch/` u repou (gitignored), ne u `/tmp` ni u druge foldere.
@@ -19,7 +21,7 @@ Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Cl
 
 ## Git
 - Lokalni `master` prati `origin/main` (GitHub podrazumijevana grana je `main`). Push u main: `git push origin HEAD:main`, samo uz odobrenje.
-- Rad na grani (trenutno `feature/qrh-shared-lib`; runda 3 dobija novu granu).
+- Rad na grani: runda 3 = `feature/runda3` (runda 2 je spojena u `main` @ `6f428b4`).
 - Na ovom računaru nema globalnog git identiteta: `git -c user.name="Andrej Ristić" -c user.email=andrej.s.ristic@gmail.com commit …`
 - Commit poruka završava sa `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - Zabranjeno: force-push, `sudo`, sistemske instalacije, globalna podešavanja, brisanje van projekta.
@@ -38,7 +40,7 @@ Ovaj fajl Claude Code čita na početku svakog chata u ovom folderu. Sve što Cl
 - `research/qrh-2026-10/` (REPORT.md, skripte, rezultati, slike). `papers-local/` je gitignored (licence), samo lokalno.
 - Misija: postoji li kontinualna funkcija transformacije između QRH metoda (Liu → Xu–Sang: E_XS = E_Liu + T, provjereno) i vodi li njeno proširenje bliže ili dalje od ciljeva?
 - XS optimum = korijen 133488B⁴−376596B³+384534B²−167541B+26231 (B = 0.8748866470399641); cjevovod validiran reprodukcijom Liuovog kubnog polinoma.
-- Master arhitektura (van repoa, samo za čitanje): `~/Desktop/PSE_MASTER_ARCHITECTURE_v4 (2).pdf` (SHARED_LIB §3, PSE-L §5, Fizičar §8, Guardian §10).
+- Master arhitektura (van repoa, samo za čitanje): `~/Desktop/PSE_MASTER_ARCHITECTURE_v4 (2).pdf` (SHARED_LIB §3, PSE-L §5, Doktor §8, Guardian §10).
 
 ## Autonomni rad
 - Brava: `tools/worklock.sh beat|check|release`. Alarm: `tools/alert.py`.

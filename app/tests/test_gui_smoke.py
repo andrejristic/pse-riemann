@@ -32,11 +32,9 @@ def test_queue_approve_flow_builds(operator):
     pid = store().propose("test", "GUI probni red", {"x": 1}, "unit:test")
     q = QueueTab()
     q.refresh()
-    # select our item and approve it through the tab
-    idx = q.cb_item.findData(pid)
-    assert idx >= 0
-    q.cb_item.setCurrentIndex(idx)
-    q._decide(True)
+    # select our item in the tree (33d) and approve it through the tab
+    assert q.select(pid)
+    q._decide(True, ask=False)
     assert store().get(pid)["status"] == "approved"
     q.close()
     q.deleteLater()

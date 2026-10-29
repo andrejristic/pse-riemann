@@ -6,6 +6,8 @@ overview can never say anything the library does not contain.
 """
 from __future__ import annotations
 
+from ..i18n import tr
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout,
                                QWidget)
@@ -61,41 +63,65 @@ class OverviewTab(QWidget):
         v.setContentsMargins(14, 12, 14, 12)
         v.setSpacing(12)
         top = QHBoxLayout()
-        top.addWidget(QLabel("<b>Pregled</b> — sve brojke su upiti nad SHARED_LIB-om"))
+        top.addWidget(QLabel(tr("<b>Pregled</b> — sve brojke su upiti nad SHARED_LIB-om")))
         top.addStretch(1)
-        top.addWidget(button("Osvježi", self.refresh))
+        top.addWidget(button(tr("Osvježi"), self.refresh))
         v.addLayout(top)
 
         grid = QGridLayout()
         grid.setSpacing(11)
         self.vals: dict[str, QLabel] = {}
-        labels = [("front", "front misije (najniže B)"), ("čeka", "čeka tvoju odluku"),
-                  ("metode", "potvrđene metode"), ("pečati", "zapečaćeni izvještaji"),
-                  ("kartice", "kartice"), ("provjerene", "provjerene (CITED/COMPUTED)"),
-                  ("lab", "lab run-ova"), ("događaji", "događaja u dnevniku")]
+        labels = [("front", tr("front misije (najniže B)")), ("čeka", tr("čeka tvoju odluku")),
+                  ("metode", tr("potvrđene metode")), ("pečati", tr("zapečaćeni izvještaji")),
+                  ("kartice", tr("kartice")), ("provjerene", tr("provjerene (CITED/COMPUTED)")),
+                  ("lab", tr("lab run-ova")), ("događaji", tr("događaja u dnevniku"))]
+        self._tiles = []
         for i, (key, lab) in enumerate(labels):
             f, val = _metric(lab)
             self.vals[key] = val
+            self._tiles.append(f)
             grid.addWidget(f, i // 4, i % 4)
+        self._grid, self._cols = grid, 4
         v.addLayout(grid)
 
         row = QHBoxLayout()
         row.setSpacing(12)
-        f1, self.md_queue = _card("Čeka tvoju odluku")
-        f2, self.md_events = _card("Zadnji događaji")
+        f1, self.md_queue = _card(tr("Čeka tvoju odluku"))
+        f2, self.md_events = _card(tr("Zadnji događaji"))
         row.addWidget(f1, 1)
         row.addWidget(f2, 1)
         v.addLayout(row, 1)
-        b = button("Otvori red odluka", self.open_queue.emit, kind="primary")
+        from .widgets import add_expand                 # ⤢ on both cards
+        self._cards = (f1, f2)
+        for f in (f1, f2):
+            add_expand(f, lambda: [*self._cards, *self._tiles])
+        b = button(tr("Otvori red odluka"), self.open_queue.emit, kind="primary")
         v.addWidget(b, 0, Qt.AlignRight)
         self.refresh()
+
+    def resizeEvent(self, ev):
+        """Screen fitting: 4 tiles per row when there is room, else 2 (or 1)."""
+        super().resizeEvent(ev)
+        tile = max(t.minimumSizeHint().width() for t in self._tiles) + self._grid.spacing()
+        cols = 4 if self.width() >= 4 * tile + 28 else 2 if self.width() >= 2 * tile + 28 else 1
+        if cols != self._cols:
+            self._cols = cols
+            for t in self._tiles:
+                self._grid.removeWidget(t)
+            for i, t in enumerate(self._tiles):
+                self._grid.addWidget(t, i // cols, i % cols)
+
+    def minimumSizeHint(self):
+        from PySide6.QtCore import QSize
+        tile = max(t.minimumSizeHint().width() for t in self._tiles) + self._grid.spacing()
+        return QSize(tile + 28, super().minimumSizeHint().height())
 
     def refresh(self) -> None:
         from ..shared_lib import views as V
         try:
             conn = V.connect()
         except Exception as e:                              # noqa: BLE001
-            self.md_events.set_markdown(f"_činjenični sloj nedostupan: {e}_")
+            self.md_events.set_markdown(tr("_činjenični sloj nedostupan: {0}_").format(e))
             return
         try:
             for key, sql in Q.items():
@@ -114,7 +140,7 @@ class OverviewTab(QWidget):
             except V.QueryRefused:
                 q = []
             self.md_queue.set_markdown(
-                "\n".join(f"- **{k}** — {t}" for k, t in q) or "_ništa ne čeka_")
+                "\n".join(f"- **{k}** — {t}" for k, t in q) or tr("_ništa ne čeka_"))
             ev = V.query("SELECT time, kind, actor, verdict, subject FROM events "
                          "ORDER BY id DESC LIMIT 12", conn=conn)["rows"]
             self.md_events.set_markdown("\n".join(

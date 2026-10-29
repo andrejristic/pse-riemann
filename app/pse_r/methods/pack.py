@@ -59,6 +59,9 @@ def default_packs_dir() -> Optional[Path]:
     return None
 
 
+RESULT_KINDS = {"poluravan", "gustina", "udio-na-pravoj"}
+
+
 @dataclass
 class MethodPack:
     name: str
@@ -72,6 +75,11 @@ class MethodPack:
     note: str = ""
     tags: list = field(default_factory=list)
     system: Optional[dict] = None     # the exponent system AS DATA (methods.system)
+    # round 3, item 27: what KIND of result, for which family, under which assumptions
+    result_kind: str = "poluravan"    # poluravan | gustina | udio-na-pravoj
+    degree: int = 1                   # degree d of the L-function family (1 = Dirichlet/Hecke)
+    assumptions: list = field(default_factory=list)   # e.g. ["funkcionalnost do GL(3)", "RH"]
+    conditional: bool = False         # must be True when assumptions are not empty
 
     # -- parsing -------------------------------------------------------------- #
     @classmethod
@@ -102,6 +110,15 @@ class MethodPack:
             raise PackError(f"claimed_B nije broj: {d['claimed_B']!r}")
         if not (0.0 < claimed < 1.0):
             raise PackError(f"claimed_B van (0,1): {claimed}")
+        kind = str(d.get("result_kind", "poluravan"))
+        if kind not in RESULT_KINDS:
+            raise PackError(f"nepoznata vrsta rezultata '{kind}' (dozvoljeno: {sorted(RESULT_KINDS)})")
+        assumptions = [str(a) for a in d.get("assumptions", [])]
+        if assumptions and not d.get("conditional", False):
+            # the gate rule (item 27): an unconditional claim may not rest on an
+            # unproven assumption — say "conditional": true, as "pod RH" elsewhere
+            raise PackError("paket se oslanja na pretpostavke " + str(assumptions) +
+                            " ali nije označen kao uslovan (\"conditional\": true)")
         return cls(
             name=str(d["name"]).strip(),
             family=str(d.get("family", "")),
@@ -114,6 +131,10 @@ class MethodPack:
             note=str(d.get("note", "")),
             tags=list(d.get("tags", [])),
             system=d.get("system"),
+            result_kind=kind,
+            degree=int(d.get("degree", 1)),
+            assumptions=assumptions,
+            conditional=bool(d.get("conditional", False)),
         )
 
     @classmethod
@@ -132,7 +153,9 @@ class MethodPack:
                 "source": self.source,
                 "claimed_B": self.claimed_B, "dlo": self.dlo, "ell": self.ell,
                 "tol": self.tol, "exact_poly": self.exact_poly, "note": self.note,
-                "tags": self.tags, **({"system": self.system} if self.system else {})}
+                "tags": self.tags, **({"system": self.system} if self.system else {}),
+                "result_kind": self.result_kind, "degree": self.degree,
+                "assumptions": self.assumptions, "conditional": self.conditional}
 
     def spec(self) -> MethodSpec:
         return MethodSpec(self.name, self.family, self.source, self.claimed_B,

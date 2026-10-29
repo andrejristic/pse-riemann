@@ -55,3 +55,5 @@ secrets.json
 .worklock
 # --- local scratch (Claude temp files; never on git) ---
 scratch/
+app/pse_r/_edition.py
+*.exe

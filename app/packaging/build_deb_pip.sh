@@ -38,6 +38,15 @@ VARIANT="full"
 case "${1:-}" in
     full|lean|research) VARIANT="$1"; shift ;;
 esac
+# Edition (Faza 6d, agreement rule 38) — only the full package, in two editions:
+#   andrej  package "pse-riemann-andrej": the three missions + QRH content
+#           (method packs, research reports). Local only, never on GitHub.
+#   public  package "pse-riemann": empty missions, empty vault, all machinery.
+# The two conflict: one replaces the other.
+EDITION="${EDITION:-public}"
+case "${1:-}" in
+    andrej|public) EDITION="$1"; shift ;;
+esac
 
 APP="pse-riemann"
 VERSION="$(python3 - <<'PY'
@@ -52,6 +61,7 @@ BUILD="$(pwd)/build"
 # builds sit side by side without overwriting.
 SUFFIX=""
 [ "$VARIANT" != "full" ] && SUFFIX="-$VARIANT"
+[ "$EDITION" = "andrej" ] && SUFFIX="${SUFFIX}-andrej"
 STAGE="$BUILD/${APP}${SUFFIX}_${VERSION}_${ARCH}"
 OUT="$BUILD/${APP}${SUFFIX}_${VERSION}_${ARCH}.deb"
 
@@ -63,6 +73,7 @@ PYVER="$($PIP_PY -c 'import sys;print("%d.%d"%sys.version_info[:2])')"
 
 PKG="$APP"
 [ "$VARIANT" = "lean" ] && PKG="$APP-lean"
+[ "$EDITION" = "andrej" ] && PKG="$APP-andrej"
 
 # ------------------------------------------------ C: research add-on ----
 if [ "$VARIANT" = "research" ]; then
@@ -121,17 +132,35 @@ cp -r pse_r main.py run.sh setup.sh requirements.txt "$STAGE/opt/$APP/app/"
 # marker: tells config.py this is an installed package, so the vault goes to
 # ~/.local/share instead of next to read-only code under /opt
 touch "$STAGE/opt/$APP/app/.packaged"   # must sit beside main.py: config looks at APP_ROOT
+echo "$EDITION" > "$STAGE/opt/$APP/app/.edition"   # rule 38: andrej | public
 find "$STAGE/opt/$APP/app" -name '__pycache__' -type d -prune -exec rm -rf {} +
 find "$STAGE/opt/$APP/app" -name '*.pyc' -delete
 cp -r packaging "$STAGE/opt/$APP/app/" 2>/dev/null || true
 # bundle the extracted method packs so the packaged app can run the acceptance
 # reproduction (plan F10: test prihvatanja na pravoj aplikaciji)
-if [ -d ../research/qrh-2026-10/method-packs ]; then
+if [ "$EDITION" = "andrej" ] && [ -d ../research/qrh-2026-10/method-packs ]; then
     cp -r ../research/qrh-2026-10/method-packs "$STAGE/opt/$APP/app/method-packs"
 fi
-for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md; do
+# rule 39: the complete guide (SR + EN) with its pictures; the personal edition adds "Tvoje misije"
+[ -d ../vodic-slike ] && cp -r ../vodic-slike "$STAGE/usr/share/doc/$APP/"
+if [ "$EDITION" = "andrej" ]; then
+    for f in ../VODIC-SR-MISIJE.md ../GUIDE-EN-MISSIONS.md; do [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"; done
+fi
+for f in ../VODIC-SR.docx ../GUIDE-EN.docx; do [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"; done
+for f in ../VODIC-SR.md ../GUIDE-EN.md ../README.md ../SUDOERS-SR.md ../SUDOERS-EN.md \
+         ../docs/VODIC-GRAFOVI-SR.md ../docs/VODIC-GRAFOVI-EN.md ../docs/BENCHMARK.md; do
     [ -f "$f" ] && cp "$f" "$STAGE/usr/share/doc/$APP/"
 done
+# round 3: the benchmark corpus (pse-riemann --bench), the research reports the app
+# and the working paper cite, and the ONE root helper of the guardian (root:root 0755
+# under /usr/lib — fakeroot makes the owner root; containment checks owner and mode)
+cp -r bench "$STAGE/opt/$APP/app/"
+[ "$EDITION" = "andrej" ] && for r in qrh-2026-10 langlands-2026-10 misija3-2026-10; do
+    [ -f "../research/$r/REPORT.md" ] && { mkdir -p "$STAGE/usr/share/doc/$APP/research/$r";
+        cp "../research/$r/REPORT.md" "$STAGE/usr/share/doc/$APP/research/$r/"; }
+done
+mkdir -p "$STAGE/usr/lib/$APP"
+install -m 0755 packaging/pse-guard-helper "$STAGE/usr/lib/$APP/pse-guard-helper"
 
 # ------------------------------------------------------------- deps ----
 # Base (A i B): GUI + numerika + sympy (metode: egzaktni polinomi) + llama-cpp
@@ -208,7 +237,7 @@ Section: science
 Priority: optional
 Architecture: $ARCH
 Depends: python3 (>= 3.10), libgl1, libegl1, libxkbcommon0, libdbus-1-3, libfontconfig1, libxcb-cursor0
-$( [ "$VARIANT" = "lean" ] && printf 'Provides: pse-riemann (= %s)\nConflicts: pse-riemann\nReplaces: pse-riemann' "$VERSION" || printf 'Conflicts: pse-riemann-lean\nReplaces: pse-riemann-lean' )
+$( if [ "$EDITION" = "andrej" ]; then printf 'Provides: pse-riemann (= %s)\nConflicts: pse-riemann, pse-riemann-lean\nReplaces: pse-riemann, pse-riemann-lean' "$VERSION"; elif [ "$VARIANT" = "lean" ]; then printf 'Provides: pse-riemann (= %s)\nConflicts: pse-riemann\nReplaces: pse-riemann' "$VERSION"; else printf 'Conflicts: pse-riemann-lean, pse-riemann-andrej\nReplaces: pse-riemann-lean, pse-riemann-andrej'; fi )
 Recommends: ufw
 Installed-Size: $INSTALLED_KB
 Maintainer: Andrej Ristic <andrej.s.ristic@gmail.com>
@@ -226,7 +255,9 @@ Description: Asistent za izucavanje Rimanove zeta funkcije
     eksponenata kao podatak + test reprodukcije), cuvari izvjestaja
   * Glavni AI + nezavisni skeptik (cloud ili lokalni GGUF, sa limiterima)
  .
- Varijanta: $VARIANT (full=sympy+scipy+llama-cpp, lean=bez scipy).
+ Varijanta: $VARIANT (full=sympy+scipy+llama-cpp) · izdanje: $EDITION
+ (andrej = tri misije i QRH sadrzaj; public = prazne misije i prazan vault).
+ Svaki agent je PSE jedinica (Doktor, Laboratorija, tezine glasova).
  Vault se cuva u ~/.local/share/pse-riemann/vault.
 CTRL
 
@@ -247,7 +278,9 @@ if [ "$1" = "configure" ]; then
     echo "PRIJE PUTA: pokreni jednom sa mreze kojoj vjerujes i uradi"
     echo "  Corpus -> Skupi  i  Guardian -> Test mreze."
     echo "  TLS pinovi se uce pri prvom kontaktu; ako je prvi kontakt"
-    echo "  na hotelskom WiFi-ju, zapamtices presretaca."
+    echo "  na hotelskom WiFi-ju, zapamtices presretaca. Aplikacija ti to"
+    echo "  kaze i pri prvom pokretanju; ako nesto podje naopako:"
+    echo "  Podesavanje -> Ponovo snimi TLS pinove (samo na mrezi kojoj vjerujes)."
     echo ""
 fi
 exit 0

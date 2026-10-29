@@ -28,7 +28,13 @@ from ..guardian import secrets as SEC
 from . import backend as B
 from . import gguf as G
 
-CLOUD = ("claude", "gemini", "mistral", "groq")
+def _cloud() -> tuple:
+    from . import providers as P
+    return tuple(P.all_presets())
+
+
+CLOUD = ("claude", "openai", "gemini", "mistral", "groq", "deepseek", "xai",
+         "openrouter", "together", "fireworks")         # presets; + declared custom:…
 MAIN_KEY = "ai_main"
 SKEPTIC_KEY = "ai_skeptic"
 
@@ -50,25 +56,57 @@ def _vendor(model_id: str) -> str:
 
 
 def cloud_available() -> list[str]:
+    from . import providers as P
     s = SEC.store()
-    return [p for p in CLOUD if p in B.BACKENDS and s.has(B.BACKENDS[p].key_name)]
+    return [p for p, pr in P.all_presets().items() if s.has(pr.key_name)]
+
+
+GGUF_PATHS_KEY = "gguf_paths"       # GGUF files OUTSIDE models/, used in place (no copy)
+
+
+def gguf_paths() -> list[str]:
+    return [p for p in (S.get(GGUF_PATHS_KEY) or []) if isinstance(p, str)]
+
+
+def add_gguf_path(path: str) -> str:
+    """Register a GGUF anywhere on disk (by path; admitted by sha256 like any
+    other — undeclared + unpublished hash ⇒ refused until the operator declares
+    it). Returns its model id."""
+    from pathlib import Path
+    p = Path(path).expanduser().resolve()
+    if p.suffix.lower() != ".gguf" or not p.is_file():
+        raise ValueError(f"nije .gguf fajl: {p}")
+    cur = gguf_paths()
+    if str(p) not in cur:
+        S.set_(GGUF_PATHS_KEY, cur + [str(p)])
+    return f"gguf:{p}"
 
 
 def gguf_available() -> list[str]:
     if not G.have_llama():
         return []
-    return [f"gguf:{m['name']}" for m in G.list_models()]
+    from pathlib import Path
+    ids = [f"gguf:{m['name']}" for m in G.list_models()]
+    ids += [f"gguf:{p}" for p in gguf_paths() if Path(p).is_file()]
+    return ids
 
 
 def candidates() -> list[dict]:
     """Every model the operator could pick right now, with guidance."""
     out = []
+    from . import providers as P
     for p in cloud_available():
-        out.append({"id": p, "kind": "cloud", "label": p,
-                    "guide": GUIDANCE.get(p, {})})
+        pr = P.get(p)
+        guide = {"+": pr.better, "-": pr.worse} if pr and pr.better else GUIDANCE.get(p, {})
+        out.append({"id": p, "kind": "cloud", "label": pr.label if pr else p,
+                    "guide": guide, "billing": P.billing_advice(p)["text"]})
+    from .. import machine as M
     for gid in gguf_available():
-        out.append({"id": gid, "kind": "gguf", "label": gid,
-                    "guide": GUIDANCE["gguf"]})
+        g = dict(GUIDANCE["gguf"])
+        w = M.gguf_warning(gid)
+        if w:
+            g["-"] = g["-"] + " · " + w
+        out.append({"id": gid, "kind": "gguf", "label": gid, "guide": g, "warning": w})
     return out
 
 
@@ -78,7 +116,7 @@ def _available_ids() -> list[str]:
 
 def default_main() -> Optional[str]:
     av = _available_ids()
-    for pref in ("claude", "gemini", "mistral", "groq"):
+    for pref in ("claude", "openai", "gemini", "deepseek", "xai", "mistral", "groq"):
         if pref in av:
             return pref
     return av[0] if av else None
@@ -95,10 +133,18 @@ def default_skeptic(main: Optional[str]) -> Optional[str]:
 
 
 def get_main() -> Optional[str]:
-    return S.get(MAIN_KEY) or default_main()
+    m = S.get(MAIN_KEY)
+    if m == NO_AI:
+        return None
+    if m and not m.startswith("gguf:"):
+        from ..guardian import killswitch as KS
+        if KS.closed():
+            return None                 # a cloud main is unreachable while the switch is off
+    return m or default_main()
 
 
 NO_SKEPTIC = "none"           # operator chose "no skeptic" (e.g. offline with one GGUF)
+NO_AI = "none"                # main: "bez AI" (first-run choice, or the kill switch)
 
 
 def get_skeptic() -> Optional[str]:
@@ -136,17 +182,12 @@ def backend_for(model_id: str) -> B.Backend:
     """A ready Backend for a model id. Does not load a GGUF until it is called."""
     if model_id.startswith("gguf:"):
         name = model_id.split(":", 1)[1]
+        from pathlib import Path
+        if Path(name).is_absolute():
+            return G.GGUFBackend(name)                  # used in place, never copied
         from .. import config
         return G.GGUFBackend(str(config.DIR_MODELS / name))
     return B.make(model_id)
-
-
-def role_backend(role: str) -> B.Backend:
-    """The skeptic role goes to the skeptic model; everything else to the main."""
-    mid = get_skeptic() if role == B.SKEPTIC else get_main()
-    if not mid:
-        raise B_NoModel("nijedan model nije dostupan — podesi ključ ili stavi GGUF")
-    return backend_for(mid)
 
 
 class B_NoModel(Exception):
@@ -156,9 +197,16 @@ class B_NoModel(Exception):
 # --------------------------------------------------------------------------- #
 # No internet (plan §1): the app ASKS which local GGUF to use — it never decides.
 # --------------------------------------------------------------------------- #
-_HOSTS = {"claude": "api.anthropic.com", "gemini": "generativelanguage.googleapis.com",
-          "mistral": "api.mistral.ai", "groq": "api.groq.com"}
+class _Hosts:
+    def get(self, m, default=None):
+        from . import providers as P
+        pr = P.get(m)
+        return pr.host if pr else default
+
+
+_HOSTS = _Hosts()
 PREV_MAIN_KEY = "ai_main_before_offline"
+PREV_SKEPTIC_KEY = "ai_skeptic_before_offline"
 
 
 def main_reachable(timeout: float = 5.0) -> bool:
@@ -172,7 +220,7 @@ def main_reachable(timeout: float = 5.0) -> bool:
         return True
     from ..guardian.egress import EgressBlocked, egress
     try:
-        egress().request("GET", f"https://{host}/", timeout=timeout)
+        egress().probe(host, timeout=timeout)       # TLS + pin only, never an HTTP page
         return True
     except EgressBlocked:
         return False

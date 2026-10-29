@@ -34,23 +34,30 @@ def test_unsealed_file_dropped_in_reports_gets_sealed(operator):
     assert "ubacen.md" in out["sealed_now"]
 
 
-def test_infected_chat_output_is_contained_until_operator_releases(operator):
+def test_harmful_chat_output_freezes_until_operator_decides(operator):
+    """Faza 6d: the chat unit's harmful output → Doctor's measure → operator."""
+    from pse_r.pse import path as PATH
+    from pse_r.shared_lib import pse_registry as PR
+    PR.reset_for_tests()
     RT.install_hooks()
-    found = RT.check_output("chat-test", "Dokazao sam Riemannovu hipotezu.")
-    assert found and RT.is_contained("chat-test")
-    rel = [i for i in store().open_items(RT.RELEASE_KIND)
-           if i["payload"]["agent"] == "chat-test"]
-    assert rel
-    store().decide(rel[0]["id"], True, "pregledano")
-    assert not RT.is_contained("chat-test")
+    text = "Dokazao sam Riemannovu hipotezu."
+    r = PATH.words("chat", text, harms=PATH.screen(text))
+    assert r.finding and r.finding["bad"]
+    assert not PATH.may_irreversible("chat")
+    pend = [i for i in store().open_items(PR.QUEUE_MEASURE) if i["payload"]["agent"] == "chat"]
+    assert pend
+    store().decide(pend[-1]["id"], False, "pregledano")
+    assert PATH.may_irreversible("chat")
 
 
-def test_clean_output_is_not_infected(operator):
-    assert RT.check_output("chat-clean", "Granica iz rada je izvedena u lab-u [run-1].") == []
-    assert not RT.is_contained("chat-clean")
+def test_clean_output_is_not_a_harm(operator):
+    from pse_r.pse import path as PATH
+    assert PATH.screen("Granica iz rada je izvedena u lab-u [run-1].") == []
 
 
 def test_arxiv_round_queues_new_papers_once(operator):
+    from pse_r.shared_lib import missions as MIS
+    MIS.seed_first()                     # the QRH feed belongs to the first mission (rule 38)
     class It:
         def __init__(self, ref, title):
             self.source_ref, self.title, self.abstract = ref, title, ""
@@ -95,3 +102,16 @@ def test_extraction_prompt_carries_paper_and_rules():
         return "```json\n" + json.dumps(raw) + "\n```"
     EXT.extract_pack("arxiv:2610.12234", "Liu", paper_text="PAPER-BODY-MARKER", ask=ask)
     assert "PAPER-BODY-MARKER" in seen["p"] and "claimed_B" in seen["p"]
+
+
+def test_public_edition_has_no_qrh_feed(monkeypatch):
+    from pse_r.shared_lib import missions as MIS
+    monkeypatch.setattr(MIS, "get", lambda mid: None)
+    r = RT.arxiv_round(force=True, fetch=lambda: [])
+    assert r.get("skipped") and r.get("no_mission")
+
+
+def test_new_mission_by_operator(operator):
+    from pse_r.shared_lib import missions as MIS
+    mid = MIS.new_mission("Moja misija ć", "Šta tačno?")
+    assert mid.startswith("misija-moja-misija") and MIS.get(mid)["state"] == "otvorena"
