@@ -18,7 +18,7 @@ from pathlib import Path
 
 APP_NAME = "PSE Riemann"
 APP_SLUG = "pse-riemann"
-VERSION = "0.3.0~rc7"     # Faza 6d: every agent is a PSE unit; final: 0.3.0
+VERSION = "0.3.0"     # Faza 6d: every agent is a PSE unit
 
 # --------------------------------------------------------------------------- #
 # Paths
