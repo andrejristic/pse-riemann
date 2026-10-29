@@ -22,7 +22,7 @@ Several "agents" work inside (chat, skeptic, paper reader, guardians…). In ver
 **Installing** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc6_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc7_amd64.deb
 ```
 
 The package carries all its own Python libraries (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) and does not touch the system Python. Removing: `sudo apt remove pse-riemann` — your data stays.

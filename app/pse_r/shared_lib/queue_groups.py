@@ -15,6 +15,7 @@ from .store import store
 
 KIND_LABEL = {
     "doctor-measure": "Doktorove mjere",
+    "doctor-review": "Doktor: ponovni pregled mjera",
     "pse-undo": "Poništavanje fisije/fuzije",
     "vote-weights": "Težine glasova",
     "arxiv-paper": "Novi radovi (arXiv)",
@@ -72,7 +73,7 @@ def subgroup(item: dict) -> str:
     mid = p.get("mission") or p.get("mission_id")
     if mid:
         return _mission_title(mid)
-    if kind == "doctor-measure":
+    if kind in ("doctor-measure", "doctor-review"):
         return p.get("agent") or p.get("unit", "")
     return ""
 
@@ -80,6 +81,10 @@ def subgroup(item: dict) -> str:
 def title_of(item: dict) -> str:
     """The item's title in the interface language. A Doctor's measure is composed
     from its payload (it is stored before anyone knows the reader's language)."""
+    if item.get("kind") == "doctor-review":
+        from ..i18n import tr
+        p = item.get("payload") or {}
+        return tr("Doktor, ponovni pregled: ukinuti mjeru za {0}?").format(p.get("unit", ""))
     if item.get("kind") != "doctor-measure":
         return item.get("title", "")
     from ..i18n import lang, tr
@@ -149,6 +154,14 @@ def detail_md(item: dict) -> str:
         L += [tr("**Jedinica:** {0} · **mjera:** {1}").format(p.get("unit"), p.get("measure")),
               tr("**Zašto:** {0}").format(_why(p)),
               tr("**Okidači:** {0}").format(", ".join(labels))]
+    if item["kind"] == "doctor-review":
+        old, new = p.get("old") or {}, p.get("new") or {}
+        L += [tr("**Jedinica:** {0}").format(p.get("unit")),
+              tr("**Bilo (stara pravila):** atraktor {0} — {1}").format(
+                  old.get("attractor", "?"), old.get("why", "")),
+              tr("**Sada (pravila {0}):** atraktor {1}, okreta {2}, poteza sa AI čitačem {3}").format(
+                  p.get("rules_version"), new.get("attractor"), new.get("turns"), new.get("moves")),
+              tr("**Odobri** = mjera se ukida i jedinica odmrzava · **Ne odobri** = mjera ostaje.")]
     res = p.get("result") or {}
     if res.get("computed_B") is not None:
         L.append(tr("**Reprodukcija:** naš B*={0:.12f}, rad {1}, razlika {2:.1e}").format(

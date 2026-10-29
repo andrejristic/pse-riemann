@@ -137,3 +137,18 @@ After every phase: report, tests, and the state "who is now built as a PSE unit"
 | 47 | Mission names in the chat | the SHARED_LIB voice gives mission names as links that open that mission's workspace; a question that asks for judgement ("next step", "what should I do") → the voice says the database cannot answer that and gives the link "Talk about the mission: X" |
 | 48 | Fixes (mandatory) | (a) Gemini 2.5: a thinking budget per role, output limit = answer + budget (thinking does not eat the answer); (b) a cut-off answer (all providers): one retry with a larger limit, and if it is cut again — the app says so; (c) invalid SQL in the voice: one retry with the error sent to the model, then a human sentence — never a raw error; (d) reader: a limit per model (200 + thinking budget); incomplete JSON → "reader cut off" visible in the Laboratory |
 | 49 | Release | 0.3.0~rc2, both packages (personal and public), guides updated, screenshots from the package |
+
+## 9. Agreement, fourth round (2026-10-29, after the rc2–rc6 live test): attractors and TLS pins
+
+Why: on 27.10 `voice#1` was frozen as "borderline" because of **one** θ jump (30 → 45) in a series of 7 moves, measured **without the AI reader** (the reader was cut off in rc1). The measure waited, and the "facts" chat silently worked without a model.
+
+| # | Topic | Agreement |
+|---|---|---|
+| 50 | Borderline needs a swing | borderline (a hard sign) only with **at least 2 turning points** of θ and **at least 10 moves** in the window; one jump is an acute change (soft sign, PAC), not borderline. A swing that dies out is not borderline |
+| 51 | Where a swing is heading | through the last 3–6 sweeps between turning points: log Aᵢ ≈ a + s·i. s > 0 and crossing the amplitude (10) within ≤ 30 moves → **heading to B**; s < 0 and falling below 1 within ≤ 30 moves **with an empty boundary** → **heading to S** (with a full boundary it is calming down = healthy); no swing: a drift of the mean crossing 33 / 27 within ≤ 30 moves → **heading to C / N** |
+| 52 | "Heading to" is a soft sign | shown in the Laboratory ("heading to B in ~n moves") and in the Doctor's log; **no** queue item and no measure. A measure comes only when the attractor is actually reached |
+| 53 | No AI reader, no attractor | moves whose words only the rule reader scored ("no reader", "reader cut off") keep their θ (and a jump = soft sign) but do **not enter the attractor series**; that move's attractor is "?". Moves without words (work) count as before |
+| 54 | Re-review of open measures | at start the Doctor re-reads the **open** measures whose hard signs came from an attractor (B / attractor) under the current rules (Doctor rules version). If the finding is no longer bad → an item "Doctor, re-review: lift the measure?"; **Approve** = the measure is withdrawn and the unit unfrozen, **Reject** = the measure stays. Once per measure; decided measures are not touched; nothing is lifted on its own |
+| 55 | Moving average of θ (λ = 0.2) | only for the level attractors C and N; the raw θ stays for jumps, swings, B and S. Introduced **after** the live test (an hour of work), not in rc7 |
+| 56 | TLS pins | learned on first contact (as before), but the app **says so explicitly** (a window at start until acknowledged, always in Help) and offers **Setup → Re-scan TLS pins…** (also in the Guardian tab): only on a network you trust; a server that is unreachable then keeps its old keys |
+| 57 | Release | test package 0.3.0~rc7 (personal); public package and guides at the end of the round |

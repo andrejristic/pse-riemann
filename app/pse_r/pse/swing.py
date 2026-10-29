@@ -30,15 +30,101 @@ def acf1(xs: Sequence[float]) -> float:
     return sum((xs[i] - m) * (xs[i + 1] - m) for i in range(n - 1)) / den
 
 
+def _plateaus_merged(xs: Sequence[float]) -> list[tuple[int, float]]:
+    """(index, value) with runs of equal values merged — a plateau between a rise
+    and a fall is still a turn (30, 45, 45, 30 turns once)."""
+    out: list[tuple[int, float]] = []
+    for i, x in enumerate(xs):
+        if not out or x != out[-1][1]:
+            out.append((i, x))
+    return out
+
+
+def turning_points(xs: Sequence[float]) -> list[tuple[int, float]]:
+    """Internal turning points (index, value): where θ changes direction."""
+    m = _plateaus_merged(xs)
+    return [m[i] for i in range(1, len(m) - 1)
+            if (m[i][1] - m[i - 1][1]) * (m[i + 1][1] - m[i][1]) < 0]
+
+
 def sweeps(xs: Sequence[float]) -> list[float]:
-    """Distances between consecutive turning points (local extrema)."""
-    turns = [xs[0]] if xs else []
-    for i in range(1, len(xs) - 1):
-        if (xs[i] - xs[i - 1]) * (xs[i + 1] - xs[i]) < 0:
-            turns.append(xs[i])
-    if len(xs) > 1:
-        turns.append(xs[-1])
-    return [abs(b - a) for a, b in zip(turns, turns[1:])]
+    """Distances between consecutive turning points (local extrema), the series'
+    ends included."""
+    if not xs:
+        return []
+    turns = [xs[0]] + [v for _, v in turning_points(xs)] + ([xs[-1]] if len(xs) > 1 else [])
+    return [abs(b - a) for a, b in zip(turns, turns[1:]) if b != a]
+
+
+def _fit(ys: Sequence[float]) -> tuple[float, float]:
+    """Least-squares line through (i, ys[i]): (intercept, slope)."""
+    n = len(ys)
+    mx = (n - 1) / 2
+    my = sum(ys) / n
+    den = sum((i - mx) ** 2 for i in range(n))
+    s = sum((i - mx) * (y - my) for i, y in enumerate(ys)) / den if den else 0.0
+    return my - s * mx, s
+
+
+ENV_SLOPE = 0.15                   # |s| below this: the swing neither grows nor dies
+
+
+def envelope(xs: Sequence[float]) -> Optional[tuple[list[float], float, float, float]]:
+    """(last 3–6 sweeps, slope s of log A_i, fitted last A, moves per sweep) or None
+    when there is no real swing (< 2 turning points or < 3 sweeps)."""
+    turns = turning_points(xs)
+    if len(turns) < K.MIN_TURNS:
+        return None
+    pts = [xs[0]] + [v for _, v in turns] + [xs[-1]]
+    amps = [abs(b - a) for a, b in zip(pts, pts[1:]) if b != a][-K.TEND_K[1]:]
+    if len(amps) < K.TEND_K[0]:
+        return None
+    a, s = _fit([math.log(max(x, 0.01)) for x in amps])
+    last = math.exp(a + s * (len(amps) - 1))
+    spacing = max(1.0, (turns[-1][0] - turns[0][0]) / max(1, len(turns) - 1))
+    return amps, s, last, spacing
+
+
+def tendency(series: Sequence[float], boundary_empty: bool = False) -> tuple[str, Optional[int], str]:
+    """Where the swing is heading [rules 50–52]: (attractor, moves until it is
+    reached or None, why). Only a measurement and a soft sign — the Doctor acts
+    when an attractor is actually reached.
+
+      * the envelope: through the last 3–6 sweeps A_i between turning points,
+        log A_i ≈ a + s·i; s > 0 the swing grows, s < 0 it dies out;
+      * growing past the amplitude within the horizon → B;
+      * dying out below 1 point within the horizon WITH an empty boundary → S
+        (with someone on the boundary a calming swing is just healthy);
+      * no swing to speak of: the drift of the mean — crossing 33 → C, 27 → N.
+    One jump is not a swing: without ≥ 2 turning points there is no B/S tendency."""
+    xs = list(series[-K.WIN_SWING:])
+    if len(xs) < K.MIN_SWING_MOVES:
+        return "", None, ""
+    env = envelope(xs)
+    if env is not None:
+        _amps, s, last, spacing = env
+        if s >= ENV_SLOPE:
+            need = 0.0 if last > K.AMPLITUDE else (math.log(K.AMPLITUDE) - math.log(last)) / s
+            moves = int(round(need * spacing))
+            if moves <= K.TEND_HORIZON:
+                return K.BORDERLINE, moves, f"zamah raste (nagib {s:.2f} po zamahu)"
+        elif s <= -ENV_SLOPE:
+            need = 0.0 if last < K.SCHIZOID_SIGMA else (math.log(K.SCHIZOID_SIGMA) - math.log(last)) / s
+            moves = int(round(need * spacing))
+            if moves <= K.TEND_HORIZON and boundary_empty:
+                return K.SCHIZOID, moves, f"zamah se gasi (nagib {s:.2f}) uz praznu granicu"
+        return "", None, ""
+    a, slope = _fit(xs)
+    now = a + slope * (len(xs) - 1)
+    if slope > 0.05:
+        moves = 0 if now >= K.CODEP_MEAN else int(math.ceil((K.CODEP_MEAN - now) / slope))
+        if moves <= K.TEND_HORIZON:
+            return K.CODEPENDENT, moves, f"prosjek klizi naviše ({slope:+.2f} po potezu)"
+    elif slope < -0.05:
+        moves = 0 if now <= K.NARC_MEAN else int(math.ceil((K.NARC_MEAN - now) / slope))
+        if moves <= K.TEND_HORIZON:
+            return K.NARCISSISTIC, moves, f"prosjek klizi naniže ({slope:+.2f} po potezu)"
+    return "", None, ""
 
 
 @dataclass
@@ -52,13 +138,18 @@ class SwingReport:
     sweep: float
     reasons: list[str] = field(default_factory=list)
     moves: int = 0
+    turns: int = 0
+    tend: str = ""                     # where it is heading (soft sign) [rules 50–52]
+    tend_in: Optional[int] = None      # … in about this many moves
+    tend_why: str = ""
 
     def as_dict(self) -> dict:
         return {"attractor": self.attractor, "delta": round(self.delta, 2),
                 "pac": self.pac, "sigma": round(self.sigma, 3),
                 "acf1": round(self.acf1, 3), "mean_long": round(self.mean_long, 2),
                 "sweep": round(self.sweep, 2), "reasons": self.reasons,
-                "moves": self.moves}
+                "moves": self.moves, "turns": self.turns, "tend": self.tend,
+                "tend_in": self.tend_in, "tend_why": self.tend_why}
 
 
 def assess(series: Sequence[float], boundary_empty: bool = False) -> SwingReport:
@@ -73,17 +164,24 @@ def assess(series: Sequence[float], boundary_empty: bool = False) -> SwingReport
     sw = sweeps(win)
     last_sweep = sw[-1] if sw else 0.0
     rep = SwingReport(K.HEALTHY, delta, abs(delta) >= K.PAC_POINTS, sigma, a1,
-                      mean_long, last_sweep, moves=n)
+                      mean_long, last_sweep, moves=n, turns=len(turning_points(win)))
+    rep.tend, rep.tend_in, rep.tend_why = tendency(series, boundary_empty)
     if n < 3:
         return rep
 
-    # borderline: swings too large
-    if sigma > K.BORDERLINE_SIGMA and a1 < K.BORDERLINE_ACF1:
+    # borderline: swings too large — but only a real back-and-forth counts
+    # [rule 50]: ≥ 2 turning points over ≥ 10 moves; one jump is a PAC (soft)
+    env = envelope(win) if len(win) >= K.MIN_SWING_MOVES else None
+    dying = env is not None and env[1] <= -ENV_SLOPE      # a swing that dies out is not B
+    if rep.turns < K.MIN_TURNS or len(win) < K.MIN_SWING_MOVES or dying:
+        pass
+    elif sigma > K.BORDERLINE_SIGMA and a1 < K.BORDERLINE_ACF1:
         rep.reasons.append(f"σ={sigma:.2f} > {K.BORDERLINE_SIGMA} i ACF(1)={a1:.2f} < {K.BORDERLINE_ACF1}")
-    if last_sweep > K.AMPLITUDE:
-        rep.reasons.append(f"zamah {last_sweep:.1f} > amplitude {K.AMPLITUDE}")
-    if len(sw) >= 4 and sw[-1] > sw[-2] > sw[-3] > sw[-4]:
-        rep.reasons.append("zamah raste 3 puta zaredom")
+    if rep.turns >= K.MIN_TURNS and len(win) >= K.MIN_SWING_MOVES and not dying:
+        if last_sweep > K.AMPLITUDE:
+            rep.reasons.append(f"zamah {last_sweep:.1f} > amplitude {K.AMPLITUDE}")
+        if len(sw) >= 4 and sw[-1] > sw[-2] > sw[-3] > sw[-4]:
+            rep.reasons.append("zamah raste 3 puta zaredom")
     if rep.reasons:
         rep.attractor = K.BORDERLINE
         return rep

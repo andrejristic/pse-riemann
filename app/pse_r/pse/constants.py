@@ -35,6 +35,12 @@ BORDERLINE_ACF1 = 0.5
 CODEP_MEAN, CODEP_SUSTAINED = 33.0, 35.0
 NARC_MEAN, NARC_SUSTAINED = 27.0, 25.0
 LEVEL_SIGMA = 2.0
+# where a swing is heading [rules 50–52, live test rc5]
+MIN_TURNS = 2               # borderline needs a real back-and-forth: ≥ 2 turning points
+MIN_SWING_MOVES = 10        # … and at least this many moves in the window
+TEND_HORIZON = 30           # "teži ka X" when X is reached within this many moves
+TEND_K = (3, 6)             # the last 3–6 sweeps make the envelope
+DOCTOR_RULES_VERSION = 2    # bump when the Doctor's reading rules change (re-review)
 
 # absorption §2
 ABSORB_RESIDENCY = 1000

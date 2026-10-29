@@ -30,7 +30,9 @@ from .widgets import MarkdownView, button, flow_row, hline
 
 ACTOR = "operater, iz laboratorije"
 DOC_STATUS = {"ceka": "mjera čeka", "nista": "ništa loše", "odobreno": "odobreno",
-              "odbijeno": "odbijeno", "zamrznuta-dok-mjera-ceka": "zamrznuta dok mjera čeka"}
+              "odbijeno": "odbijeno", "zamrznuta-dok-mjera-ceka": "zamrznuta dok mjera čeka",
+              "tendencija": "teži ka (meki znak)",
+              "ukinuto-ponovni-pregled": "ukinuto (ponovni pregled)"}
 _BEEPED = False                       # once per session (process)
 
 
@@ -194,8 +196,7 @@ class LabTab(QWidget):
             self.view.set_markdown("")
             return
         u = sel[0]
-        from ..pse import swing as SW
-        rep = SW.assess(u.theta.series, not u.boundary.entities)
+        rep = _lib().assess(u)              # rules 50–53: only AI-read moves
         ser = u.theta.series[-30:]
         spark = " ".join(f"{x:.0f}" for x in ser)
         md = [f"### {u.unit_id}",
@@ -203,6 +204,10 @@ class LabTab(QWidget):
               tr("**θ:** {0:.2f} · σ(RMSSD) {1:.2f} · obrazac **{2}**").format(
                   u.theta.current, rep.sigma, rep.attractor),
               tr("**θ zadnjih 30:** {0}").format(spark or "—"),
+              tr("**Atraktor iz poteza sa AI čitačem:** {0} od {1} poteza · okreta u prozoru: {2}").format(
+                  len(u.theta.attr_series), len(u.theta.series), rep.turns),
+              (tr("**Teži ka:** {0} za ~{1} poteza — {2}").format(rep.tend, rep.tend_in, tr(rep.tend_why))
+               if rep.tend else tr("**Teži ka:** — (nema tendencije)")),
               tr("**Granica:** {0}").format(", ".join(f"{k} ({e.alpha:.2f})"
                                                       for k, e in u.boundary.entities.items()) or "—"),
               tr("**Organeli:** {0}").format(", ".join(f"{k} ({o.weight:.2f}{', privremen' if o.provisional else ''})"

@@ -82,3 +82,12 @@ State: rc1 built and pushed (`0cb32d4`); the first live test found two big probl
 Total about 11–15.5 h.
 
 **Status (2026-10-27, night):** R9–R14 done — `7bc0a4d` (R9), `c1ab293` (R10), `0b9960d` (R11–R13), then the R14 release. pytest 369/369, selftest from both 0.3.0~rc2 packages: ALL PASS. Waiting for Andrej: push, the rc2 live test, "merge into main" (`docs/ZA-ANDREJA.md`).
+
+## Fourth round (2026-10-29, agreement rules 50–57): plan for 0.3.0~rc7
+
+| # | Step | What | Check | Status |
+|---|---|---|---|---|
+| R15 | Attractors (50–53) | `pse/swing.py`: turning points (plateaus merged), sweep envelope, `tendency()`, borderline needs ≥ 2 turns and ≥ 10 moves; `pse_registry`: attractor series only from AI-read moves, "?" for rules-only moves, "heading to" in the Doctor's log; the Laboratory shows the basis and the tendency | tests (11), copy of the real vault: voice#1 → healthy | ✅ |
+| R16 | Re-review (54) | `review_open_measures()` at start, item `doctor-review`, the operator decides | tests; on the vault copy an item for voice#1 | ✅ |
+| R17 | TLS pins (56) | the notice, `tls.rescan()`, menu + Guardian tab | tests (4), screenshot | ✅ (rc6) |
+| R18 | Test package rc7 | personal package, selftest from the package | ALL PASS | ✅ |

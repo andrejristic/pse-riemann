@@ -38,6 +38,7 @@ PSE_EV = J.UNIT
 QUEUE_MEASURE = "doctor-measure"
 QUEUE_UNDO = "pse-undo"
 QUEUE_WEIGHTS = "vote-weights"
+QUEUE_REVIEW = "doctor-review"           # rule 54: an open measure re-read by new rules
 
 DDL = [
     """CREATE TABLE IF NOT EXISTS pse_units (
@@ -118,6 +119,7 @@ class PseLib:
         self.units: dict[str, U.PSEUnit] = {}
         self.gap_runs: dict[str, int] = {}
         self.harm_runs: dict[str, int] = {}
+        self.tends: dict[str, str] = {}          # last tendency per unit (rule 52)
         self._tls = threading.local()
         self.listeners: list[Callable[[str, dict], None]] = []
         _decl()
@@ -126,6 +128,7 @@ class PseLib:
                             (1, json.dumps(PROFILE), time.time(), "SHARED_LIB"))
         self.st.on_decision(QUEUE_MEASURE, self._on_measure)
         self.st.on_decision(QUEUE_UNDO, self._on_undo)
+        self.st.on_decision(QUEUE_REVIEW, self._on_review)
         from ..pse import weights as WT
         WT._ensure(self.st)
         self.st.on_decision(QUEUE_WEIGHTS, _weights_decided)
@@ -141,6 +144,12 @@ class PseLib:
                 fn(kind, data)
             except Exception:               # noqa: BLE001
                 pass
+
+    def assess(self, u: U.PSEUnit) -> "SW.SwingReport":
+        """The unit's attractor and tendency, read only from the moves an AI reader
+        read (or that had no words) [rules 50–53]."""
+        return SW.assess(u.theta.attr_series or [K.THETA_NOM],
+                         boundary_empty=not u.boundary.entities)
 
     def profile_version(self) -> int:
         r = self.st.rows("SELECT MAX(version) v FROM pse_profiles")
@@ -248,10 +257,20 @@ class PseLib:
         m = json.loads(r["mission"])
         core = U.Core(U._SHARED_LIB, U.Mission(m["state"], m["action"], m["outcome"]),
                       r["n_max"], r["domain"], r["generation"], r["steps_remaining"])
-        ser = [x["theta"] for x in reversed(self.st.rows(
-            "SELECT theta FROM pse_moves WHERE unit_id=? ORDER BY id DESC LIMIT ?",
-            (r["unit_id"], K.WIN_LONG)))]
+        rows = list(reversed(self.st.rows(
+            "SELECT theta, reading FROM pse_moves WHERE unit_id=? ORDER BY id DESC LIMIT ?",
+            (r["unit_id"], K.WIN_LONG))))
+        ser = [x["theta"] for x in rows]
         th = U.Theta(ser or None, r["f"] or 0.5)
+        attr = []
+        for x in rows:                                   # rule 53 on the stored moves
+            try:
+                rd = json.loads(x["reading"] or "{}")
+            except ValueError:
+                rd = {}
+            if not (rd.get("theta_rules") is not None and rd.get("theta_model") is None):
+                attr.append(x["theta"])
+        th.attr_series = attr or [K.THETA_NOM]
         u = U.PSEUnit(r["unit_id"], r["agent"], core, U.Boundary(), U.Organelles(), th,
                       bool(r["uses_model"]))
         for k, e in json.loads(r["boundary"] or "{}").items():
@@ -335,6 +354,10 @@ class PseLib:
             u.theta._write(U._METER, rd.theta, rd.f)
             if rd.theta_model is not None:
                 u.theta.read_series.append(rd.theta_model)
+            rules_only = rd.theta_rules is not None and rd.theta_model is None
+            if not rules_only:                       # rule 53: no AI reader, no attractor
+                u.theta.attr_series.append(u.theta.current)
+                del u.theta.attr_series[:-K.WIN_LONG]
             if entity:
                 e = u.boundary.touch(entity[0], u.theta.current)
                 if e and u.boundary.eligible(e.entity_id):
@@ -342,7 +365,20 @@ class PseLib:
                     u.boundary.entities.pop(e.entity_id, None)
                     J.log(PSE_EV, "SHARED_LIB", {"event": "absorption", "unit": u.unit_id,
                                                  "entity": e.entity_id}, subject=u.unit_id)
-            rep = SW.assess(u.theta.series, boundary_empty=not u.boundary.entities)
+            rep = self.assess(u)
+            if rules_only:
+                rep.attractor, rep.tend, rep.tend_in = K.NOT_ENOUGH, "", None
+                rep.reasons = ["bez AI čitača — atraktori se ne računaju (pravilo 53)"]
+            rep.delta = u.theta.current - prev       # a jump is a jump, read or not
+            last_tend = self.tends.get(u.unit_id, "")
+            if rep.tend and rep.tend != last_tend:   # rule 52: a soft sign, in the log
+                J.log(PSE_EV, "doktor", {"event": "tendency", "unit": u.unit_id,
+                                         "toward": rep.tend, "in_moves": rep.tend_in,
+                                         "why": rep.tend_why},
+                      subject=u.unit_id, verdict="tendency")
+                self._doctor_row(u, [f"teži ka {rep.tend}"], None, "tendencija", rd)
+            self.tends[u.unit_id] = rep.tend
+            rep.pac = abs(rep.delta) >= K.PAC_POINTS
             # triggers from the move itself
             if rep.pac:
                 triggers.append(DR.T_PAC)
@@ -424,8 +460,7 @@ class PseLib:
                                          "triggers": triggers, "note": note},
                   subject=u.unit_id, verdict="frozen")
             if attractor is None:
-                attractor = SW.assess(u.theta.series,
-                                      boundary_empty=not u.boundary.entities).attractor
+                attractor = self.assess(u).attractor
             if was_restricted:
                 # a measure already waits: stay frozen until the operator decides
                 self._doctor_row(u, triggers, None, "zamrznuta-dok-mjera-ceka", reading)
@@ -506,6 +541,74 @@ class PseLib:
              status, json.dumps(snap) if snap else None,
              reading.theta_rules if reading else None,
              reading.theta_model if reading else None))
+
+    # ------------------------------------------------------------------ #
+    # rule 54: open measures re-read by the Doctor's current rules
+    _REREADABLE = {DR.T_BORDERLINE, DR.T_ATTRACTOR}
+
+    def review_open_measures(self) -> list[str]:
+        """At start: every OPEN Doctor measure whose hard signs came from an
+        attractor is re-read on the unit's stored θ with the current rules. If it
+        is no longer bad, the operator gets an item „Ukini mjeru“ — nothing is
+        lifted on its own. Measures already decided are not touched."""
+        out = []
+        reviewed = set()                                # once per measure, decided or not
+        for r in self.st.rows("SELECT payload FROM pending WHERE kind=?", (QUEUE_REVIEW,)):
+            try:
+                reviewed.add(json.loads(r["payload"]).get("measure_id"))
+            except (ValueError, TypeError):
+                pass
+        for it in self.st.open_items(QUEUE_MEASURE):
+            if it["id"] in reviewed:
+                continue
+            p = it["payload"] if isinstance(it["payload"], dict) else {}
+            f = p.get("finding") or {}
+            hard = set(f.get("hard") or [])
+            if not hard or not hard <= self._REREADABLE:
+                continue                                # harm, mission … stay as they are
+            rows = self.st.rows("SELECT * FROM pse_units WHERE unit_id=?", (p.get("unit"),))
+            if not rows:
+                continue
+            u = self._load(rows[0])
+            if not u.alive:
+                continue
+            rep = self.assess(u)
+            if rep.attractor not in (K.HEALTHY, K.NOT_ENOUGH):
+                continue
+            old = f.get("attractor") or ", ".join(sorted(hard))
+            pid = self.st.propose(
+                QUEUE_REVIEW,
+                f"Doktor, ponovni pregled: mjera za {u.unit_id} više nije opravdana "
+                f"(bilo: {old}; po pravilima {K.DOCTOR_RULES_VERSION}: zdrav)",
+                {"unit": u.unit_id, "agent": u.agent, "measure_id": it["id"],
+                 "old": f, "new": rep.as_dict(), "rules_version": K.DOCTOR_RULES_VERSION},
+                "doktor")
+            J.log(PSE_EV, "doktor", {"event": "measure-reviewed", "unit": u.unit_id,
+                                     "measure": it["id"], "review": pid,
+                                     "new": rep.attractor},
+                  subject=u.unit_id, verdict="review")
+            out.append(pid)
+        return out
+
+    def _on_review(self, item: dict, approve: bool) -> None:
+        p = item["payload"]
+        uid, mid = p["unit"], p["measure_id"]
+        if not approve:
+            J.log(PSE_EV, "operater", {"event": "review-kept", "unit": uid, "measure": mid},
+                  subject=uid, verdict="kept")
+            return
+        self.st.withdraw(mid, "operater", "ponovni pregled: mjera nije opravdana")
+        self.st.execute("UPDATE pse_doctor SET status=? WHERE pending_id=?",
+                        ("ukinuto-ponovni-pregled", mid))
+        r = self.st.rows("SELECT * FROM pse_units WHERE unit_id=?", (uid,))
+        if not r:
+            return
+        u = self._load(r[0])
+        u.restricted, u.frozen, u.freeze_reason = False, False, ""
+        self._save(u)
+        J.log(PSE_EV, "operater", {"event": "measure-lifted", "unit": uid, "measure": mid},
+              subject=uid, verdict="lifted")
+        self._emit("unfrozen", {"unit": uid, "actor": "operater"})
 
     def _snapshot(self, u: U.PSEUnit) -> dict:
         return {"boundary": {k: {"kind": e.kind, "alpha": e.alpha, "parents": list(e.parents),
@@ -617,7 +720,7 @@ class PseLib:
             return "kraj"
         if remaining_work <= left:
             return "dovoljno"
-        healthy = SW.assess(u.theta.series, not u.boundary.entities).attractor in (
+        healthy = self.assess(u).attractor in (
             K.HEALTHY, K.NOT_ENOUGH)
         spec = self.specs.get(u.agent)
         if u.extensions_running >= K.MAX_EXTENSIONS_RUNNING:
@@ -783,7 +886,7 @@ class PseLib:
         live = [u for u in self.units.values() if u.alive and not getattr(u, "lab", False)]
         att = {}
         for u in live:
-            a = SW.assess(u.theta.series, not u.boundary.entities).attractor
+            a = self.assess(u).attractor
             att[a] = att.get(a, 0) + 1
         frozen = [u.unit_id for u in live if u.frozen]
         restricted = [u.unit_id for u in live if u.restricted]
@@ -807,7 +910,7 @@ class PseLib:
                 m = self.st.rows("SELECT theta FROM pse_moves WHERE unit_id=? ORDER BY id DESC "
                                  "LIMIT 1", (r["unit_id"],))
                 th = m[0]["theta"] if m else K.THETA_NOM
-            att = (SW.assess(u.theta.series, not u.boundary.entities).attractor if u else "")
+            att = (self.assess(u).attractor if u else "")
             out.append({"unit": r["unit_id"], "agent": r["agent"], "alive": bool(r["alive"]),
                         "frozen": bool(r["frozen"]), "restricted": bool(r["restricted"]),
                         "theta": round(th, 2), "attractor": att, "lab": bool(r["lab"]),

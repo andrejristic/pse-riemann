@@ -653,6 +653,11 @@ class MainWindow(QMainWindow):
 
     # ---- SHARED_LIB heartbeat + connectivity (review fix 8) -------------- #
     def _start_runtime(self):
+        try:                                            # rule 54: open measures re-read
+            from ..shared_lib.pse_registry import pse as _pse
+            _pse().review_open_measures()
+        except Exception:                               # noqa: BLE001 — never blocks the start
+            pass
         from ..shared_lib import runtime as RT
         from ..methods import door as DOOR
         RT.install_hooks()

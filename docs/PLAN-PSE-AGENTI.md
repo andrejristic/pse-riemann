@@ -82,3 +82,12 @@ Stanje: rc1 izgrađen i pushan (`0cb32d4`); prvi živi test našao dva velika pr
 Ukupno oko 11–15,5 h.
 
 **Stanje (2026-10-27, noć):** R9–R14 urađeni — `7bc0a4d` (R9), `c1ab293` (R10), `0b9960d` (R11–R13), zatim izdanje R14. pytest 369/369, selftest iz oba paketa 0.3.0~rc2: SVE PROLAZI. Čeka Andreja: push, živi test rc2, „spoji u main“ (`docs/ZA-ANDREJA.md`).
+
+## Četvrta runda (2026-10-29, dogovor pravila 50–57): plan za 0.3.0~rc7
+
+| # | Korak | Šta | Provjera | Stanje |
+|---|---|---|---|---|
+| R15 | Atraktori (50–53) | `pse/swing.py`: okreti (plato se spaja), ovojnica zamaha, `tendency()`, borderline traži ≥ 2 okreta i ≥ 10 poteza; `pse_registry`: niz za atraktore samo iz poteza sa AI čitačem, „?“ za poteze samo pravila, „teži ka“ u Doktorovom dnevniku; Laboratorija prikazuje osnovu i tendenciju | testovi (11), kopija pravog vaulta: voice#1 → zdrav | ✅ |
+| R16 | Ponovni pregled (54) | `review_open_measures()` pri pokretanju, stavka `doctor-review`, odluka operatera | testovi; na kopiji vaulta stavka za voice#1 | ✅ |
+| R17 | TLS pinovi (56) | obavještenje, `tls.rescan()`, meni + Guardian tab | testovi (4), snimak | ✅ (rc6) |
+| R18 | Probni paket rc7 | lični paket, selftest iz paketa | SVE PROLAZI | ✅ |

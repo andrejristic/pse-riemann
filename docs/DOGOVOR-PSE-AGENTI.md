@@ -137,3 +137,18 @@ Posle svake faze: izvještaj, testovi i stanje „ko je sada PSE sazdan“.
 | 47 | Imena misija u chatu | glas SHARED_LIB-a daje imena misija kao linkove koji otvaraju radni prostor te misije; pitanje koje traži sud („sljedeći korak“, „šta da radim“) → glas kaže da baza na to ne odgovara i daje link „Razgovaraj o misiji: X“ |
 | 48 | Popravke (obavezno) | (a) Gemini 2.5: budžet razmišljanja po ulozi, limit izlaza = odgovor + budžet (razmišljanje ne jede odgovor); (b) odsječen odgovor (svi provajderi): jedan ponovni pokušaj sa većim limitom, a ako je opet odsječen — aplikacija to kaže; (c) neispravan SQL u glasu: jedan ponovni pokušaj sa greškom poslatom modelu, pa ljudska rečenica — nikad sirova greška; (d) čitač: limit po modelu (200 + budžet razmišljanja); nepotpun JSON → „čitač odsječen“ vidljiv u Laboratoriji |
 | 49 | Izdanje | 0.3.0~rc2, oba paketa (lični i javni), vodiči ažurirani, snimci iz paketa |
+
+## 9. Dogovor, četvrta runda (2026-10-29, posle živog testa rc2–rc6): atraktori i TLS pinovi
+
+Povod: `voice#1` je 27.10. zamrznut kao „borderline“ zbog **jednog** skoka θ (30 → 45) u nizu od 7 poteza, izmjerenog **bez AI čitača** (čitač je u rc1 bio odsječen). Mjera je čekala, a chat „činjenice“ je tiho radio bez modela.
+
+| # | Tema | Dogovor |
+|---|---|---|
+| 50 | Borderline traži ljuljanje | borderline (tvrdi znak) samo kad u prozoru ima **najmanje 2 okreta** θ i **najmanje 10 poteza**; jedan skok je nagla promjena (meki znak, PAC), ne borderline. Ljuljanje koje se gasi nije borderline |
+| 51 | Kuda ljuljanje teži | kroz zadnjih 3–6 zamaha između okreta: log Aᵢ ≈ a + s·i. s > 0 i prelazak amplitude (10) u ≤ 30 poteza → **teži ka B**; s < 0 i pad ispod 1 u ≤ 30 poteza **uz praznu granicu** → **teži ka S** (uz punu granicu to je smirivanje = zdravo); bez ljuljanja: drift srednje vrijednosti koji prelazi 33 / 27 u ≤ 30 poteza → **teži ka C / N** |
+| 52 | „Teži ka“ je meki znak | vidi se u Laboratoriji („teži ka B za ~n poteza“) i u Doktorovom dnevniku; **bez** stavke u redu i bez mjere. Mjera dolazi tek kad je atraktor stvarno dostignut |
+| 53 | Bez AI čitača nema atraktora | potezi sa riječima koje je ocijenio samo čitač pravila („bez čitača“, „čitač odsječen“) imaju svoj θ (i skok = meki znak), ali **ne ulaze u niz za atraktore**; atraktor tog poteza je „?“. Potezi bez riječi (rad) ulaze kao i do sada |
+| 54 | Ponovni pregled otvorenih mjera | pri pokretanju Doktor ponovo čita **otvorene** mjere čiji su tvrdi znaci došli iz atraktora (B / atraktor), po važećim pravilima (verzija pravila Doktora). Ako nalaz više nije loš → stavka „Doktor, ponovni pregled: ukinuti mjeru?“; **Odobri** = mjera se povlači i jedinica odmrzava, **Ne odobri** = mjera ostaje. Jednom po mjeri; već odlučene mjere se ne diraju; ništa se ne ukida samo |
+| 55 | Klizni prosjek θ (λ = 0,2) | samo za nivo-atraktore C i N; sirovi θ ostaje za skokove, ljuljanje, B i S. Uvodi se **posle** živog testa (sat rada), ne u rc7 |
+| 56 | TLS pinovi | uče se pri prvom kontaktu (kao do sada), ali aplikacija to **izričito kaže** (prozor pri pokretanju do potvrde, uvijek u Pomoć) i nudi **Podešavanje → Ponovo snimi TLS pinove…** (i u Guardian tabu): samo na mreži kojoj vjeruješ; server koji tada nije dostupan zadržava stare ključeve |
+| 57 | Izdanje | probni paket 0.3.0~rc7 (lični); javni paket i vodiči na kraju runde |

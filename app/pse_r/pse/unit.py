@@ -202,6 +202,9 @@ class Theta:
         self._f = f
         self.violations: list = []
         self.read_series: list[float] = []      # θ_read beside, for the operator
+        # θ of the moves the attractors are read from [rule 53]: every move except
+        # words that only the rule floor read (no AI reader, or the reader cut off)
+        self.attr_series: list[float] = list(self._series)
 
     @property
     def current(self) -> float:
