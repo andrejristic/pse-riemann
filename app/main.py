@@ -316,8 +316,11 @@ def main() -> int:
                    XDG_CONFIG_HOME=_os.path.join(tmp, "config"),
                    PSE_RIEMANN_SELFTEST_VAULT="1", PSE_RIEMANN_SILENT="1")
         try:
-            return subprocess.run([sys.executable] + sys.argv[:1] + ["--selftest"],
-                                  env=env).returncode
+            # a frozen build (PyInstaller .exe / .deb) is its own interpreter: argv[0] is
+            # the program itself, so it must not be passed again (it would open the GUI)
+            cmd = ([sys.executable, "--selftest"] if getattr(sys, "frozen", False)
+                   else [sys.executable] + sys.argv[:1] + ["--selftest"])
+            return subprocess.run(cmd, env=env).returncode
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
     if args and args[0] == "--bench":                  # round 3, item 22

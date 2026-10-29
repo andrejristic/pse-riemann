@@ -83,3 +83,29 @@ def test_frozen_voice_says_why_not_silently_no_model(app, operator, monkeypatch)
     assert "ne smije koristiti model" in known["answer"] and "zamrznuta" in known["answer"]
     assert "mission:" in known["answer"]                     # the canned answer still follows
     assert "ne smije koristiti model" in free["answer"] and "poznata pitanja" in free["answer"]
+
+
+def test_frozen_selftest_does_not_pass_itself_again(monkeypatch, tmp_path):
+    """Live test 0.3.0 (CI): in a PyInstaller build argv[0] is the program itself;
+    re-running [exe, exe, --selftest] opened the GUI instead of the self-test."""
+    import main as M
+    seen = {}
+
+    class R:
+        returncode = 0
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", "/opt/x/pse-riemann")
+    monkeypatch.setattr(sys, "argv", ["/opt/x/pse-riemann", "--selftest"])
+    monkeypatch.delenv("PSE_RIEMANN_SELFTEST_VAULT", raising=False)
+    monkeypatch.setattr(subprocess, "run", lambda cmd, env=None: seen.setdefault("cmd", cmd) and R())
+    assert M.main() == 0
+    assert seen["cmd"] == ["/opt/x/pse-riemann", "--selftest"]
+
+
+def test_frozen_build_reads_baked_edition(monkeypatch):
+    import types
+    from pse_r import config as C
+    monkeypatch.delenv("PSE_RIEMANN_EDITION", raising=False)
+    monkeypatch.setattr(C, "EDITION_FILE", C.Path("/nonexistent/.edition"))
+    monkeypatch.setitem(sys.modules, "pse_r._edition", types.SimpleNamespace(EDITION="public"))
+    assert C.edition() == "public"

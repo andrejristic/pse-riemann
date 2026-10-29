@@ -53,6 +53,12 @@ def edition() -> str:
     e = os.environ.get("PSE_RIEMANN_EDITION", "").strip()
     if not e and EDITION_FILE.exists():
         e = EDITION_FILE.read_text(encoding="utf-8").strip()
+    if not e:                       # a frozen build (PyInstaller) bakes it into the package
+        try:
+            from . import _edition  # type: ignore[attr-defined]
+            e = str(getattr(_edition, "EDITION", "")).strip()
+        except ImportError:
+            pass
     return e if e in ("andrej", "public") else "andrej"
 
 
