@@ -58,3 +58,28 @@ def test_selftest_never_touches_the_given_vault(tmp_path):
     assert "SVE PROLAZI" in r.stdout, r.stdout[-2000:] + r.stderr[-2000:]
     assert not vault.exists()                   # nothing written to the operator's vault
     assert not (tmp_path / "cfg" / "pse-riemann").exists()
+
+
+def test_frozen_voice_says_why_not_silently_no_model(app, operator, monkeypatch):
+    """Live test rc4: voice#1 frozen by the Doctor made the facts chat look as if
+    no model were connected. It must say why."""
+    from pse_r.gui import chat as C
+    from pse_r.llm import selection as SEL
+    from pse_r.pse import path as PATH
+    from pse_r.shared_lib import missions as MIS
+    MIS.seed_first()
+    monkeypatch.setattr(SEL, "get_main", lambda: "gemini")
+
+    def refuse(*a, **k):
+        raise PATH.Refused("Jedinica „voice#1“ je zamrznuta (borderline). "
+                           "Doktorova mjera čeka tvoju odluku u „Čeka tvoju odluku“.")
+    monkeypatch.setattr(PATH, "ask", refuse)
+    out = []
+    for q in ("koje misije imam?", "koliko izvora ima sa arXiv-a?"):
+        w = C._VoiceWorker(q)
+        w.done.connect(lambda a, e: out.append(a))
+        w.run()
+    known, free = out
+    assert "ne smije koristiti model" in known["answer"] and "zamrznuta" in known["answer"]
+    assert "mission:" in known["answer"]                     # the canned answer still follows
+    assert "ne smije koristiti model" in free["answer"] and "poznata pitanja" in free["answer"]

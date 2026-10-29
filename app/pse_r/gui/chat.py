@@ -75,6 +75,17 @@ def _follow_height(view) -> None:
     view.document().documentLayout().documentSizeChanged.connect(fit)
 
 
+def _why_no_model(e: Exception) -> str:
+    """Why the voice answers without a model — said first, so a frozen unit or a
+    spent budget never looks like "no model connected"."""
+    if isinstance(e, PATH.Refused):
+        return "> ⚠ " + tr("Glas SHARED_LIB-a sada ne smije koristiti model: {0} Kad odlučiš "
+                           "o mjeri, glas opet koristi model.").format(str(e).strip())
+    if isinstance(e, BudgetExceeded):
+        return "> ⚠ " + tr("Budžet za modele je potrošen: {0}").format(e)
+    return "> ⚠ " + tr("Nema dostupnog modela: {0}").format(e)
+
+
 def _human_warning(w: str) -> bool:
     """A voice warning meant for the reader (a removed number, a refused proof
     claim) — not a technical error (SQL, exception names)."""
@@ -132,8 +143,21 @@ class _VoiceWorker(QObject):
 
             try:
                 ans = VO.ask(q, translate=translate, compose=compose)
-            except (NoProvider, BudgetExceeded, PATH.Refused):
-                ans = VO.ask(q)                         # no model: canned questions only
+            except (NoProvider, BudgetExceeded, PATH.Refused) as e:
+                # never silently "bez modela" (live test rc4: the voice unit was frozen
+                # by the Doctor and the chat looked as if no model were connected)
+                why = _why_no_model(e)
+                try:
+                    ans = VO.ask(q)                     # canned questions still work
+                except VO.VoiceRefused:
+                    self.done.emit({"sql": "", "columns": [], "rows": [], "unknown": True,
+                                    "answer": why + "\n\n" + tr(
+                                        "Bez modela znam odgovoriti samo na poznata pitanja: "
+                                        "metode, misije, kartice, lab računanja i šta čeka "
+                                        "tvoju odluku. SQL možeš upisati i sam."),
+                                    "warnings": []}, "")
+                    return
+                ans.answer = why + "\n\n" + ans.answer
             PATH.work("voice", [PM.Action("SELECT nad pogledima", "f"),
                                 PM.Action("odgovor operateru samo iz baze", "o")],
                       entity=("operater", "human"))

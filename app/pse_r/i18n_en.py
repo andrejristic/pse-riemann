@@ -1217,4 +1217,7 @@ EN = {
 'Online AI je uključen, ali glavni AI nije izabran (ključevi su zaboravljeni ili ih nema). Otvoriti Podešavanje da upišeš ključ i izabereš model?': 'Online AI is on, but no main AI is chosen (the keys were forgotten or are missing). Open Setup to enter a key and choose a model?',
 'Online AI je uključen. Glavni: {0} · skeptik: {1}.': 'Online AI is on. Main: {0} · skeptic: {1}.',
 'nedostupan': 'unavailable',
+'Glas SHARED_LIB-a sada ne smije koristiti model: {0} Kad odlučiš o mjeri, glas opet koristi model.': 'The SHARED_LIB voice may not use a model right now: {0} Once you decide on the measure, the voice uses the model again.',
+'Nema dostupnog modela: {0}': 'No model available: {0}',
+'Budžet za modele je potrošen: {0}': 'The model budget is spent: {0}',
 }

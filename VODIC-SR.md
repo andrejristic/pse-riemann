@@ -22,7 +22,7 @@ Unutra radi više „agenata“ (chat, skeptik, čitač radova, čuvari…). U v
 **Instalacija** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc4_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc5_amd64.deb
 ```
 
 Paket nosi sve svoje Python biblioteke (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) i ne dira sistemski Python. Uklanjanje: `sudo apt remove pse-riemann` — tvoji podaci ostaju.
