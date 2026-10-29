@@ -739,6 +739,8 @@ class GuardianTab(QWidget, JobMixin):
         bar = QHBoxLayout()
         bar.addWidget(button(tr("↻ Provjeri host"), self.refresh_host))
         bar.addWidget(button(tr("Test mreže"), self.preflight))
+        bar.addWidget(button(tr("Ponovo snimi TLS pinove…"),
+                             lambda: getattr(self.window(), "rescan_pins", lambda: None)()))
         bar.addWidget(button(tr("Oslobodi host iz karantina"), self.release))
         bar.addWidget(button(tr("Provjeri prava čuvara"), self.check_rights))
         bar.addWidget(button(tr("Benchmark → izvještaj"), self.run_bench))

@@ -1,4 +1,4 @@
-# PSE Riemann 0.3.0~rc5 — installation and live test (for Andrej)
+# PSE Riemann 0.3.0~rc6 — installation and live test (for Andrej)
 
 This guide is only for you and does not go into the package. Follow it in order: every step has "what you should see", and you write the result in the table at the end (or just dictate it to me).
 
@@ -17,10 +17,10 @@ This guide is only for you and does not go into the package. Follow it in order:
 
 ## 1. Installing your package
 
-The package is `~/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc5_amd64.deb`. It replaces rc1, and your results in "PSE Riemann rezultati" stay.
+The package is `~/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc6_amd64.deb`. It replaces rc1, and your results in "PSE Riemann rezultati" stay.
 
 ```bash
-sudo apt install "$HOME/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc5_amd64.deb"
+sudo apt install "$HOME/Desktop/PSE Riemann/pse-riemann-andrej_0.3.0~rc6_amd64.deb"
 ```
 
 ```bash
@@ -66,7 +66,7 @@ Let the main AI be **Gemini 2.5 Flash** (that is where the problem was), and the
 
 ## 4. The public package (optional)
 
-`pse-riemann_0.3.0~rc5_amd64.deb` is for other people: empty missions, an empty vault and "+ New mission". Do not install it over yours; try it on another computer or in a virtual machine.
+`pse-riemann_0.3.0~rc6_amd64.deb` is for other people: empty missions, an empty vault and "+ New mission". Do not install it over yours; try it on another computer or in a virtual machine.
 
 ## 5. Results
 

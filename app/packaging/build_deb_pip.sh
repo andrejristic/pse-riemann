@@ -278,7 +278,9 @@ if [ "$1" = "configure" ]; then
     echo "PRIJE PUTA: pokreni jednom sa mreze kojoj vjerujes i uradi"
     echo "  Corpus -> Skupi  i  Guardian -> Test mreze."
     echo "  TLS pinovi se uce pri prvom kontaktu; ako je prvi kontakt"
-    echo "  na hotelskom WiFi-ju, zapamtices presretaca."
+    echo "  na hotelskom WiFi-ju, zapamtices presretaca. Aplikacija ti to"
+    echo "  kaze i pri prvom pokretanju; ako nesto podje naopako:"
+    echo "  Podesavanje -> Ponovo snimi TLS pinove (samo na mrezi kojoj vjerujes)."
     echo ""
 fi
 exit 0

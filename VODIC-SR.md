@@ -22,7 +22,7 @@ Unutra radi više „agenata“ (chat, skeptik, čitač radova, čuvari…). U v
 **Instalacija** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc5_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc6_amd64.deb
 ```
 
 Paket nosi sve svoje Python biblioteke (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) i ne dira sistemski Python. Uklanjanje: `sudo apt remove pse-riemann` — tvoji podaci ostaju.
@@ -207,6 +207,7 @@ Kad jedinica završi život (iz bilo kog razloga), **sve iz nje ide u SHARED_LIB
 - **Čuvar mreže** posmatra svaki zahtjev; sumnjiv host ide u karantin, a oslobađaš ga ti (stavka u redu).
 - **SSH čuvar** (zaseban proces) prati prijave na računar; povratne mjere (blokada IP-a 24 h, prekid sesije) radi sam ako ima usko sudo pravo (vodič `SUDOERS-SR.md`), trajne mjere predlaže tebi sa tačnom komandom.
 - **Čuvari pečata:** svaki finalni izvještaj se pečati (sha256); izmjena se otkrije, original vrati, a izmijenjena verzija sačuva u `forensic/`.
+- **TLS pinovi se uče pri prvom kontaktu:** kad aplikacija prvi put razgovara sa serverom, zapamti njegove javne ključeve i posle odbija svaki drugi. Jedina slabost: ako je prvi kontakt presretnut, zapamti presretača — zato prvi kontakt neka bude sa mreže kojoj vjeruješ (Corpus → Skupi, Guardian → Test mreže). Aplikacija to kaže i sama, pri prvom pokretanju. Ako nešto pođe naopako: **Podešavanje → Ponovo snimi TLS pinove…** (ili dugme u Guardian tabu), samo sa mreže kojoj vjeruješ; server koji tada nije dostupan zadržava stare ključeve.
 - **Dnevnik** je append-only sa hash-lancem; odluke se mogu ponovo izvesti i provjeriti (replay).
 
 ---

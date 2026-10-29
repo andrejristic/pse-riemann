@@ -203,6 +203,7 @@ class MainWindow(QMainWindow):
         # top bar replaced them; network/model state is in its pills)
         self.refresh_status()
         self._build_menu()                              # 6d R5 (rule 37)
+        QTimer.singleShot(2500, self.tls_notice)        # said explicitly, once
         self._start_runtime()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.refresh_status)
@@ -244,6 +245,8 @@ class MainWindow(QMainWindow):
                     lambda: self.tabs.setCurrentWidget(self._tab(self.tab_pselab)))
         m = mb.addMenu(tr("Podešavanje"))
         m.addAction(tr("Podešavanje — operater, glavni AI, skeptik, čuvar…"), self.open_setup)
+        m.addSeparator()
+        m.addAction(tr("Ponovo snimi TLS pinove…"), self.rescan_pins)
         m = mb.addMenu(tr("Jezik"))
         from .. import i18n
         a_sr = m.addAction(tr("Srpski (SR)"), lambda: i18n.lang() != "sr" and self.toggle_language())
@@ -253,6 +256,99 @@ class MainWindow(QMainWindow):
             a.setChecked(i18n.lang() == code)
         m = mb.addMenu(tr("Pomoć"))
         m.addAction(tr("Vodič"), self.open_guide)
+        m.addAction(tr("TLS pinovi — šta su i kad ih ponovo snimiti"),
+                    lambda: self.tls_notice(force=True))
+
+    # ---- TLS pins: said explicitly, and re-scanned on request -------------- #
+    def _tls_text(self) -> str:
+        from ..guardian import tls as TLS
+        n = len(TLS.pins().hosts())
+        return tr("<b>TLS pinovi se uče pri prvom kontaktu.</b><br><br>"
+                  "Kad aplikacija prvi put razgovara sa nekim serverom (model, arXiv, "
+                  "Crossref …), zapamti njegove javne ključeve. Posle toga odbija svaki "
+                  "server koji nema te ključeve — to štiti od presretanja na tuđem WiFi-ju "
+                  "(hotel, aerodrom).<br><br>"
+                  "<b>Jedina slabost:</b> ako je baš taj prvi kontakt bio presretnut, "
+                  "aplikacija zapamti presretača. Zato prvi kontakt treba da bude sa mreže "
+                  "kojoj vjeruješ (kuća): pokreni Corpus → Skupi i Guardian → Test mreže.<br><br>"
+                  "<b>Ako nešto pođe naopako</b> (uzbuna „sertifikat NE odgovara“, a znaš da "
+                  "je mreža tvoja, ili sumnjaš da su pinovi naučeni na tuđoj mreži): "
+                  "<b>Podešavanje → Ponovo snimi TLS pinove…</b> — samo sa mreže kojoj "
+                  "vjeruješ.<br><br>Sada zapamćeno: {0} servera.").format(n)
+
+    def tls_notice(self, force: bool = False) -> None:
+        """Rule (Andrej, rc5): the operator is TOLD that pins are learned on first
+        contact. Shown until acknowledged; always from Pomoć. Non-blocking."""
+        from PySide6.QtWidgets import QMessageBox
+        from .. import settings as S
+        from ..guardian import tls as TLS
+        if not force and S.get(TLS.NOTICE_KEY):
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Information)
+        box.setWindowTitle(tr("TLS pinovi"))
+        box.setTextFormat(Qt.RichText)
+        box.setText(self._tls_text())
+        ok = box.addButton(tr("Razumijem"), QMessageBox.AcceptRole)
+        again = box.addButton(tr("Ponovo snimi pinove sada…"), QMessageBox.ActionRole)
+
+        def done(_r=0):
+            if box.clickedButton() in (ok, again):
+                S.set_(TLS.NOTICE_KEY, True)
+            if box.clickedButton() is again:
+                self.rescan_pins()
+        box.finished.connect(done)
+        box.open()
+        self._tls_box = box
+
+    def rescan_pins(self) -> None:
+        """Podešavanje → Ponovo snimi TLS pinove…: confirm, then re-learn in the
+        background; a host that cannot be reached keeps its old pins."""
+        import threading
+        from PySide6.QtCore import QObject, Signal as _Sig
+        from PySide6.QtWidgets import QMessageBox
+        from ..guardian import tls as TLS
+        from ..shared_lib import operator as OP
+        if not OP.current():
+            QMessageBox.warning(self, tr("TLS pinovi"), tr("Prvo se prijavi kao operater."))
+            return
+        hosts = TLS.rescan_hosts()
+        if QMessageBox.question(self, tr("Ponovo snimi TLS pinove"), tr(
+                "Zaboraviti zapamćene ključeve za {0} servera i naučiti ih ponovo, sada?\n\n"
+                "Uradi ovo SAMO na mreži kojoj vjeruješ (kuća). Na tuđem WiFi-ju bi "
+                "aplikacija mogla zapamtiti presretača.\n\nServer koji sada nije dostupan "
+                "zadržava stare ključeve.").format(len(hosts))) != QMessageBox.Yes:
+            return
+
+        class _B(QObject):
+            done = _Sig(object, str)
+        if getattr(self, "_pins_bridge", None) is None:
+            self._pins_bridge = _B()
+            self._pins_bridge.done.connect(self._pins_done)
+        br = self._pins_bridge
+        self.statusBar().showMessage(tr("Snimam TLS pinove za {0} servera…").format(len(hosts)))
+
+        def work():
+            try:
+                br.done.emit(TLS.rescan(hosts), "")
+            except Exception as e:                       # noqa: BLE001 — shown
+                br.done.emit(None, str(e))
+        threading.Thread(target=work, name="tls-rescan", daemon=True).start()
+
+    def _pins_done(self, res, err: str) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        self.statusBar().clearMessage()
+        if err:
+            QMessageBox.warning(self, tr("TLS pinovi"), err)
+            return
+        ok = [r["host"] for r in res if r["ok"]]
+        bad = [r for r in res if not r["ok"]]
+        txt = tr("Ponovo snimljeno: {0} od {1} servera.").format(len(ok), len(res))
+        if bad:
+            txt += "\n\n" + tr("Nije dostupno (stari ključevi ostaju):") + "\n" + "\n".join(
+                f"• {r['host']} — {r['detail'][:120]}" for r in bad)
+        QMessageBox.information(self, tr("TLS pinovi"), txt)
+        self.refresh_status()
 
     def open_swarm(self):
         from PySide6.QtWidgets import QDialog, QVBoxLayout as _V

@@ -22,7 +22,7 @@ Several "agents" work inside (chat, skeptic, paper reader, guardians…). In ver
 **Installing** (Ubuntu / Mint, 64-bit):
 
 ```bash
-sudo apt install ./pse-riemann_0.3.0~rc5_amd64.deb
+sudo apt install ./pse-riemann_0.3.0~rc6_amd64.deb
 ```
 
 The package carries all its own Python libraries (PySide6, mpmath, numpy, matplotlib, sympy, scipy, llama-cpp) and does not touch the system Python. Removing: `sudo apt remove pse-riemann` — your data stays.
@@ -210,6 +210,7 @@ When a unit ends its life (for any reason), **everything in it goes to SHARED_LI
 - **The network guardian** watches every request; a suspicious host goes into quarantine, and you release it (a queue item).
 - **The SSH guardian** (a separate process) watches logins to the computer; it applies reversible measures (block an IP for 24 h, end a session) on its own if it has a narrow sudo right (guide `SUDOERS-EN.md`), and proposes permanent measures to you with the exact command.
 - **Seal keepers:** every final report is sealed (sha256); a change is detected, the original restored, and the changed version kept in `forensic/`.
+- **TLS pins are learned on first contact:** the first time the app talks to a server, it remembers its public keys and afterwards refuses any other. The one weakness: if the first contact is intercepted, it remembers the interceptor — so make the first contact from a network you trust (Corpus → Collect, Guardian → Network test). The app says this itself on first start. If something goes wrong: **Setup → Re-scan TLS pins…** (or the button in the Guardian tab), only from a network you trust; a server that is not reachable then keeps its old keys.
 - **The journal** is append-only with a hash chain; decisions can be re-derived and checked (replay).
 
 ---

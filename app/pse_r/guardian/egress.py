@@ -461,8 +461,9 @@ class Egress:
                     f"Viđeno:    {live[:2]}\n"
                     f"Na mreži {self.network}. Ovo je ili rotacija sertifikata ili "
                     f"presretanje. Na tuđem WiFi-ju pretpostavi presretanje: prekini "
-                    f"rad na ovoj mreži. Ako si siguran da je rotacija, obriši pin "
-                    f"u Guardian tabu — ali to uradi sa mreže kojoj vjeruješ.")
+                    f"rad na ovoj mreži. Ako si siguran da je rotacija: Podešavanje → "
+                    f"„Ponovo snimi TLS pinove…“ (ili Guardian tab) — ali samo sa mreže "
+                    f"kojoj vjeruješ.")
         except BaseException:
             try:
                 conn.close()
