@@ -1,5 +1,13 @@
 # Za Andreja: šta čeka tebe
 
+## 0. Stanje 2026-10-29: 0.3.0 izašao, objava čeka tvoje „može“
+
+Sve lokalno je gotovo. Na tvoje „može“ ide, ovim redom:
+1. `.exe` (`PSERiemann-Setup-0.3.0.exe`, sha256 `2bb91668…ea96`) + novi `SHA256SUMS.txt` + novi opis u izdanja **v0.3.0** na oba repoa (andrejristic, zeravatechnologies);
+2. sajt: push zadnjeg commita na granu `claude/pse-riemann-0-3` (PR #56), CI sajta, spajanje → objava;
+3. push lokalnih commitova PSE Riemann (WORKLOG, ZA-ANDREJA, .gitignore) na oba repoa;
+4. „spoji u main“ (PSE Riemann) — samo kad kažeš.
+
 Stanje 2026-10-27, noć. Treća runda (R9–R14, izdanje **0.3.0~rc2**) je **urađena**. Ovdje je sve što ne mogu bez tebe, redom kojim predlažem da ide.
 
 ## 1. Push grane `feature/runda3` (na tvoje „pushuj“)
